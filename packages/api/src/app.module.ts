@@ -1,0 +1,54 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccountInvitesModule } from './account-invites/account-invites.module';
+import { AccountsModule } from './accounts/accounts.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { ClientPortalModule } from './client-portal/client-portal.module';
+import { CustomerModule } from './customers/customer.module';
+import { DocumentModule } from './documents/document.module';
+import { NotificationModule } from './notifications/notification.module';
+import { ProjectMemberModule } from './project-members/project-member.module';
+import { ProjectsModule } from './projects/projects.module';
+import { RoadmapModule } from './roadmaps/roadmap.module';
+import { TaskModule } from './tasks/task.module';
+import { UsersModule } from './users/users.module';
+
+@Module({
+  imports: [
+    AccountInvitesModule,
+    ProjectMemberModule,
+    NotificationModule,
+    DocumentModule,
+    ClientPortalModule,
+    RoadmapModule,
+    CustomerModule,
+    TaskModule,
+    ProjectsModule,
+    UsersModule,
+    AuthModule,
+    AccountsModule,
+    ConfigModule.forRoot({ isGlobal: true }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('POSTGRES_HOST'),
+        port: configService.get('POSTGRES_PORT'),
+        username: configService.get('POSTGRES_USER'),
+        password: configService.get('POSTGRES_PASSWORD'),
+        database: configService.get('POSTGRES_DATABASE'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        migrationsRun: false, // Set to true to auto-run migrations on startup (optional)
+        synchronize: false, // Disable auto-sync to use migrations
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
