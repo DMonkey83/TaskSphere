@@ -1,0 +1,20 @@
+{
+  "name": "taskspere",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test"
+  },
+  "keywords": [],
+  "author": "Einars Vilnis",
+  "license": "ISC",
+  "packageManager": "pnpm@10.10.0",
+  "dependencies": {
+    "turbo": "^2.0.0",
+    "concurrently": "^8.2.2"
+  }
+}
