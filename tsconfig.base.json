@@ -18,6 +18,9 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "baseUrl": ".",
+    "types": [
+      "node"
+    ],
     "paths": {
       "@shared/*": [
         "packages/shared/src/*"

@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json", // Reference to the base config
+  "compilerOptions": {
+    "outDir": "./dist", // Output compiled files into a dist folder
+    "rootDir": "./src", // The source files for the shared package
+    "declaration": true, // Generate `.d.ts` declaration files
+    "declarationMap": true, // Generate source maps for declaration files
+    "sourceMap": true // Enable source maps for debugging
+  },
+  "include": [
+    "src/**/*.ts"
+  ], // Include all `.ts` files in the shared package source
+  "exclude": [
+    "node_modules",
+    "dist"
+  ] // Exclude generated files and node_modules
+}

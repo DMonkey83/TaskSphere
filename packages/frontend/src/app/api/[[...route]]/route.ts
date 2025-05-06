@@ -3,13 +3,15 @@ import { cors } from 'hono/cors';
 import { handle } from 'hono/vercel';
 import axios, { AxiosError } from 'axios'
 import { HttpStatusCode } from '@/types/apiCalls.types';
+import { getEnv } from '@shared/utils/validateEnv';
+
+const env = getEnv()
 
 const app = new Hono();
 
-const BACKEND_API = 'http://localhost:3000'
 
 app.use('*', cors({
-  origin: 'http://localhost:3001',
+  origin: env.FRONTEND_API_URL,
   credentials: true
 }))
 
@@ -18,7 +20,7 @@ app.use('*', cors({
 app.post('/auth/register', async (c) => {
   try {
     const body = await c.req.json()
-    const { data, status } = await axios.post(`${BACKEND_API}/auth/register`, body)
+    const { data, status } = await axios.post(`${env.BACKEND_API_URL}/auth/register`, body)
     return c.json(data, status as HttpStatusCode)
   } catch (err) {
     const axiosErr = err as AxiosError
@@ -28,7 +30,7 @@ app.post('/auth/register', async (c) => {
   }
 })
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 export const POST = handle(app)
 export const OPTIONS = handle(app)
