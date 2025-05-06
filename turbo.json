@@ -15,8 +15,10 @@
       ]
     },
     "lint": {
-      "outputs": []
+      "outputs": ["eslint-report.json"]
     },
-    "test": {}
+    "test": {
+      "outputs": ["coverage/**", "test-results/**"]
+    }
   }
 }
