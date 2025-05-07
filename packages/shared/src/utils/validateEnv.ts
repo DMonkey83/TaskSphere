@@ -27,7 +27,8 @@ const serverSchema = z.object(({
 }))
 
 const clientSchema = z.object({
-  NEXT_PUBLIC_API_URL: z.string().url(),
+  NEXT_PUBLIC_FRONTEND_API_URL: z.string().url(),
+  NEXT_PUBLIC_BACKEND_API_URL: z.string().url(),
 })
 
 const schema = serverSchema.merge(clientSchema)

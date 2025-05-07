@@ -27,6 +27,7 @@ export class AuthController {
 
   @Post('register')
   async register(@Body(new ZodValidationPipe(RegisterDto)) body: RegisterDto) {
+    console.log('body', body);
     const account = await this.accountService.create({
       name: body.accountName,
       industry: body.industry,

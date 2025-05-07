@@ -13,6 +13,22 @@ export const RegisterSchema = z.object({
   industry: z.enum(['programming', 'legal', 'logistics', 'other']).optional(),
 });
 
+export type RegisterInput = z.infer<typeof RegisterSchema>
+export type RegisterResponse = {
+  email: string,
+  role: string,
+  firstName: string,
+  lastName: string,
+  accountId: string
+
+}
+
+export type LoginInput = z.infer<typeof LoginSchema>
+export type LoginResponse = {
+  access_token: string,
+  refresh_token: string
+}
+
 export const LoginResponseSchema = z.object({
   access_token: z.string(),
 });
