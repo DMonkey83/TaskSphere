@@ -41,26 +41,27 @@ app.post("/api/auth/register", async (c) => {
 app.post("/api/auth/login", async (c) => {
   try {
     const body = await c.req.json();
-    console.log("body", body);
+    console.log("Received login request with body:", body);
+    
     const { data, status } = await serverApi.post(`/auth/login`, body);
-   // Set access_token and refresh_token in cookies
-   if (data.access_token) {
-    c.header('Set-Cookie', `access_token=${data.access_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=900`); // 15 minutes
-  }
-  if (data.refresh_token) {
-    c.header('Set-Cookie', `refresh_token=${data.refresh_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=604800`, { append: true }); // 7 days
-  }
+
+    // Set access_token and refresh_token in cookies
+    if (data.access_token) {
+      c.header('Set-Cookie', `access_token=${data.access_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=900`); // 15 minutes
+    }
+    if (data.refresh_token) {
+      c.header('Set-Cookie', `refresh_token=${data.refresh_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=604800`, { append: true }); // 7 days
+    }
 
     return c.json(data, status as HttpStatusCode);
   } catch (err) {
     const axiosErr = err as AxiosError;
-    const errorData = axiosErr.response?.data ?? {
-      message: "Login failed",
-    };
+    const errorData = axiosErr.response?.data ?? { message: "Login failed" };
     const status = axiosErr.response?.status ?? 500;
     return c.json(errorData, status as HttpStatusCode);
   }
 });
+
 
 
 // Proxy: Refresh token route

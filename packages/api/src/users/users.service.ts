@@ -25,7 +25,7 @@ export class UsersService {
     private inviteService: AccountInvitesService,
     @InjectRepository(AccountInvite)
     private inviteRepository: Repository<AccountInvite>,
-  ) { }
+  ) {}
 
   async findByEmail(email: string): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { email } });
