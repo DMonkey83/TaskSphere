@@ -5,10 +5,12 @@ export const CreateTaskSchema = z.object({
   projectKey: z.string().min(1),
   title: z.string().min(1),
   description: z.string().optional(),
-  asigneeId: z.string().uuid().optional(),
+  assigneeId: z.string().uuid().optional(),
   creatorId: z.string().uuid(),
   parentId: z.string().uuid().optional(),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
+  projectId: z.string().uuid(),
+  teamId: z.string().uuid().optional(),
   type: z
     .enum(['epic', 'bug', 'feature', 'story', 'subtask'])
     .default('subtask'),
@@ -32,8 +34,20 @@ export const UpateTaskSchema = z.object({
   storyPoints: z.number().optional(),
   deliveryWindow: z.string().optional(),
   asigneeId: z.string().uuid().optional(),
+  parentId: z.string().uuid().optional(),
+  assigneeId: z.string().uuid().optional(),
   dueDate: z.coerce.date().optional(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
+  type: z.enum(['epic', 'bug', 'feature', 'story', 'subtask']).optional(),
+  teamId: z.string().uuid().optional(),
+  relatedTasks: z
+    .array(
+      z.object({
+        taskId: z.string().uuid(),
+        relationType: z.enum(['cloned_from', 'blocked_by', 'blocking']),
+      }),
+    )
+    .optional(),
 });
 
 export const LogTaskStatusSchema = z.object({

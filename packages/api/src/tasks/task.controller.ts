@@ -1,10 +1,25 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { TaskService } from './task.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RoleGuard } from '../auth/role.guard';
 import { Roles } from '../auth/roles.decorator';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { CreateTaskDto, LogTaskStatusDto } from './dto/task.dto';
+import {
+  CreateTaskDto,
+  LogTaskStatusDto,
+  UpateTaskSchema,
+  UpdateTaskDto,
+} from './dto/task.dto';
+import { User } from '../users/entities/user.entity';
+import { GetUser } from '../auth/get-user.decorator';
 
 @Controller('tasks')
 export class TaskController {
@@ -15,8 +30,9 @@ export class TaskController {
   @Post()
   async create(
     @Body(new ZodValidationPipe(CreateTaskDto)) body: CreateTaskDto,
+    @GetUser() user: User,
   ) {
-    return this.tasksService.create(body);
+    return this.tasksService.createTask(body, user);
   }
 
   @Get(':id/hierarchy')
@@ -32,5 +48,16 @@ export class TaskController {
     body: LogTaskStatusDto,
   ) {
     return this.tasksService.logStatus(taskId, body);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RoleGuard)
+  @Roles('project_manager', 'team_lead', 'admin')
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpateTaskSchema)) dto: Partial<UpdateTaskDto>,
+    @GetUser() user: User,
+  ) {
+    return this.tasksService.update(id, dto, user);
   }
 }

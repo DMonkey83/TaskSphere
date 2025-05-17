@@ -36,7 +36,7 @@ export class Task {
   description: string;
 
   @ManyToOne(() => User, { nullable: true })
-  asignee: User;
+  assignee: User;
 
   @ManyToOne(() => User, { nullable: true })
   creator: User;
