@@ -15,6 +15,7 @@ import {
 } from './dto/task.dto';
 import { Task } from './entities/task.entity';
 import { TaskRelation } from './entities/task-relation';
+import { TaskActivityService } from '../TaskActivities/task-activity.service';
 
 @Injectable()
 export class TaskService {
@@ -26,6 +27,7 @@ export class TaskService {
     @InjectRepository(TaskRelation)
     private taskRelationsRepository: Repository<TaskRelation>,
     private projectService: ProjectsService,
+    private taskActivityService: TaskActivityService,
   ) {}
 
   private async generateTaskKey(projectKey: string): Promise<string> {
@@ -67,6 +69,11 @@ export class TaskService {
       task.parent = parent;
     }
     await this.tasksRepository.save(task);
+    await this.taskActivityService.logActivity({
+      taskId: task.id,
+      userId: dto.creatorId,
+      action: 'created',
+    });
     if (dto.relatedTasks) {
       const validRelations = dto.relatedTasks?.filter(
         (rel) => rel.taskId && rel.relationType,

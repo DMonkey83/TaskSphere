@@ -19,7 +19,7 @@ import { TaskTagModule } from './task-tags/task-tag.module';
 import { TaskActivityModule } from './TaskActivities/task-activity.module';
 import { TaskModule } from './tasks/task.module';
 import { TeamsModule } from './teams/teams.module';
-import { TimeTrackingModule } from './TimeTracking/time-tracking.module';
+import { TimeTrackingModule } from './time-trackings/time-tracking.module';
 import { UsersModule } from './users/users.module';
 
 @Module({

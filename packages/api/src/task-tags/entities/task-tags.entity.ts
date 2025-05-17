@@ -16,7 +16,7 @@ export class Tag {
   name: string;
 
   @Column({ nullable: true })
-  color: true;
+  color: string;
 
   @ManyToMany(() => Task, (task) => task.tags)
   @JoinTable()

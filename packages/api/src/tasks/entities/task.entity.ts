@@ -4,7 +4,7 @@ import { Project } from '../../projects/entities/project.entity';
 import { Tag } from '../../task-tags/entities/task-tags.entity';
 import { TaskActivity } from '../../TaskActivities/entities/task-activities.entity';
 import { Team } from '../../teams/entities/team.entity';
-import { TimeTracking } from '../../TimeTracking/entities/time-tracking.entity';
+import { TimeTracking } from '../../time-trackings/entities/time-tracking.entity';
 import { User } from '../../users/entities/user.entity';
 import {
   Column,

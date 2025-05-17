@@ -10,7 +10,8 @@ import { Comment } from '../comments/entities/comments.entity';
 import { Attachment } from '../attachments/entities/attachments.entity';
 import { Tag } from '../task-tags/entities/task-tags.entity';
 import { TaskActivity } from '../TaskActivities/entities/task-activities.entity';
-import { TimeTracking } from '../TimeTracking/entities/time-tracking.entity';
+import { TimeTracking } from '../time-trackings/entities/time-tracking.entity';
+import { TaskActivityModule } from '../TaskActivities/task-activity.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { TimeTracking } from '../TimeTracking/entities/time-tracking.entity';
     ]),
     ProjectsModule,
     UsersModule,
+    TaskActivityModule,
   ],
   controllers: [TaskController],
   providers: [TaskService],
