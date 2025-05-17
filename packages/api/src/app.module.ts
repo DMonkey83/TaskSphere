@@ -5,19 +5,31 @@ import { AccountInvitesModule } from './account-invites/account-invites.module';
 import { AccountsModule } from './accounts/accounts.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AttachmentModule } from './attachments/attachment.module';
 import { AuthModule } from './auth/auth.module';
 import { ClientPortalModule } from './client-portal/client-portal.module';
+import { CommentModule } from './comments/comment.module';
 import { CustomerModule } from './customers/customer.module';
 import { DocumentModule } from './documents/document.module';
 import { NotificationModule } from './notifications/notification.module';
 import { ProjectMemberModule } from './project-members/project-member.module';
 import { ProjectsModule } from './projects/projects.module';
 import { RoadmapModule } from './roadmaps/roadmap.module';
+import { TaskTagModule } from './task-tags/task-tag.module';
+import { TaskActivityModule } from './TaskActivities/task-activity.module';
 import { TaskModule } from './tasks/task.module';
+import { TeamsModule } from './teams/teams.module';
+import { TimeTrackingModule } from './TimeTracking/time-tracking.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
+    TimeTrackingModule,
+    TaskActivityModule,
+    TaskTagModule,
+    AttachmentModule,
+    CommentModule,
+    TeamsModule,
     AccountInvitesModule,
     ProjectMemberModule,
     NotificationModule,

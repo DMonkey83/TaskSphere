@@ -1,10 +1,17 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { LoginDto, LoginResponseDto, RegisterDto } from './dto/auth.dto';
 import { UsersService } from '../users/users.service';
 import { AccountsService } from '../accounts/accounts.service';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -18,25 +25,28 @@ export class AuthController {
   async login(
     @Body(new ZodValidationPipe(LoginDto)) body: LoginDto,
     @Res() res: Response,
-  ): Promise<LoginResponseDto> {
+  ): Promise<void> {
     const user: { id: string; email: string; role: string } | null =
       await this.authService.validateUser(body);
     if (!user) {
       throw new Error('Invalid credentials');
     }
+    console.log('loginuser', user);
     const { access_token, refresh_token } = await this.authService.login(user);
 
     res.cookie('access_token', access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      // secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none',
       maxAge: 15 * 60 * 1000,
     });
 
     res.cookie('refresh_token', refresh_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      // secure: process.env.NODE_ENV === 'production',
+      secure: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -46,7 +56,40 @@ export class AuthController {
       role: user.role,
     };
 
-    return loginResponse;
+    console.log('login tokens', loginResponse);
+    res.json(loginResponse);
+  }
+
+  @Post('refresh')
+  async refresh(@Req() req: Request, @Res() res: Response): Promise<Response> {
+    const cookies = req.cookies as { refresh_token?: string };
+    const refreshToken = cookies.refresh_token;
+    if (!refreshToken)
+      throw new UnauthorizedException('No refresh token provided');
+
+    try {
+      const { access_token, refresh_token } =
+        await this.authService.refreshToken(refreshToken);
+
+      res.cookie('access_token', access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none',
+        maxAge: 15 * 60 * 1000,
+      });
+
+      res.cookie('refresh_token', refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+      return res.json('New Refresh and access tokens created');
+    } catch (error) {
+      throw new UnauthorizedException(
+        `Invalid or expired refresh token, ${error instanceof Error ? error.message : JSON.stringify(error)}`,
+      );
+    }
   }
 
   @Post('register')

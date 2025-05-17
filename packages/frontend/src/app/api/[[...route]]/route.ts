@@ -5,20 +5,18 @@ import { AxiosError } from "axios";
 import { HttpStatusCode } from "@/types/apiCalls.types";
 import { getEnv } from "@shared/utils/validateEnv";
 import { serverApi } from "@/lib/axios";
-import {getCookie, setCookie} from 'hono/cookie'
+import { getCookie, setCookie } from "hono/cookie";
 
 const env = getEnv();
 
 const app = new Hono();
 
 // Enable CORS
-app.use(
-  "*",
-  cors({
-    origin: env.FRONTEND_API_URL,
-    credentials: true,
-  })
-);
+// Middleware: CORS and cookie parsing
+app.use('*', cors({
+  origin: env.FRONTEND_API_URL,
+  credentials: true,
+}));
 
 // Proxy: Register route
 app.post("/api/auth/register", async (c) => {
@@ -42,15 +40,20 @@ app.post("/api/auth/login", async (c) => {
   try {
     const body = await c.req.json();
     console.log("Received login request with body:", body);
-    
-    const { data, status } = await serverApi.post(`/auth/login`, body);
 
-    // Set access_token and refresh_token in cookies
-    if (data.access_token) {
-      c.header('Set-Cookie', `access_token=${data.access_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=900`); // 15 minutes
-    }
-    if (data.refresh_token) {
-      c.header('Set-Cookie', `refresh_token=${data.refresh_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=604800`, { append: true }); // 7 days
+    const { data, status, headers } = await serverApi.post(
+      `/auth/login`,
+      body,
+      {
+        withCredentials: true,
+      }
+    );
+    if (headers["set-cookie"]) {
+      headers["set-cookie"].forEach((cookie: string) => {
+        c.header("Set-Cookie", cookie, { append: true });
+      });
+    } else {
+      console.log("No Set-Cookie headers received from backend");
     }
 
     return c.json(data, status as HttpStatusCode);
@@ -62,39 +65,44 @@ app.post("/api/auth/login", async (c) => {
   }
 });
 
-
-
 // Proxy: Refresh token route
-app.post('/api/auth/refresh', async (c) => {
+app.post("/api/auth/refresh", async (c) => {
   try {
-    const refreshToken = getCookie(c, 'refresh_token');
+    const refreshToken = getCookie(c, "refresh_token");
     if (!refreshToken) {
-      return c.json({ message: 'No refresh token provided' }, 401 as HttpStatusCode);
+      return c.json(
+        { message: "No refresh token provided" },
+        401 as HttpStatusCode
+      );
     }
-    const { data, status } = await serverApi.post('/auth/refresh', { refresh_token: refreshToken });
+    const { data, status } = await serverApi.post("/auth/refresh", {
+      refresh_token: refreshToken,
+    });
     // Update access_token cookie
     if (data.access_token) {
-      setCookie(c, 'access_token', data.access_token, {
+      setCookie(c, "access_token", data.access_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
-        path: '/',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+        path: "/",
         maxAge: 900, // 15 minutes
       });
     }
     return c.json(data, status as HttpStatusCode);
   } catch (err: unknown) {
     const axiosErr = err as AxiosError;
-    const errorData = axiosErr.response?.data ?? { message: 'Failed to refresh token' };
+    const errorData = axiosErr.response?.data ?? {
+      message: "Failed to refresh token",
+    };
     const status = axiosErr.response?.status ?? 401;
     return c.json(errorData, status as HttpStatusCode);
   }
 });
 
-app.all('*', (c) => {
-  console.log('Unmatched route:', c.req.method, c.req.path)
-  return c.json({ error: 'Not found' }, 404)
-})
+app.all("*", (c) => {
+  console.log("Unmatched route:", c.req.method, c.req.path);
+  return c.json({ error: "Not found" }, 404);
+});
 
 // Required by Next.js App Router
 export const runtime = "nodejs";

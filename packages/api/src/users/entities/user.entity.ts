@@ -4,12 +4,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
   ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { ProjectMember } from '../../project-members/entities/project-member.entity';
+import { Team } from '../../teams/entities/team.entity';
 
 @Entity('users')
 export class User {
@@ -36,6 +38,10 @@ export class User {
 
   @Column({ type: 'enum', enum: Role, default: Role.User })
   role: string;
+
+  @ManyToMany(() => Team, (team) => team.members)
+  @JoinTable()
+  teams: Team[];
 
   @Column({ name: 'is_email_verified', default: false })
   isEmailVerified: boolean;

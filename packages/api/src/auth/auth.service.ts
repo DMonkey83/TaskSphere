@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { LoginDto } from './dto/auth.dto';
+import { LoginDto, RefreshTokenResponseDto } from './dto/auth.dto';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -56,7 +56,7 @@ export class AuthService {
     return token;
   }
 
-  async refreshToken(rToken: string): Promise<any> {
+  async refreshToken(rToken: string): Promise<RefreshTokenResponseDto> {
     const storedToken = await this.refreshTokenRepository.findOne({
       where: { tokenHash: await bcrypt.hash(rToken, 10), revoked: false },
       relations: ['user'],

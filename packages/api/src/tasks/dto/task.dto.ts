@@ -6,6 +6,20 @@ export const CreateTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   asigneeId: z.string().uuid().optional(),
+  creatorId: z.string().uuid(),
+  parentId: z.string().uuid().optional(),
+  priority: z.enum(['low', 'medium', 'high']).default('medium'),
+  type: z
+    .enum(['epic', 'bug', 'feature', 'story', 'subtask'])
+    .default('subtask'),
+  relatedTasks: z
+    .array(
+      z.object({
+        taskId: z.string().uuid(),
+        relationType: z.enum(['cloned_from', 'blocked_by', 'blocking']),
+      }),
+    )
+    .optional(),
   status: z.enum(['todo', 'in_progress', 'done', 'delivered']),
 });
 

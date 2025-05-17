@@ -1,28 +1,44 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
-const PUBLIC_ROUTES = ['/login', '/register']
+const PUBLIC_ROUTES = ['/login', '/register', '/sign-in']; // optional expansion
 
-const proectedRoutes = ['/dashboard']
-
-export function middleware(request: NextRequest) {
-    const {pathname} = request.nextUrl;
+export async function middleware(request: NextRequest) {
+    const pathname = request.nextUrl.pathname;
     const accessToken = request.cookies.get('access_token')?.value;
+    const isAuthPage = PUBLIC_ROUTES.includes(pathname);
 
-    if(PUBLIC_ROUTES.includes(pathname)) {
-        if (accessToken) {
-            return NextResponse.redirect(new URL('/dashboard', request.url))
+    let isValid = false;
+
+    if (accessToken) {
+        try {
+            const secret = new TextEncoder().encode(process.env.JWT_SECRET)
+            await jwtVerify(accessToken, secret);
+            isValid = true;
+        } catch {
+            // Invalid or expired token
         }
-        return NextResponse.next()
     }
 
-    if (proectedRoutes.includes(pathname) && !accessToken) {
-        return NextResponse.redirect(new URL('/login', request.url))
+    // 🔍 Debug logs
+    console.log("Middleware running on:", pathname);
+    console.log("Access token:", accessToken);
+    console.log("Is valid token:", isValid);
+    console.log("Is auth page:", isAuthPage);
+
+    if (isValid && isAuthPage) {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
+    if (!isValid && !isAuthPage) {
+        return NextResponse.redirect(new URL('/login', request.url));
     }
 
     return NextResponse.next();
 }
 
+
 export const config = {
-    matcher: ['/login', '/register', '/dashboard']
-}
+    matcher: ['/', '/dashboard', '/login', '/register', '/projects/:path*', '/test-page'],
+  };

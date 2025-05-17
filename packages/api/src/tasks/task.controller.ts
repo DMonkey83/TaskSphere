@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RoleGuard } from '../auth/role.guard';
@@ -17,6 +17,11 @@ export class TaskController {
     @Body(new ZodValidationPipe(CreateTaskDto)) body: CreateTaskDto,
   ) {
     return this.tasksService.create(body);
+  }
+
+  @Get(':id/hierarchy')
+  async getHierarchy(@Param('id') id: string) {
+    return this.tasksService.getTaskWithHierarchy(id);
   }
 
   @UseGuards(AuthGuard('jwt'))

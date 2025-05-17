@@ -10,6 +10,7 @@ import {
 import { ProjectMember } from '../../project-members/entities/project-member.entity';
 import { Account } from './../../accounts/entities/account.entity';
 import { User } from '../../users/entities/user.entity';
+import { Team } from '../../teams/entities/team.entity';
 
 @Entity('project')
 export class Project {
@@ -36,6 +37,9 @@ export class Project {
 
   @Column({ nullable: true })
   industry: string;
+
+  @ManyToOne(() => Team, (teams) => teams.members)
+  teams: Team[];
 
   @Column()
   planningType: string;

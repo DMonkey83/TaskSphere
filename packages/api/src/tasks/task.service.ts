@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TaskStatusLog } from './entities/task-status-log';
@@ -10,6 +14,7 @@ import {
   UpdateTaskDto,
 } from './dto/task.dto';
 import { Task } from './entities/task.entity';
+import { TaskRelation } from './entities/task-relation';
 
 @Injectable()
 export class TaskService {
@@ -18,6 +23,8 @@ export class TaskService {
     private tasksRepository: Repository<Task>,
     @InjectRepository(TaskStatusLog)
     private taskStatusLogsRepository: Repository<TaskStatusLog>,
+    @InjectRepository(TaskRelation)
+    private taskRelationsRepository: Repository<TaskRelation>,
     private projectService: ProjectsService,
   ) {}
 
@@ -34,14 +41,69 @@ export class TaskService {
     const project = await this.projectService.findByKey(dto.projectKey);
     if (!project) throw new NotFoundException('Project not found');
     const taskKey = await this.generateTaskKey(project.projectKey);
+    if (dto.type === 'subtask' && !dto.parentId) {
+      throw new BadRequestException('Subtasks must have a parent');
+    }
+    if (dto.type == 'epic' && dto.parentId) {
+      throw new BadRequestException('Epics coannot have a parent');
+    }
     const task = this.tasksRepository.create({
       taskKey,
       project: { id: project.id },
       title: dto.title,
       description: dto.description,
       asignee: dto.asigneeId ? { id: dto.asigneeId } : null,
+      creator: { id: dto.creatorId },
+      parent: dto.parentId ? { id: dto.parentId } : null,
+      type: dto.type ? dto.type : null,
     });
-    return this.tasksRepository.save(task);
+    if (dto.parentId) {
+      const parent = await this.tasksRepository.findOneOrFail({
+        where: { id: dto.parentId },
+      });
+      if (parent.type === 'subtask') {
+        throw new BadRequestException('Subtasks cannot be parents');
+      }
+      task.parent = parent;
+    }
+    await this.tasksRepository.save(task);
+    if (dto.relatedTasks) {
+      const validRelations = dto.relatedTasks?.filter(
+        (rel) => rel.taskId && rel.relationType,
+      ) as { taskId: string; relationType: string }[];
+      await this.createRelations(task, validRelations);
+    }
+    return task;
+  }
+
+  async createRelations(
+    task: Task,
+    relations: { taskId: string; relationType: string }[],
+  ) {
+    for (const rel of relations) {
+      const relation = this.taskRelationsRepository.create({
+        task,
+        relatedTask: await this.tasksRepository.findOneOrFail({
+          where: { id: rel.taskId },
+        }),
+        relationType: rel.relationType,
+      });
+      await this.taskRelationsRepository.save(relation);
+    }
+  }
+
+  async getTaskWithHierarchy(id: string): Promise<Task> {
+    return this.tasksRepository.findOneOrFail({
+      where: { id },
+      relations: [
+        'parent',
+        'children',
+        'children.children',
+        'relatedTasks',
+        'creator',
+        'assignee',
+      ],
+    });
   }
 
   async update(taskId: string, dto: UpdateTaskDto): Promise<Task> {
