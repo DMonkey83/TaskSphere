@@ -3,10 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Roadmap } from './entities/readmap.entity';
 import { Repository } from 'typeorm';
 import { RoadmapItem } from './entities/roadmap-Item.entity';
-import {
-  CreateRoadmapDtoClass,
-  CreateRoadmapItemDtoClass,
-} from './dto/roadmap.dto';
+import { CreateRoadmapDto, CreateRoadmapItemDto } from './dto/roadmap.dto';
 
 @Injectable()
 export class RoadmapService {
@@ -17,7 +14,7 @@ export class RoadmapService {
     private roadmapItemsRepository: Repository<RoadmapItem>,
   ) {}
 
-  async create(dto: CreateRoadmapDtoClass): Promise<Roadmap> {
+  async create(dto: CreateRoadmapDto): Promise<Roadmap> {
     const roadmap = this.roadmapsRepository.create({
       name: dto.name,
       description: dto.description,
@@ -28,7 +25,7 @@ export class RoadmapService {
 
   async addItem(
     roadmapId: string,
-    dto: CreateRoadmapItemDtoClass,
+    dto: CreateRoadmapItemDto,
   ): Promise<RoadmapItem> {
     const roadmap = await this.roadmapsRepository.findOne({
       where: { id: roadmapId },

@@ -24,7 +24,7 @@ export class TaskActivityService {
       oldValue: dto.oldValue ? dto.oldValue : null,
       task,
       user: { id: dto.userId },
-      action: (dto.action as string) || 'created',
+      action: dto.action || 'created',
     });
 
     return this.taskActivityRepository.save(taskActivity);

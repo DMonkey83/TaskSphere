@@ -31,7 +31,7 @@ export class TeamsService {
     });
     if (dto.memberIds) {
       team.members = await this.userRepository.findBy({
-        id: In([dto.memberIds]),
+        id: In(dto.memberIds),
       });
     }
     return this.teamRepository.save(team);

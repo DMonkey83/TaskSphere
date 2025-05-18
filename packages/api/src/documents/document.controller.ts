@@ -4,7 +4,7 @@ import { DocumentService } from './document.service';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/roles.decorator';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { UploadDocumentDtoClass } from './dto/document.dto';
+import { UploadDocumentDto } from './dto/document.dto';
 
 @Controller('documents')
 export class DocumentController {
@@ -14,8 +14,8 @@ export class DocumentController {
   @Roles('project_manager', 'team_lead', 'admin')
   @Post()
   async upload(
-    @Body(new ZodValidationPipe(UploadDocumentDtoClass))
-    body: UploadDocumentDtoClass,
+    @Body(new ZodValidationPipe(UploadDocumentDto))
+    body: UploadDocumentDto,
   ) {
     return this.documentService.upload(body);
   }

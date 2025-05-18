@@ -6,7 +6,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TaskStatusLog } from './entities/task-status-log';
-import { ProjectsService } from '../projects/projects.service';
 import {
   CreateTaskDto,
   LogTaskStatusDto,
@@ -20,7 +19,7 @@ import { TaskActivityService } from '../task-activities/task-activity.service';
 import { User } from '../users/entities/user.entity';
 import { Team } from '../teams/entities/team.entity';
 import { Project } from '../projects/entities/project.entity';
-import { Relations } from '../common/enums/relations.enum';
+import { Relations } from 'shared/src/enumsTypes/relations.enum';
 
 @Injectable()
 export class TaskService {
@@ -37,7 +36,6 @@ export class TaskService {
     private userRepository: Repository<User>,
     @InjectRepository(Team)
     private teamRepository: Repository<Team>,
-    private projectService: ProjectsService,
     private taskActivityService: TaskActivityService,
   ) {}
 
@@ -207,12 +205,12 @@ export class TaskService {
 
       if (key === 'relatedTasks') {
         newValue =
-          (dto.relatedTasks as Task[])
-            .map((rt) => rt.id)
+          (dto.relatedTasks as { taskId: string; relationType: string }[])
+            .map((rt) => rt.taskId)
             .sort()
             .join(',') || '';
       } else if (key === 'dueDate') {
-        newValue = (dto.dueDate as Date) || '';
+        newValue = (dto.dueDate as string) || '';
       }
 
       if (
@@ -261,7 +259,7 @@ export class TaskService {
     await this.logTaskChanges(task, dto, user);
     await this.updateTaskFields(task, dto);
     if (dto.relatedTasks) {
-      await this.taskRelationsRepository.delete({ id: task.id });
+      await this.taskRelationsRepository.delete({ task: { id: task.id } });
       await this.createRelations(
         task,
         dto.relatedTasks as { taskId: string; relationType: string }[],

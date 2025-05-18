@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Document } from './entities/document.entity';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { UploadDocumentDtoClass } from './dto/document.dto';
+import { UploadDocumentDto } from './dto/document.dto';
 import { encrypt } from '../common/encryption.util';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class DocumentService {
     private configService: ConfigService,
   ) {}
 
-  async upload(dto: UploadDocumentDtoClass): Promise<Document> {
+  async upload(dto: UploadDocumentDto): Promise<Document> {
     const encryptedFilePath = encrypt(
       dto.filePath,
       this.configService.get('ENCRYPTION_KEY'),

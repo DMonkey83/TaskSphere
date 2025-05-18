@@ -12,9 +12,9 @@ import { AuthGuard } from '@nestjs/passport';
 import { RoleGuard } from '../auth/role.guard';
 import { ZodValidationPipe } from 'nestjs-zod';
 import {
-  CreateProjectDtoClass,
-  CreateProjectViewDtoClass,
-  UpdateProjectDtoClass,
+  CreateProjectDto,
+  CreateProjectViewDto,
+  UpdateProjectDto,
 } from './dto/project.dto';
 import { Roles } from '../auth/roles.decorator';
 
@@ -26,8 +26,8 @@ export class ProjectController {
   @Roles('project_manager', 'owner', 'admin')
   @Post()
   async create(
-    @Body(new ZodValidationPipe(CreateProjectDtoClass))
-    body: CreateProjectDtoClass,
+    @Body(new ZodValidationPipe(CreateProjectDto))
+    body: CreateProjectDto,
   ) {
     return this.projectsService.create({
       name: body.name,
@@ -45,8 +45,8 @@ export class ProjectController {
   @Patch(':projectId')
   async updateProject(
     @Param('projectId') id: string,
-    @Body(new ZodValidationPipe(UpdateProjectDtoClass))
-    body: UpdateProjectDtoClass,
+    @Body(new ZodValidationPipe(UpdateProjectDto))
+    body: UpdateProjectDto,
   ) {
     return this.projectsService.updateProject(id, body);
   }
@@ -55,8 +55,8 @@ export class ProjectController {
   @Post(':projectId/views')
   async addView(
     @Param('projectId') projectId: string,
-    @Body(new ZodValidationPipe(CreateProjectViewDtoClass))
-    body: CreateProjectViewDtoClass,
+    @Body(new ZodValidationPipe(CreateProjectViewDto))
+    body: CreateProjectViewDto,
   ) {
     return this.projectsService.addView(projectId, body);
   }

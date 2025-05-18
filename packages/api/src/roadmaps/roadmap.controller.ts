@@ -4,10 +4,7 @@ import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
 import { RoadmapService } from './roadmap.service';
 import { AuthGuard } from '@nestjs/passport';
 import { ZodValidationPipe } from 'nestjs-zod';
-import {
-  CreateRoadmapDtoClass,
-  CreateRoadmapItemDtoClass,
-} from './dto/roadmap.dto';
+import { CreateRoadmapDto, CreateRoadmapItemDto } from './dto/roadmap.dto';
 
 @Controller('roadmaps')
 export class RoadmapController {
@@ -17,8 +14,8 @@ export class RoadmapController {
   @Roles('project_manager', 'admin')
   @Post()
   async create(
-    @Body(new ZodValidationPipe(CreateRoadmapDtoClass))
-    body: CreateRoadmapDtoClass,
+    @Body(new ZodValidationPipe(CreateRoadmapDto))
+    body: CreateRoadmapDto,
   ) {
     return this.roadmapService.create(body);
   }
@@ -28,8 +25,8 @@ export class RoadmapController {
   @Post(':roadmapId/items')
   async addItem(
     @Param('roadmapId') roadmapId: string,
-    @Body(new ZodValidationPipe(CreateRoadmapItemDtoClass))
-    body: CreateRoadmapItemDtoClass,
+    @Body(new ZodValidationPipe(CreateRoadmapItemDto))
+    body: CreateRoadmapItemDto,
   ) {
     return this.roadmapService.addItem(roadmapId, body);
   }

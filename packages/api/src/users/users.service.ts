@@ -13,9 +13,9 @@ import {
   CreateUserDto,
   RegisterFromInviteDto,
   UserResponseDto,
-  UserResponseSchema,
 } from './dto/user.dto';
 import { AccountInvitesService } from '../account-invites/account-invites.service';
+import { UserResponseSchema } from '@shared/dto/user.dto';
 
 @Injectable()
 export class UsersService {
@@ -30,7 +30,7 @@ export class UsersService {
   async findByEmail(email: string): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { email } });
     if (!user) {
-      throw new Error(`User with email ${email} not found`);
+      throw new NotFoundException(`User with email ${email} not found`);
     }
     return user;
   }
@@ -38,7 +38,7 @@ export class UsersService {
   async findById(id: string): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { id } });
     if (!user) {
-      throw new Error(`User with email ${id} not found`);
+      throw new NotFoundException(`User with email ${id} not found`);
     }
     return user;
   }

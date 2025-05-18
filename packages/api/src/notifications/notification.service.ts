@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { SendNotificationDtoClass } from './dto/notification.dto';
+import { SendNotificationDto } from './dto/notification.dto';
 import { encrypt } from '../common/encryption.util';
 import { Notification } from './entities/notification.entity';
 
@@ -14,7 +14,7 @@ export class NotificationService {
     private configService: ConfigService,
   ) {}
 
-  async send(dto: SendNotificationDtoClass): Promise<Notification> {
+  async send(dto: SendNotificationDto): Promise<Notification> {
     const encryptedContent = encrypt(
       dto.content,
       this.configService.get('ENCRYPTION_KEY'),

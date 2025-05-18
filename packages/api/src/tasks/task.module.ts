@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectsModule } from '../projects/projects.module';
 import { UsersModule } from './../users/users.module';
@@ -12,9 +12,12 @@ import { Tag } from '../task-tags/entities/task-tags.entity';
 import { TaskActivity } from '../task-activities/entities/task-activities.entity';
 import { TimeTracking } from '../time-trackings/entities/time-tracking.entity';
 import { TaskActivityModule } from '../task-activities/task-activity.module';
+import { TaskRelation } from './entities/task-relation';
+import { TeamsModule } from '../teams/teams.module';
 
 @Module({
   imports: [
+    forwardRef(() => TaskActivityModule),
     TypeOrmModule.forFeature([
       Task,
       TaskStatusLog,
@@ -23,10 +26,11 @@ import { TaskActivityModule } from '../task-activities/task-activity.module';
       Tag,
       TaskActivity,
       TimeTracking,
+      TaskRelation,
     ]),
     ProjectsModule,
     UsersModule,
-    TaskActivityModule,
+    TeamsModule,
   ],
   controllers: [TaskController],
   providers: [TaskService],

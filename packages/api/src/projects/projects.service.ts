@@ -5,9 +5,9 @@ import { Project } from './entities/project.entity';
 import { ProjectView } from './entities/project-view.entity';
 import { Repository } from 'typeorm';
 import {
-  CreateProjectDtoClass,
-  CreateProjectViewDtoClass,
-  UpdateProjectDtoClass,
+  CreateProjectDto,
+  CreateProjectViewDto,
+  UpdateProjectDto,
 } from './dto/project.dto';
 import { ProjectMemberService } from '../project-members/project-member.service';
 
@@ -65,7 +65,7 @@ export class ProjectsService {
     }
   }
 
-  async create(dto: CreateProjectDtoClass): Promise<Project> {
+  async create(dto: CreateProjectDto): Promise<Project> {
     const account = await this.accountsService.findById(dto.accountId);
     const industry = dto.industry || account?.industry || null;
     const projectKey = await this.generateProjectKey(
@@ -96,7 +96,7 @@ export class ProjectsService {
 
   async updateProject(
     projectId: string,
-    dto: UpdateProjectDtoClass,
+    dto: UpdateProjectDto,
   ): Promise<Project> {
     const project = await this.projectsRepository.findOne({
       where: { id: projectId },
@@ -135,7 +135,7 @@ export class ProjectsService {
 
   async addView(
     projectId: string,
-    dto: CreateProjectViewDtoClass,
+    dto: CreateProjectViewDto,
   ): Promise<ProjectView> {
     const project = await this.projectsRepository.findOne({
       where: { id: projectId },
