@@ -51,6 +51,10 @@ export class TaskService {
   }
 
   async createTask(dto: CreateTaskDto, user: User): Promise<Task> {
+    const project = await this.projectRepository.findOneOrFail({
+      where: { id: dto.projectId as string },
+      relations: ['tasks'],
+    });
     await this.validateTaskType(
       dto.type as string,
       dto.parentId as string,
@@ -58,6 +62,8 @@ export class TaskService {
     );
     const task = this.tasksRepository.create(dto as Task);
     task.creator = user;
+    const projectKey = await this.generateTaskKey(project.projectKey);
+    task.taskKey = projectKey;
     await this.assignTaskEntities(task, dto);
     await this.tasksRepository.save(task);
     await this.taskActivityService.logActivity({
