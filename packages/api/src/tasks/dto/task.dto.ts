@@ -1,14 +1,18 @@
+import { createZodDto } from 'nestjs-zod';
 import {
   CreateTaskSchema,
   LogTaskStatusSchema,
-  UpdateLogTaskStatusSchema,
+  TaskSchema,
   UpateTaskSchema,
-} from '@shared/dto/tasks.dto';
-import { createZodDto } from 'nestjs-zod';
-
-export class CreateTaskDto extends createZodDto(CreateTaskSchema) {}
-export class UpdateTaskDto extends createZodDto(UpateTaskSchema) {}
-export class LogTaskStatusDto extends createZodDto(LogTaskStatusSchema) {}
-export class UpdateLogTaskStatusDto extends createZodDto(
   UpdateLogTaskStatusSchema,
+} from '@shared/dto/tasks.dto';
+import { ZodType } from 'zod';
+export class CreateTaskDto extends createZodDto(CreateTaskSchema as ZodType) {}
+export class UpdateTaskDto extends createZodDto(UpateTaskSchema as ZodType) {}
+export class LogTaskStatusDto extends createZodDto(
+  LogTaskStatusSchema as ZodType,
 ) {}
+export class UpdateLogTaskStatusDto extends createZodDto(
+  UpdateLogTaskStatusSchema as ZodType,
+) {}
+export class TaskDto extends createZodDto(TaskSchema as ZodType) {}

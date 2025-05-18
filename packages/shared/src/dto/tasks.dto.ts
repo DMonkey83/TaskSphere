@@ -48,6 +48,36 @@ export const UpateTaskSchema = z.object({
     .optional(),
 });
 
+export const TaskSchema = z.object({
+  id: z.string().uuid(),
+  projectKey: z.string().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  assigneeId: z.string().uuid().optional(),
+  creatorId: z.string().uuid(),
+  parentId: z.string().uuid().optional(),
+  priority: z.enum(['low', 'medium', 'high']).default('medium'),
+  projectId: z.string().uuid(),
+  teamId: z.string().uuid().optional(),
+  type: z.enum(['epic', 'bug', 'feature', 'story', 'subtask']).default('subtask'),
+  relatedTasks: z
+    .array(
+      z.object({
+        taskId: z.string().uuid(),
+        relationType: z.enum(['cloned_from', 'blocked_by', 'blocking']),
+      }),
+    )
+    .optional(),
+  status: z.enum(['todo', 'in_progress', 'done', 'delivered']).optional(),
+  deliveryAddress: z.string().optional(),
+  billableHours: z.number().optional(),
+  storyPoints: z.number().optional(),
+  deliveryWindow: z.string().optional(),
+  dueDate: z.coerce.date().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+})
+
 export const LogTaskStatusSchema = z.object({
   status: z.enum(['todo', 'in_progress', 'done', 'delivered']),
   location: z.string().optional(),

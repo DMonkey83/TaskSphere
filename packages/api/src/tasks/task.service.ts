@@ -10,6 +10,7 @@ import { ProjectsService } from '../projects/projects.service';
 import {
   CreateTaskDto,
   LogTaskStatusDto,
+  TaskDto,
   UpdateLogTaskStatusDto,
   UpdateTaskDto,
 } from './dto/task.dto';
@@ -19,6 +20,7 @@ import { TaskActivityService } from '../task-activities/task-activity.service';
 import { User } from '../users/entities/user.entity';
 import { Team } from '../teams/entities/team.entity';
 import { Project } from '../projects/entities/project.entity';
+import { Relations } from '../common/enums/relations.enum';
 
 @Injectable()
 export class TaskService {
@@ -49,60 +51,30 @@ export class TaskService {
   }
 
   async createTask(dto: CreateTaskDto, user: User): Promise<Task> {
-    const project = await this.projectService.findByKey(dto.projectKey);
-    if (!project) throw new NotFoundException('Project not found');
-    const taskKey = await this.generateTaskKey(project.projectKey);
-    if (dto.type === 'subtask' && !dto.parentId) {
-      throw new BadRequestException('Subtasks must have a parent');
-    }
-    if (dto.type == 'epic' && dto.parentId) {
-      throw new BadRequestException('Epics coannot have a parent');
-    }
-    const task = this.tasksRepository.create({
-      taskKey,
-      title: dto.title,
-      description: dto.description,
-      type: dto.type ? dto.type : null,
-    });
+    await this.validateTaskType(
+      dto.type as string,
+      dto.parentId as string,
+      null,
+    );
+    const task = this.tasksRepository.create(dto as Task);
     task.creator = user;
-    task.project = await this.projectRepository.findOneOrFail({
-      where: { id: dto.projectId },
-    });
-    if (dto.assigneeId) {
-      task.assignee = await this.userRepository.findOneOrFail({
-        where: { id: dto.assigneeId },
-      });
-    }
-    if (dto.teamId) {
-      task.team = await this.teamRepository.findOneOrFail({
-        where: { id: dto.teamId },
-      });
-    }
-    if (dto.parentId) {
-      const parent = await this.tasksRepository.findOneOrFail({
-        where: { id: dto.parentId },
-      });
-      if (parent.type === 'subtask') {
-        throw new BadRequestException('Subtasks cannot be parents');
-      }
-      task.parent = parent;
-    }
+    await this.assignTaskEntities(task, dto);
     await this.tasksRepository.save(task);
     await this.taskActivityService.logActivity({
       taskId: task.id,
-      userId: dto.creatorId,
+      userId: user.id,
       action: 'created',
     });
     if (dto.relatedTasks) {
-      const validRelations = dto.relatedTasks?.filter(
-        (rel) => rel.taskId && rel.relationType,
-      ) as { taskId: string; relationType: string }[];
-      await this.createRelations(task, validRelations);
+      await this.createRelations(
+        task,
+        dto.relatedTasks as { taskId: string; relationType: Relations }[],
+      );
     }
     return task;
   }
 
-  async createRelations(
+  private async createRelations(
     task: Task,
     relations: { taskId: string; relationType: string }[],
   ) {
@@ -115,6 +87,141 @@ export class TaskService {
         relationType: rel.relationType,
       });
       await this.taskRelationsRepository.save(relation);
+    }
+  }
+
+  private async validateTaskType(
+    type: string,
+    parentId: string | undefined,
+    existingParentId: string | null,
+  ): Promise<void> {
+    if (type === 'subtask' && !parentId && !existingParentId) {
+      throw new BadRequestException('Subtask must have a parent');
+    }
+    if (type === 'epic' && (parentId || existingParentId)) {
+      throw new BadRequestException('Epics cannot have a parent');
+    }
+    if (parentId) {
+      const parent = await this.tasksRepository.findOneOrFail({
+        where: { id: parentId },
+      });
+      if (parent.type === 'subtask') {
+        throw new BadRequestException('Subtasks cannot be parents');
+      }
+    }
+  }
+
+  private async assignTaskEntities(
+    task: Task,
+    dto: Partial<TaskDto>,
+  ): Promise<void> {
+    if (dto.projectId) {
+      task.project = await this.projectRepository.findOneOrFail({
+        where: { id: dto.projectId as string },
+      });
+    }
+    task.assignee = dto.assigneeId
+      ? await this.userRepository.findOneOrFail({
+          where: { id: dto.assigneeId as string },
+        })
+      : null;
+    task.team = dto.teamId
+      ? await this.teamRepository.findOneOrFail({
+          where: { id: dto.teamId as string },
+        })
+      : null;
+    task.parent = dto.parentId
+      ? await this.tasksRepository.findOneOrFail({
+          where: { id: dto.parentId as string },
+        })
+      : null;
+  }
+
+  private async updateTaskFields(
+    task: Task,
+    dto: Partial<TaskDto>,
+  ): Promise<void> {
+    const simpleFields: (keyof TaskDto)[] = [
+      'title',
+      'description',
+      'status',
+      'priority',
+      'type',
+      'storyPoints',
+    ];
+    simpleFields.forEach((field) => {
+      if (dto[field] !== undefined) {
+        task[field] = dto[field] as string | number;
+      }
+    });
+    if (dto.dueDate !== undefined) {
+      task.dueDate = dto.dueDate ? new Date(dto.dueDate as Date) : null;
+    }
+    if (dto.projectId !== task.project?.id) {
+      task.project = await this.projectRepository.findOneOrFail({
+        where: { id: dto.projectId as string },
+      });
+    }
+    await this.assignTaskEntities(task, dto);
+  }
+
+  private async logTaskChanges(
+    task: Task,
+    dto: Partial<TaskDto>,
+    user: User,
+  ): Promise<void> {
+    const fieldsToTrack: {
+      key: keyof TaskDto;
+      getOldValue: (task: Task) => string | number | null;
+    }[] = [
+      { key: 'title', getOldValue: (t) => t.title },
+      { key: 'storyPoints', getOldValue: (t) => t.storyPoints },
+      { key: 'description', getOldValue: (t) => t.description },
+      { key: 'status', getOldValue: (t) => t.status },
+      { key: 'priority', getOldValue: (t) => t.priority },
+      { key: 'type', getOldValue: (t) => t.type },
+      { key: 'assigneeId', getOldValue: (t) => t.assignee?.id },
+      { key: 'teamId', getOldValue: (t) => t.team?.id },
+      { key: 'parentId', getOldValue: (t) => t.parent?.id },
+      { key: 'dueDate', getOldValue: (t) => t.dueDate?.toISOString() },
+      {
+        key: 'relatedTasks',
+        getOldValue: (t) =>
+          t.relatedTasks
+            .map((rt) => rt.id)
+            .sort()
+            .join(',') || '',
+      },
+    ];
+
+    for (const { key, getOldValue } of fieldsToTrack) {
+      if (dto[key] === undefined) continue;
+      const oldValue = getOldValue(task);
+      let newValue = dto[key] as string | number | Date | null;
+
+      if (key === 'relatedTasks') {
+        newValue =
+          (dto.relatedTasks as Task[])
+            .map((rt) => rt.id)
+            .sort()
+            .join(',') || '';
+      } else if (key === 'dueDate') {
+        newValue = (dto.dueDate as Date) || '';
+      }
+
+      if (
+        oldValue !== newValue &&
+        !(oldValue === null && newValue === undefined)
+      ) {
+        await this.taskActivityService.logActivity({
+          taskId: task.id,
+          userId: user.id,
+          action: 'updated',
+          field: key as string,
+          oldValue: oldValue?.toString() ?? '',
+          newValue: newValue?.toString() ?? '',
+        });
+      }
     }
   }
 
@@ -133,127 +240,28 @@ export class TaskService {
   }
 
   async update(taskId: string, dto: UpdateTaskDto, user: User): Promise<Task> {
-    const task = await this.tasksRepository.findOne({
+    const task = await this.tasksRepository.findOneOrFail({
       where: { id: taskId },
       relations: ['assignee', 'team', 'parent', 'relatedTasks', 'project'],
     });
-    if (!task) throw new NotFoundException('Task not found');
 
-    if (dto.type) {
-      if (dto.type === 'subtask' && !dto.parentId && !task.parent) {
-        throw new BadRequestException('Subtask must have a parent');
-      }
-      if (dto.type === 'epic' && (dto.parentId || task.parent)) {
-        throw new BadRequestException('Epics cannot have a parent');
-      }
+    if (dto.type || dto.parentId !== undefined) {
+      await this.validateTaskType(
+        (dto.type as string) || task.type,
+        (dto.parentId as string) ?? task.parent?.id,
+        task.parent?.id,
+      );
     }
-
     await this.logTaskChanges(task, dto, user);
-
-    if (dto.title) task.title = dto.title;
-    if (dto.description !== undefined) task.description = dto.description;
-    if (dto.status) task.status = dto.status;
-    if (dto.priority) task.priority = dto.priority;
-    if (dto.type) task.type = dto.type;
-    if (dto.storyPoints) task.storyPoints = dto.storyPoints;
-    if (dto.dueDate !== undefined)
-      task.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
-
-    if (dto.assigneeId !== undefined) {
-      task.assignee = dto.assigneeId
-        ? await this.userRepository.findOneOrFail({
-            where: { id: dto.assigneeId },
-          })
-        : null;
-    }
-    if (dto.teamId !== undefined) {
-      task.team = dto.teamId
-        ? await this.teamRepository.findOneOrFail({ where: { id: dto.teamId } })
-        : null;
-    }
-    if (dto.parentId !== undefined) {
-      task.parent = dto.parentId
-        ? await this.tasksRepository.findOneOrFail({
-            where: { id: dto.parentId },
-          })
-        : null;
-      if (task.parent && task.parent.type === 'subtask') {
-        throw new BadRequestException('Subtasks cannot be parents');
-      }
-    }
-
+    await this.updateTaskFields(task, dto);
     if (dto.relatedTasks) {
       await this.taskRelationsRepository.delete({ id: task.id });
-      const validRelations = dto.relatedTasks?.filter(
-        (rel) => rel.taskId && rel.relationType,
-      ) as { taskId: string; relationType: string }[];
-      await this.createRelations(task, validRelations);
+      await this.createRelations(
+        task,
+        dto.relatedTasks as { taskId: string; relationType: string }[],
+      );
     }
-
-    await this.tasksRepository.save(task);
     return task;
-  }
-
-  private async logTaskChanges(
-    task: Task,
-    dto: Partial<UpdateTaskDto>,
-    user: User,
-  ): Promise<void> {
-    const changes: { field: string; oldValue: string; newValue: string }[] = [];
-    const addChange = (field: string, oldValue: any, newValue: any) => {
-      if (
-        oldValue !== newValue &&
-        !(oldValue === null && newValue === undefined)
-      ) {
-        changes.push({
-          field,
-          oldValue:
-            typeof oldValue !== 'string'
-              ? (oldValue as number)?.toString()
-              : (oldValue ?? ''),
-          newValue:
-            typeof newValue !== 'string'
-              ? (newValue as number)?.toString()
-              : (newValue ?? ''),
-        });
-      }
-    };
-
-    addChange('title', task.title, dto.title);
-    addChange('description', task.description, dto.description);
-    addChange('status', task.status, dto.status);
-    addChange('priority', task.priority, dto.priority);
-    addChange('type', task.type, dto.type);
-    addChange('assigneeId', task.assignee?.id, dto.assigneeId);
-    addChange('teamId', task.team?.id, dto.teamId);
-    addChange('parentId', task.parent?.id, dto.parentId);
-    addChange('dueDate', task.dueDate?.toISOString(), dto.dueDate);
-    addChange('storyPoints', task.storyPoints, dto.storyPoints);
-
-    if (dto.relatedTasks) {
-      const oldRelatedTasks =
-        task.relatedTasks
-          ?.map((rt) => rt.id)
-          .sort()
-          .join(',') || '';
-      const newRelatedTasks =
-        dto.relatedTasks
-          ?.map((rt) => rt.taskId)
-          .sort()
-          .join(',') || '';
-      addChange('relatedTasks', oldRelatedTasks, newRelatedTasks);
-    }
-
-    for (const change of changes) {
-      await this.taskActivityService.logActivity({
-        taskId: task.id,
-        userId: user.id,
-        action: 'updated',
-        field: change.field,
-        newValue: change.newValue,
-        oldValue: change.oldValue,
-      });
-    }
   }
 
   async logStatus(
@@ -264,9 +272,9 @@ export class TaskService {
     if (!task) throw new NotFoundException('Task not found');
     const log = this.taskStatusLogsRepository.create({
       task: { id: taskId },
-      status: dto.status,
-      location: dto.location,
-      updatedBy: dto.updatedById ? { id: dto.updatedById } : null,
+      status: dto.status as string,
+      location: dto.location as string,
+      updatedBy: dto.updatedById ? { id: dto.updatedById as string } : null,
     });
     return this.taskStatusLogsRepository.save(log);
   }
@@ -280,9 +288,9 @@ export class TaskService {
     });
     if (!statusLog) throw new NotFoundException('Status Log not found');
     Object.assign(statusLog, {
-      status: dto.status ?? statusLog.status,
-      location: dto.location ?? statusLog.location,
-      updatedBy: { id: dto.updatedById ?? statusLog.updatedBy.id },
+      status: (dto.status as string) ?? statusLog.status,
+      location: (dto.location as string) ?? statusLog.location,
+      updatedBy: { id: (dto.updatedById as string) ?? statusLog.updatedBy.id },
     });
 
     return this.taskStatusLogsRepository.save(statusLog);
