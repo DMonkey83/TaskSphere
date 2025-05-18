@@ -16,7 +16,7 @@ import { ProjectMemberModule } from './project-members/project-member.module';
 import { ProjectsModule } from './projects/projects.module';
 import { RoadmapModule } from './roadmaps/roadmap.module';
 import { TaskTagModule } from './task-tags/task-tag.module';
-import { TaskActivityModule } from './TaskActivities/task-activity.module';
+import { TaskActivityModule } from './task-activities/task-activity.module';
 import { TaskModule } from './tasks/task.module';
 import { TeamsModule } from './teams/teams.module';
 import { TimeTrackingModule } from './time-trackings/time-tracking.module';

@@ -15,7 +15,7 @@ import {
 } from './dto/task.dto';
 import { Task } from './entities/task.entity';
 import { TaskRelation } from './entities/task-relation';
-import { TaskActivityService } from '../TaskActivities/task-activity.service';
+import { TaskActivityService } from '../task-activities/task-activity.service';
 import { User } from '../users/entities/user.entity';
 import { Team } from '../teams/entities/team.entity';
 import { Project } from '../projects/entities/project.entity';

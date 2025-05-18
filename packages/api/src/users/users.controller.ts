@@ -1,5 +1,5 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { CreateUserDtoClass, RegisterFromInviteDto } from './dto/user.dto';
+import { CreateUserDto, RegisterFromInviteDto } from './dto/user.dto';
 import { UsersService } from './users.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RoleGuard } from '../auth/role.guard';
@@ -14,7 +14,7 @@ export class UsersController {
   @Roles('admin')
   @Post()
   create(
-    @Body(new ZodValidationPipe(CreateUserDtoClass)) body: CreateUserDtoClass,
+    @Body(new ZodValidationPipe(CreateUserDto)) body: CreateUserDto,
   ) {
     return this.usersService.create(body);
   }

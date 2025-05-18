@@ -10,7 +10,7 @@ import * as bcrypt from 'bcryptjs';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import {
-  CreateUserDtoClass,
+  CreateUserDto,
   RegisterFromInviteDto,
   UserResponseDto,
   UserResponseSchema,
@@ -43,7 +43,7 @@ export class UsersService {
     return user;
   }
 
-  async create(dto: CreateUserDtoClass): Promise<User> {
+  async create(dto: CreateUserDto): Promise<User> {
     const passwordHash = await bcrypt.hash(dto.passwordHash, 10);
     const user = this.usersRepository.create({
       email: dto.email,

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Customer } from './entities/customer.entity';
 import { Repository } from 'typeorm';
-import { CreateCustomerDtoClass } from './dto/customer.dto';
+import { CreateCustomerDto } from './dto/customer.dto';
 
 @Injectable()
 export class CustomerService {
@@ -11,7 +11,7 @@ export class CustomerService {
     private customersRepository: Repository<Customer>,
   ) {}
 
-  create(dto: CreateCustomerDtoClass): Promise<Customer> {
+  create(dto: CreateCustomerDto): Promise<Customer> {
     const customer = this.customersRepository.create({
       name: dto.name,
       email: dto.email,

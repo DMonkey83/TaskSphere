@@ -1,12 +1,4 @@
-import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { UploadDocumentSchema } from '@shared/dto/documents.dto';
 
-export const UploadDocumentDto = z.object({
-  projectId: z.string().uuid(),
-  fileName: z.string().min(1),
-  filePath: z.string().min(1),
-  uploadedById: z.string().uuid(),
-  taskId: z.string().uuid().optional(),
-});
-
-export class UploadDocumentDtoClass extends createZodDto(UploadDocumentDto) {}
+export class UploadDocumentDto extends createZodDto(UploadDocumentSchema) {}

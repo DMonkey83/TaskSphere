@@ -4,7 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RoleGuard } from '../auth/role.guard';
 import { Roles } from '../auth/roles.decorator';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { CreateCustomerDtoClass } from './dto/customer.dto';
+import { CreateCustomerDto } from './dto/customer.dto';
 
 @Controller('customers')
 export class CustomerController {
@@ -14,8 +14,8 @@ export class CustomerController {
   @Roles('project_manager', 'admin')
   @Post()
   create(
-    @Body(new ZodValidationPipe(CreateCustomerDtoClass))
-    body: CreateCustomerDtoClass,
+    @Body(new ZodValidationPipe(CreateCustomerDto))
+    body: CreateCustomerDto,
   ) {
     return this.customerService.create(body);
   }

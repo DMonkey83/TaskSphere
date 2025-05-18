@@ -1,13 +1,4 @@
-import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { SendNotificationSchema } from '@shared/dto/notifications.dto';
 
-export const SendNotificationDto = z.object({
-  customerId: z.string().uuid(),
-  taskId: z.string().uuid(),
-  type: z.enum(['email', 'sms']),
-  content: z.string().min(1),
-});
-
-export class SendNotificationDtoClass extends createZodDto(
-  SendNotificationDto,
-) {}
+export class SendNotificationDto extends createZodDto(SendNotificationSchema) {}
