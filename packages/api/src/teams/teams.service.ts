@@ -17,7 +17,10 @@ export class TeamsService {
     private projectRepository: Repository<Project>,
   ) {}
 
-  async createTeam(dto: TeamDto): Promise<Team> {
+  async createTeam(dto: TeamDto, user: User): Promise<Team> {
+    if (!['admin', 'project_manager'].includes(user.role)) {
+      throw new Error('You do not have permission to create a team');
+    }
     const project = dto.projectId
       ? await this.projectRepository.findOneByOrFail({
           id: dto.projectId,
@@ -48,10 +51,25 @@ export class TeamsService {
     return this.teamRepository.save(team);
   }
 
-  async getTeam(id: string): Promise<Team> {
-    return this.teamRepository.findOneOrFail({
-      where: { id },
+  async listTeamsByAccount(accountId: string, user: User): Promise<Team[]> {
+    if (['admin', 'project_manager'].includes(user.role)) {
+      return this.teamRepository.find({
+        where: { account: { id: accountId } },
+        relations: ['project', 'members'],
+      });
+    } else {
+      return this.teamRepository.find({
+        where: { members: { id: user.id, account: { id: accountId } } },
+        relations: ['project', 'members'],
+      });
+    }
+  }
+
+  async getTeamDetails(id: string, accountId: string): Promise<Team> {
+    const team = await this.teamRepository.findOneOrFail({
+      where: { id, account: { id: accountId } },
       relations: ['project', 'members'],
     });
+    return team;
   }
 }

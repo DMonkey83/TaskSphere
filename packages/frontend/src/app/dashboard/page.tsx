@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export default async function Home() {
+export default async function Dashboard() {
   const cookieStore = cookies();
-  const accessToken = (await cookieStore).get('access_token')?.value;
+  const refreshToken = (await cookieStore).get('refresh_token')?.value;
 
-  if (!accessToken) {
+  if (!refreshToken) {
     redirect('/login');
   }
 

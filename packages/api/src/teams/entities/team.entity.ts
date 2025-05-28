@@ -2,12 +2,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
   ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Project } from '../../projects/entities/project.entity';
+import { Account } from '../../accounts/entities/account.entity';
 
 @Entity()
 export class Team {
@@ -21,10 +23,14 @@ export class Team {
   description: string;
 
   @ManyToMany(() => User, (user) => user.teams)
+  @JoinTable()
   members: User[];
 
   @ManyToOne(() => Project, (project) => project.teams)
   project: Project;
+
+  @ManyToOne(() => Account, { nullable: false })
+  account: Account;
 
   @CreateDateColumn({
     name: 'created_at',

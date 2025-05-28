@@ -1,23 +1,21 @@
-import { Nav } from "@/components/nav";
-import { LayoutSidebar } from "@/features/layout/sidebar";
+import Sidebar from "@/components/sidebar";
+import { LayoutProps } from "@/types/layout-props.types";
 
-export interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
-
-const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+const DashboardLayout = ({ children }: LayoutProps) => {
   return (
-    <LayoutSidebar>
-      <main className="bg-neutral-200 min-h-screen">
-        <div className="mx-auto max-w-screen-2xl p-4">
-          <Nav />
-          <div className="flex flex-col items-center justify-center pt-4 md:pt-14">
-            {children}
+    <div className="bg-neutral-200 min-h-screen">
+      <div className="flex w-full h-full">
+        <div className="fixed left-0 top-0 hidden lg:block lg-w-[264px] h-full overflow-y-auto">
+          <Sidebar />
+        </div>
+        <div className="lg:pl-[264px]">
+          <div className="mx-auto max-w-screen-2xl h-full">
+            <main className="h-full py-8 px-6 flex flex-col">{children}</main>
           </div>
         </div>
-      </main>
-    </LayoutSidebar>
-  )
-}
+      </div>
+    </div>
+  );
+};
 
 export default DashboardLayout;
