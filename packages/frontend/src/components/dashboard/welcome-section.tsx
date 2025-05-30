@@ -1,0 +1,23 @@
+import { MdAdd, MdTask } from "react-icons/md"
+import { Button } from "@/components/ui/button"
+
+export function WelcomeSection() {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
+        <p className="text-muted-foreground">Here&apos;s what&apos;s happening across your projects today.</p>
+      </div>
+      <div className="flex gap-2">
+        <Button>
+          <MdAdd className="mr-1 h-4 w-4" />
+          New Project
+        </Button>
+        <Button variant="outline">
+          <MdTask className="mr-1 h-4 w-4" />
+          New Task
+        </Button>
+      </div>
+    </div>
+  )
+}
