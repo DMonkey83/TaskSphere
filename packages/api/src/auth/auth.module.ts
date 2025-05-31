@@ -24,6 +24,7 @@ import { RefreshToken } from './entities/refresh-token.entity';
       }),
       inject: [ConfigService],
     }),
+    ConfigModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

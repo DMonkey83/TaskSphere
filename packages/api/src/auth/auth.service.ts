@@ -1,16 +1,25 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { LoginDto, RefreshTokenResponseDto } from './dto/auth.dto';
+import {
+  LoginDto,
+  RefreshTokenResponseDto,
+  UserEntity,
+  UserPayload,
+} from './dto/auth.dto';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { LoginResponse } from '@shared/dto/auth.dto';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
@@ -19,25 +28,41 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async validateUser({
-    email,
-    password,
-  }: LoginDto): Promise<{ id: string; email: string; role: string } | null> {
+  async validateUser({ email, password }: LoginDto): Promise<User> {
+    this.logger.log(`Validating user with email: ${email}`);
     const user = await this.usersService.findByEmail(email);
-    if (user && (await bcrypt.compare(password, user.passwordHash))) {
-      return user;
+    if (!user) {
+      this.logger.warn(`User not found for email: ${email}`);
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    throw new UnauthorizedException('Invalid credentials');
+    const isPasswordValid = await this.comparePassword(
+      password,
+      user.passwordHash,
+    );
+    if (!isPasswordValid) {
+      this.logger.warn(`Invalid password for user: ${email}`);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return user;
   }
 
-  async login(user: { id: string; email: string; role: string }) {
-    const payload = { email: user.email, id: user.id, role: user.role };
-    const accessToken = this.jwtService.sign(payload);
+  async login(user: UserEntity): Promise<LoginResponse> {
+    this.logger.log(`Generating JWT tokens for user: ${user.email}`);
+    const payload: UserPayload = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      account: { id: user.id },
+    };
+
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const refreshToken = await this.createRefreshToken(user.id);
+
     return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      accessToken,
+      refreshToken,
     };
   }
 
@@ -90,5 +115,12 @@ export class AuthService {
       storedToken.revoked = true;
       await this.refreshTokenRepository.save(storedToken);
     }
+  }
+
+  private async comparePassword(
+    password: string,
+    hash: string,
+  ): Promise<boolean> {
+    return bcrypt.compare(password, hash);
   }
 }

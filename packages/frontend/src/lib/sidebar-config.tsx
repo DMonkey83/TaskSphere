@@ -1,4 +1,4 @@
-import { NavigationItem, Project } from "@/types/sidebar.types";
+import { NavigationItem, Project, Team, User } from "@/types/sidebar.types";
 import {
   MdDashboard,
   MdBarChart,
@@ -38,3 +38,15 @@ export const projects: Project[] = [
     ],
   },
 ];
+
+export const teams: Team[] = [
+  { id: "1", name: "Acme Inc", logo: "A" },
+  { id: "2", name: "Product Team", logo: "P" },
+  { id: "3", name: "Marketing", logo: "M" },
+];
+
+export const user: User = {
+  name: "John Doe",
+  email: "john@example.com",
+  avatar: "/placeholder.svg?height=32&width=32",
+};

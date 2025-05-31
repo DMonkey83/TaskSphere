@@ -1,6 +1,5 @@
 import * as React from "react";
 import { MdExpandMore, MdCheck } from "react-icons/md";
-import { sidebarData } from "@/lib/sidebar-data";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,10 +10,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/store/use-sidebar-store";
+import { teams } from "@/lib/sidebar-config";
 
 export function TeamSwitcher() {
   const { isCollapsed } = useSidebar();
-  const [selectedTeam, setSelectedTeam] = React.useState(sidebarData.teams[0]);
+  const [selectedTeam, setSelectedTeam] = React.useState(teams[0]);
+
+  console.log("Selected Team:", selectedTeam, "isCollapsed:", isCollapsed);
 
   if (isCollapsed) {
     return (
@@ -48,7 +50,7 @@ export function TeamSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="start">
-        {sidebarData.teams.map((team) => (
+        {teams.map((team) => (
           <DropdownMenuItem
             key={team.id}
             onSelect={() => setSelectedTeam(team)}

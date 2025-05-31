@@ -13,6 +13,26 @@ export const RegisterSchema = z.object({
   industry: z.enum(["programming", "legal", "logistics", "other"]).optional(),
 });
 
+export const LoginResponseSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  role: z.string(),
+  accountId: z.string().uuid(),
+});
+
+export const RefreshTokenResponseSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string().uuid(),
+});
+
+export const ValidateUserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  role: z.string(),
+  account: z.object({ id: z.string() }),
+  password: z.string(),
+});
+
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type RegisterResponse = {
   email: string;
@@ -24,17 +44,6 @@ export type RegisterResponse = {
 
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type LoginResponse = {
-  access_token: string;
-  refresh_token: string;
+  accessToken: string;
+  refreshToken: string;
 };
-
-export const LoginResponseSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
-  role: z.string(),
-});
-
-export const RefreshTokenResponseSchema = z.object({
-  access_token: z.string(),
-  refresh_token: z.string(),
-});

@@ -6,10 +6,12 @@ import { TaskActivityController } from './task-activity.controller';
 import { TaskActivityService } from './task-activity.service';
 import { TaskModule } from '../tasks/task.module';
 import { TaskActivity } from './entities/task-activities.entity';
+import { TeamsModule } from '../teams/teams.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([TaskActivity, Task, User]),
+    TeamsModule,
     forwardRef(() => TaskModule),
   ],
   controllers: [TaskActivityController],

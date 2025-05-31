@@ -57,7 +57,7 @@ export function MainContent({ children, className }: MainContentProps) {
   return (
     <div
       className={cn(
-        "min-h-screen transition-all duration-300 ease-in-out",
+        "flex-1 min-h-screen w-full transition-all duration-300 ease-in-out",
         isMobile ? "ml-0" : isCollapsed ? "ml-16" : "ml-64",
         className
       )}

@@ -1,7 +1,7 @@
 import { MdPerson, MdSettings, MdLogout } from "react-icons/md";
-import { sidebarData } from "@/lib/sidebar-data";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/store/use-sidebar-store";
+import { user } from "@/lib/sidebar-config";
 
 const userActions = [
   { name: "Profile", icon: MdPerson, href: "/dashboard/profile" },
@@ -37,7 +37,7 @@ export function UserSection() {
       <Button variant="ghost" className="w-full justify-start gap-3" asChild>
         <a href="/dashboard/profile">
           <MdPerson className="h-4 w-4" />
-          <span>{sidebarData.user.name}</span>
+          <span>{user.name}</span>
         </a>
       </Button>
       {userActions.slice(1).map((action) => (

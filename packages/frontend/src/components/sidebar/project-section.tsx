@@ -9,7 +9,7 @@ interface ProjectsSectionProps {
 }
 
 export function ProjectsSection({ projects }: ProjectsSectionProps) {
-  const isCollapsed = useSidebar();
+  const {isCollapsed} = useSidebar();
 
   if (isCollapsed) {
     return (

@@ -12,6 +12,9 @@ import { LoginDto, LoginResponseDto, RegisterDto } from './dto/auth.dto';
 import { UsersService } from '../users/users.service';
 import { AccountsService } from '../accounts/accounts.service';
 import { Request, Response } from 'express';
+import { CookieService, TokenCookieOptions } from './auth.utils';
+import { User } from '../users/entities/user.entity';
+import { Role } from '../common/enums/role.enum';
 
 @Controller('auth')
 export class AuthController {
@@ -24,40 +27,26 @@ export class AuthController {
   @Post('login')
   async login(
     @Body(new ZodValidationPipe(LoginDto)) body: LoginDto,
-    @Res() res: Response,
-  ): Promise<void> {
-    const user: { id: string; email: string; role: string } | null =
-      await this.authService.validateUser(body);
-    if (!user) {
-      throw new Error('Invalid credentials');
-    }
-    console.log('loginuser', user);
-    const { access_token, refresh_token } = await this.authService.login(user);
-
-    res.cookie('access_token', access_token, {
-      httpOnly: true,
-      secure: true,
-      // secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none',
-      maxAge: 15 * 60 * 1000,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginResponseDto> {
+    const user: User = await this.authService.validateUser(body);
+    const tokens: TokenCookieOptions = await this.authService.login({
+      id: user.id,
+      email: user.email,
+      role: user.role as Role,
+      account: { id: user.account.id },
+      passwordHash: user.passwordHash, // Ensure passwordHash is included for validation
     });
-
-    res.cookie('refresh_token', refresh_token, {
-      httpOnly: true,
-      // secure: process.env.NODE_ENV === 'production',
-      secure: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    CookieService.setAuthCookies(res, tokens);
 
     const loginResponse: LoginResponseDto = {
       id: user.id,
       email: user.email,
       role: user.role,
+      accountId: user.account.id,
     };
 
-    console.log('login tokens', loginResponse);
-    res.json(loginResponse);
+    return loginResponse;
   }
 
   @Post('refresh')
