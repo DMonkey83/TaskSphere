@@ -17,7 +17,7 @@ export class AccountInvitesService {
     private invitesRepository: Repository<AccountInvite>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) { }
+  ) {}
 
   async createInvite(
     email: string,

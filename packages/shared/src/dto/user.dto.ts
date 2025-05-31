@@ -17,20 +17,32 @@ export const RegisterFromInviteSchema = z.object({
   role: z.enum(["project_manager", "member"]).optional(),
 });
 
+export const AccountData = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  industry: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
 export const UserResponseSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   firstName: z.string(),
   lastName: z.string(),
   role: z.enum(["admin", "owner", "project_manager", "team_lead", "member"]),
-  accountId: z.string().uuid(),
+  account: AccountData,
 });
 
-export type UserResponse = {
-  id: string;
+export type UserResponse = z.infer<typeof UserResponseSchema>;
+
+export interface AuthenticatedUser {
+  userId: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  role: "admin" | "owner" | "project_manager" | "team_lead" | "member";
-  accountId: string;
-};
+  role: string;
+  account: { id: string };
+}
+
+export interface AuthenticatedRequest extends Request {
+  user: AuthenticatedUser;
+}

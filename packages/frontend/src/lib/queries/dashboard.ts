@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import clientApi from "../axios";
+import { UserResponse } from "@shared/dto/user.dto";
+import { fetchUserClient } from "../api/user";
 
 export function useTeamActivitesQuery(teamId: string, accountId: string) {
   return useQuery({
@@ -10,18 +12,10 @@ export function useTeamActivitesQuery(teamId: string, accountId: string) {
   });
 }
 
-export function useGetUserByIdQuery(userId: string) {
+export function useUserQuery(initialData: UserResponse) {
   return useQuery({
-    queryKey: ["getUserById", userId],
-    queryFn: () => clientApi.get(`/users/${userId}`),
-    enabled: !!userId,
-  });
-}
-
-export function useGetUserByEmailQuery(email: string) {
-  return useQuery({
-    queryKey: ["getUserByEmail", email],
-    queryFn: () => clientApi.get(`/users/${email}`),
-    enabled: !!email,
+    queryKey: ["user"],
+    queryFn: fetchUserClient,
+    initialData,
   });
 }

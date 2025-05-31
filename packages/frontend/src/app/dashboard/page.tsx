@@ -1,34 +1,46 @@
-import { dashboardData } from "@/lib/dashboard-data";
-import { WelcomeSection } from "@/components/dashboard/welcome-section";
-import { StatsOverview } from "@/components/dashboard/stats-overview";
-import { ProjectProgress } from "@/components/dashboard/project-progress";
-import { UpcomingDeadlines } from "@/components/dashboard/upcoming-deadlines";
-import { RecentActivity } from "@/components/dashboard/recent-activity";
-import { TeamOverview } from "@/components/dashboard/team-overview";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { UserResponse, UserResponseSchema } from "@shared/dto/user.dto";
+import { fetchServerData } from "@/lib/api.server";
+import {
+  HydrationBoundary,
+  dehydrate,
+  QueryClient,
+} from "@tanstack/react-query";
+import ClientDashboard from "@/features/layout/ClientDashboard";
 
 export default async function DashboardPage() {
   const cookieStore = cookies();
   const refreshToken = (await cookieStore).get("refresh_token")?.value;
+  const cookieString = (await cookieStore).toString();
 
   if (!refreshToken) {
     redirect("/login");
   }
+
+  const user: UserResponse = await fetchServerData(
+    "/users/me",
+    cookieString,
+    UserResponseSchema
+  );
+
+  const queryClient = new QueryClient();
+  await queryClient.prefetchQuery({
+    queryKey: ["user", user.id],
+    queryFn: () => user,
+  });
+
   return (
-    <div className="space-y-6">
-      <WelcomeSection />
-
-      <StatsOverview stats={dashboardData.stats} />
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <ProjectProgress projects={dashboardData.recentProjects} />
-        <UpcomingDeadlines deadlines={dashboardData.upcomingDeadlines} />
-      </div>
-
-      <RecentActivity activities={dashboardData.activities} />
-
-      <TeamOverview />
-    </div>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <ClientDashboard
+        user={{
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          accountId: user.account.id,
+        }}
+        account={{ name: user.account.name, industry: user.account.industry }}
+      />
+    </HydrationBoundary>
   );
 }

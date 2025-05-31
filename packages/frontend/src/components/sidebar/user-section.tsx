@@ -1,7 +1,7 @@
 import { MdPerson, MdSettings, MdLogout } from "react-icons/md";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/store/use-sidebar-store";
-import { user } from "@/lib/sidebar-config";
+import { userStore } from "@/store/user-store";
 
 const userActions = [
   { name: "Profile", icon: MdPerson, href: "/dashboard/profile" },
@@ -11,6 +11,7 @@ const userActions = [
 
 export function UserSection() {
   const { isCollapsed } = useSidebar();
+  const {user} = userStore();
 
   if (isCollapsed) {
     return (
@@ -37,7 +38,7 @@ export function UserSection() {
       <Button variant="ghost" className="w-full justify-start gap-3" asChild>
         <a href="/dashboard/profile">
           <MdPerson className="h-4 w-4" />
-          <span>{user.name}</span>
+          <span>{user.email}</span>
         </a>
       </Button>
       {userActions.slice(1).map((action) => (
