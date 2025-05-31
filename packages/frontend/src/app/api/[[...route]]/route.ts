@@ -13,10 +13,13 @@ const app = new Hono();
 
 // Enable CORS
 // Middleware: CORS and cookie parsing
-app.use('*', cors({
-  origin: env.FRONTEND_API_URL,
-  credentials: true,
-}));
+app.use(
+  "*",
+  cors({
+    origin: env.FRONTEND_API_URL,
+    credentials: true,
+  })
+);
 
 // Proxy: Register route
 app.post("/api/auth/register", async (c) => {
@@ -99,10 +102,53 @@ app.post("/api/auth/refresh", async (c) => {
   }
 });
 
-app.all("*", (c) => {
-  console.log("Unmatched route:", c.req.method, c.req.path);
-  return c.json({ error: "Not found" }, 404);
+app.all("*", async (c) => {
+  try {
+    console.log(`Received ${c.req.method} request for: ${c.req.path}`);
+    const path = c.req.path.replace("/api", "");
+    const backendUrl = `${env.BACKEND_API_URL}${path}`;
+    console.log(
+      `Proxying ${c.req.method} ${c.req.path} request to: ${backendUrl}`
+    );
+    const cookieHeader = c.req.header("cookie") || "";
+    console.log(`Request Cookie header: ${cookieHeader}`);
+
+    const body = ["POST", "PATCH", "PUT"].includes(c.req.method)
+      ? await c.req.json()
+      : undefined;
+    const { data, status, headers } = await serverApi({
+      method: c.req.method.toLowerCase() as
+        | "get"
+        | "post"
+        | "put"
+        | "patch"
+        | "delete",
+      url: path,
+      headers: {
+        Cookie: cookieHeader,
+      },
+      data: body,
+    });
+
+    if (headers["set-cookie"]) {
+      headers["set-cookie"].forEach((cookie: string) => {
+        c.header("Set-Cookie", cookie, { append: true });
+      });
+    }
+    return c.json(data, status as HttpStatusCode);
+  } catch (error) {
+    const axiosErr = error as AxiosError;
+    const errorData = axiosErr.response?.data ?? { message: "Request faild" };
+    const status = axiosErr.response?.status ?? 500;
+    console.error(`Proxy error for ${c.req.path}:`, errorData);
+    return c.json(errorData, status as HttpStatusCode);
+  }
 });
+
+app.all('*', (c) => {
+  console.log('Unmatched route:', c.req.method, c.req.path);
+  return c.json({error: 'Not Found'}, 404)
+})
 
 // Required by Next.js App Router
 export const runtime = "nodejs";

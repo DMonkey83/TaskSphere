@@ -12,7 +12,7 @@ import { RoleType, userStore } from "@/store/user-store";
 import { useEffect } from "react";
 
 interface ClientDashboardProps {
-  user: { id: string; email: string; role: string; accountId: string };
+  user: { id: string; email: string; role: string; accountId: string, lastName?: string, firstName?: string };
   account: { name: string; industry: string };
 }
 export default function ClientDashboard({
@@ -28,12 +28,15 @@ export default function ClientDashboard({
       email: user.email,
       role: user.role as RoleType,
       accountId: user.accountId,
+      lastName: user.lastName || "",
+      firstName: user.firstName || "",
     });
     setAccount({
       name: account.name,
       industry: account.industry,
     });
   }, [user, account, setUser, setAccount]);
+
 
   return (
     <div className="space-y-6">

@@ -7,7 +7,7 @@ import {
   dehydrate,
   QueryClient,
 } from "@tanstack/react-query";
-import ClientDashboard from "@/features/layout/ClientDashboard";
+import ClientDashboard from "@/features/layout/client-dashboard";
 
 export default async function DashboardPage() {
   const cookieStore = cookies();
@@ -24,6 +24,8 @@ export default async function DashboardPage() {
     UserResponseSchema
   );
 
+  console.log("User data fetched for dashboard:", user);
+
   const queryClient = new QueryClient();
   await queryClient.prefetchQuery({
     queryKey: ["user", user.id],
@@ -38,6 +40,8 @@ export default async function DashboardPage() {
           email: user.email,
           role: user.role,
           accountId: user.account.id,
+          lastName: user.lastName || "",
+          firstName: user.firstName || "",
         }}
         account={{ name: user.account.name, industry: user.account.industry }}
       />

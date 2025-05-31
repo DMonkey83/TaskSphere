@@ -6,6 +6,8 @@ export interface User {
     id: string;
     email: string;
     role: RoleType;
+    lastName?: string; // Optional, can be added later
+    firstName?: string; // Optional, can be added later
     accountId: string;
 }
 

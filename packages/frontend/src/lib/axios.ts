@@ -19,7 +19,7 @@ export const serverApi = axios.create({
 clientApi.interceptors.response.use(
   (res) => res,
   (err) => {
-    console.error('Axios error:', err);
+    console.error('Client API error:', err);
     return Promise.reject(err)
   }
 )
@@ -27,7 +27,7 @@ clientApi.interceptors.response.use(
 serverApi.interceptors.response.use(
   (res) => res,
   (err) => {
-    console.error('Axios error:', err);
+    console.error('Server API error:', err);
     return Promise.reject(err)
   }
 )

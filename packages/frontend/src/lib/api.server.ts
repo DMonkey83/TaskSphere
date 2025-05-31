@@ -7,6 +7,7 @@ export async function fetchServerData<T>(
   schema: z.ZodSchema<T>
 ): Promise<T> {
   try {
+    console.log(`Fetching /api${url} with cookies: ${cookies}`);
     const response = await serverApi.get(url, {
       headers: {
         Cookie: cookies || "",
