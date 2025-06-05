@@ -1,16 +1,31 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookiesParser from 'cookie-parser';
+import fs from 'fs';
+import path from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  console.log(
+    'Resolved key path:',
+    path.resolve(__dirname, '../../../../../certs/cert.key'),
+  );
+
+  const httpsOptions = {
+    key: fs.readFileSync(
+      path.resolve(__dirname, '../../../../../certs/cert.key'),
+    ),
+    cert: fs.readFileSync(
+      path.resolve(__dirname, '../../../../../certs/cert.pem'),
+    ),
+  };
+  const app = await NestFactory.create(AppModule, { httpsOptions });
   app.use(cookiesParser());
 
   app.enableCors({
-    origin: 'http://localhost:3001',
+    origin: 'https://localhost:3001',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     exposedHeaders: ['Set-Cookie'],
   });
 

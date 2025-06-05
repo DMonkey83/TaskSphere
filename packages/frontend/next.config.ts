@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+      return [
+        {
+          source: "/api/:path*",
+          destination: `${process.env.BACKEND_API_URL}/:path*`, // Proxy to Backend API
+        }
+      ]
+  },
   /* config options here */
   webpack: (config) => {
     config.resolve.alias = {

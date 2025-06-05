@@ -18,7 +18,7 @@ export class TeamsService {
   ) {}
 
   async createTeam(dto: TeamDto, user: User): Promise<Team> {
-    if (!['admin', 'project_manager'].includes(user.role)) {
+    if (!['admin', 'project_manager', 'owner'].includes(user.role)) {
       throw new Error('You do not have permission to create a team');
     }
     const project = dto.projectId
@@ -31,6 +31,7 @@ export class TeamsService {
       name: dto.name,
       description: dto.description,
       project: project ? project : null,
+      account: user.account,
     });
     if (dto.memberIds) {
       team.members = await this.userRepository.findBy({
@@ -52,15 +53,15 @@ export class TeamsService {
   }
 
   async listTeamsByAccount(accountId: string, user: User): Promise<Team[]> {
-    if (['admin', 'project_manager'].includes(user.role)) {
+    if (['admin', 'project_manager', 'owner'].includes(user.role)) {
       return this.teamRepository.find({
         where: { account: { id: accountId } },
-        relations: ['project', 'members'],
+        relations: ['project', 'members', 'account'],
       });
     } else {
       return this.teamRepository.find({
         where: { members: { id: user.id, account: { id: accountId } } },
-        relations: ['project', 'members'],
+        relations: ['project', 'members', 'account'],
       });
     }
   }

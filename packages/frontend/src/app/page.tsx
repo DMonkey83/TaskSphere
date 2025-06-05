@@ -1,14 +1,6 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
 
 export default async function Home() {
-  const cookieStore = cookies();
-  const refreshToken = (await cookieStore).get('refresh_token')?.value;
-
-  if (refreshToken) {
-    redirect('/dashboard');
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

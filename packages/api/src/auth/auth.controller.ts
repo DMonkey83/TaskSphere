@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Logger,
   Post,
   Req,
   Res,
@@ -15,9 +16,11 @@ import { Request, Response } from 'express';
 import { CookieService, TokenCookieOptions } from './auth.utils';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../common/enums/role.enum';
+import { Public } from './public.decorator';
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
   constructor(
     private authService: AuthService,
     private readonly accountService: AccountsService,
@@ -49,30 +52,26 @@ export class AuthController {
     return loginResponse;
   }
 
+  @Public()
   @Post('refresh')
   async refresh(@Req() req: Request, @Res() res: Response): Promise<Response> {
-    const cookies = req.cookies as { refresh_token?: string };
-    const refreshToken = cookies.refresh_token;
+    const refreshToken = req.cookies['refresh_token'] as string | undefined;
     if (!refreshToken)
       throw new UnauthorizedException('No refresh token provided');
 
     try {
-      const { access_token, refresh_token } =
+      const { access_token, refresh_token: newRefreshToken } =
         await this.authService.refreshToken(refreshToken);
 
-      res.cookie('access_token', access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none',
-        maxAge: 15 * 60 * 1000,
+      this.logger.log(
+        `Refreshing tokens for user with refresh token: ${newRefreshToken}, access token: ${access_token}`,
+      );
+
+      CookieService.setAuthCookies(res, {
+        accessToken: access_token,
+        refreshToken: newRefreshToken,
       });
 
-      res.cookie('refresh_token', refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
       return res.json('New Refresh and access tokens created');
     } catch (error) {
       throw new UnauthorizedException(

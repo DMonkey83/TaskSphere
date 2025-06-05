@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
@@ -17,9 +18,11 @@ import {
   UpdateProjectDto,
 } from './dto/project.dto';
 import { Roles } from '../auth/roles.decorator';
+import { Project } from './entities/project.entity';
 
 @Controller('projects')
 export class ProjectController {
+  private readonly logger = new Logger(ProjectsService.name);
   constructor(private projectsService: ProjectsService) {}
 
   @UseGuards(AuthGuard('jwt'), RoleGuard)
@@ -62,14 +65,18 @@ export class ProjectController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Patch(':accountId')
-  async listProjectsByAccauntId(@Param('acountId') id: string) {
+  @Get(':accountId')
+  async listProjectsByAccauntId(
+    @Param('acountId') id: string,
+  ): Promise<Project[]> {
+    this.logger.log('Listing projects for account ID:', id);
     return this.projectsService.listProjectsByAccount(id);
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Get(':projectKey')
   async getByKey(@Param('projectKey') projectKey: string) {
+    this.logger.log('Listing projects for account ID:', projectKey);
     return this.projectsService.findByKey(projectKey);
   }
 }

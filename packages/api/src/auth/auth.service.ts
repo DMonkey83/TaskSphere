@@ -1,6 +1,5 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
 import {
   LoginDto,
   RefreshTokenResponseDto,
@@ -54,7 +53,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       role: user.role,
-      account: { id: user.id },
+      account: { id: user.account.id },
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
@@ -66,55 +65,108 @@ export class AuthService {
     };
   }
 
+  async refreshToken(rToken: string): Promise<RefreshTokenResponseDto> {
+    try {
+      // Verify JWT
+      const { id } = this.jwtService.verify<{ id: string }>(rToken);
+      const user = await this.usersService.findById(id);
+      if (!user) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      this.logger.log(
+        `User found for refresh token: ${user.id} and refresh token`,
+      );
+      // Find stored token
+      const storedToken = await this.refreshTokenRepository.findOne({
+        where: { token: rToken, revoked: false },
+        relations: ['user'],
+      });
+
+      this.logger.log(
+        `Refresh token request received, rToken: ${rToken.slice(0, 20)}..., storedToken: ${
+          storedToken ? storedToken.id : 'not found'
+        }`,
+      );
+
+      if (!storedToken || storedToken.expiresAt < new Date()) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      // Revoke old token
+      storedToken.revoked = true;
+      await this.refreshTokenRepository.save(storedToken);
+
+      // Generate new tokens
+      const payload = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        account: { id: user.account.id },
+      };
+
+      const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
+      const refresh_token = await this.createRefreshToken(user.id);
+      this.logger.log(
+        `New refresh token created: ${refresh_token.slice(0, 20)}...`,
+      );
+
+      return { access_token, refresh_token };
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(`Refresh token error: ${error.message}`);
+      } else {
+        this.logger.error('Refresh token error: Unknown error');
+      }
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+  }
+
   async createRefreshToken(userId: string): Promise<string> {
-    const token = uuidv4();
-    const tokenHash = await bcrypt.hash(token, 10);
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      this.logger.error(`No user found for ID: ${userId}`);
+      throw new UnauthorizedException('Invalid user ID');
+    }
+
+    const refreshToken = this.jwtService.sign(
+      { id: userId },
+      { expiresIn: '7d' },
+    );
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    const refreshToken = this.refreshTokenRepository.create({
-      user: { id: userId },
-      tokenHash,
-      expiresAt,
-    });
-    await this.refreshTokenRepository.save(refreshToken);
-    return token;
-  }
-
-  async refreshToken(rToken: string): Promise<RefreshTokenResponseDto> {
-    const storedToken = await this.refreshTokenRepository.findOne({
-      where: { tokenHash: await bcrypt.hash(rToken, 10), revoked: false },
-      relations: ['user'],
-    });
-    if (!storedToken || storedToken.expiresAt < new Date()) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        this.logger.log(
+          `Attempt ${attempt} to save refresh token for user: ${userId}`,
+        );
+        const savedToken = await this.refreshTokenRepository.save({
+          token: refreshToken,
+          user: { id: userId }, // Explicit user_id
+          expiresAt,
+          createdAt: new Date(),
+          revoked: false,
+        });
+        this.logger.log(
+          `Saved refresh token: ${savedToken.id} for user: ${userId}`,
+        );
+        return refreshToken;
+      } catch (error) {
+        this.logger.error(
+          `Attempt ${attempt} failed to save refresh token: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        );
+        if (attempt === 3) {
+          throw new Error(
+            `Failed to save refresh token after 3 attempts: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`,
+          );
+        }
+      }
     }
-
-    storedToken.revoked = true;
-    await this.refreshTokenRepository.save(storedToken);
-
-    const payload = {
-      email: storedToken.user.email,
-      userId: storedToken.user.id,
-      role: storedToken.user.role,
-    };
-    const accessToken = this.jwtService.sign(payload);
-    const newRefreshToken = await this.createRefreshToken(storedToken.user.id);
-
-    return {
-      access_token: accessToken,
-      refresh_token: newRefreshToken,
-    };
-  }
-
-  async revokeRefreshToken(rToken: string): Promise<void> {
-    const storedToken = await this.refreshTokenRepository.findOne({
-      where: { tokenHash: await bcrypt.hash(rToken, 10) },
-    });
-    if (storedToken) {
-      storedToken.revoked = true;
-      await this.refreshTokenRepository.save(storedToken);
-    }
+    throw new Error('Failed to save refresh token');
   }
 
   private async comparePassword(

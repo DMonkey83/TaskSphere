@@ -1,46 +1,61 @@
-'use client';
+"use client";
 
-import { ProjectProgress } from "@/components/dashboard/project-progress";
-import { RecentActivity } from "@/components/dashboard/recent-activity";
-import { StatsOverview } from "@/components/dashboard/stats-overview";
-import { TeamOverview } from "@/components/dashboard/team-overview";
-import { UpcomingDeadlines } from "@/components/dashboard/upcoming-deadlines";
-import { WelcomeSection } from "@/components/dashboard/welcome-section";
+import {
+  ProjectProgress,
+  RecentActivity,
+  StatsOverview,
+  TeamOverview,
+  UpcomingDeadlines,
+  WelcomeSection,
+} from "@/components/dashboard";
+import { useSetupDashboardStores } from "@/hooks/useSetupDashboardStores";
 import { dashboardData } from "@/lib/dashboard-data";
-import { accountStore } from "@/store/account-store";
-import { RoleType, userStore } from "@/store/user-store";
-import { useEffect } from "react";
+import { useProjectsQuery } from "@/lib/queries/useProjects";
+import { useTeamsQuery } from "@/lib/queries/useTeams";
+import { useUserQuery } from "@/lib/queries/useUser";
 
-interface ClientDashboardProps {
-  user: { id: string; email: string; role: string; accountId: string, lastName?: string, firstName?: string };
-  account: { name: string; industry: string };
-}
-export default function ClientDashboard({
-  user,
-  account,
-}: ClientDashboardProps) {
-  const { setUser } = userStore();
-  const { setAccount } = accountStore();
+export default function ClientDashboard({}) {
+  const {
+    data: user,
+    isLoading: userLoading,
+    isError: userError,
+  } = useUserQuery();
+  const accountId = user?.account?.id;
+  const {
+    data: teams,
+    isLoading: teamsLoading,
+    isError: teamsError,
+  } = useTeamsQuery(accountId!, {
+    enabled: !!accountId,
+  });
 
-  useEffect(() => {
-    setUser({
-      id: user.id,
-      email: user.email,
-      role: user.role as RoleType,
-      accountId: user.accountId,
-      lastName: user.lastName || "",
-      firstName: user.firstName || "",
-    });
-    setAccount({
-      name: account.name,
-      industry: account.industry,
-    });
-  }, [user, account, setUser, setAccount]);
+  const {
+    data: projects,
+    isLoading: projectsLoading,
+    isError: projectsError,
+  } = useProjectsQuery(accountId!, {
+    enabled: !!accountId,
+  });
 
+
+  useSetupDashboardStores({
+    user,
+    account: {
+      name: user?.account?.name || "",
+      industry: user?.account?.industry || "",
+    },
+    teams,
+    projects,
+  });
+
+  if (userLoading || teamsLoading || projectsLoading)
+    return <div>Loading...</div>;
+  if (userError || teamsError || projectsError)
+    return <div>Error loading dashboard.</div>;
 
   return (
     <div className="space-y-6">
-      <WelcomeSection />
+      <WelcomeSection name={`${user.firstName} ${user.lastName}`} />
 
       <StatsOverview stats={dashboardData.stats} />
 

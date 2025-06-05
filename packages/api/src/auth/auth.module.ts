@@ -9,6 +9,8 @@ import { UsersModule } from '../users/users.module';
 import { AccountsModule } from '../accounts/accounts.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { RefreshTokenInterceptor } from './refresh-token.interceptor';
 
 @Module({
   imports: [
@@ -27,7 +29,14 @@ import { RefreshToken } from './entities/refresh-token.entity';
     ConfigModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RefreshTokenInterceptor,
+    },
+  ],
+  exports: [AuthService, JwtStrategy, PassportModule],
 })
 export class AuthModule {}

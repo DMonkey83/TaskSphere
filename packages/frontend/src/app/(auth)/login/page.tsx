@@ -1,6 +1,14 @@
 import { LoginCard } from "@/features/auth/components/login-card";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-const LoginPage = () => {
+const LoginPage = async () => {
+  const cookieStore = cookies();
+  const refreshToken = (await cookieStore).get("access_token")?.value;
+
+  if (refreshToken) {
+    redirect("/dashboard");
+  }
   return (
     <div>
       <LoginCard />

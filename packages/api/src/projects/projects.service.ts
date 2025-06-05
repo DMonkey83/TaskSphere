@@ -1,5 +1,5 @@
 import { AccountsService } from './../accounts/accounts.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Project } from './entities/project.entity';
 import { ProjectView } from './entities/project-view.entity';
@@ -19,6 +19,7 @@ export class ProjectsService {
     logistics: 0,
     other: 0,
   };
+  private readonly logger = new Logger(ProjectsService.name);
 
   constructor(
     @InjectRepository(Project)
@@ -126,6 +127,7 @@ export class ProjectsService {
   }
 
   async listProjectsByAccount(accountId: string): Promise<Project[]> {
+    this.logger.log(`Listing projects for account ID: ${accountId}`);
     return this.projectsRepository.find({
       where: { account: { id: accountId } },
       relations: ['owner', 'account'],

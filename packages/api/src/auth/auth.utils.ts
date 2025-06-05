@@ -14,7 +14,7 @@ export class CookieService {
     return {
       httpOnly: true,
       secure: true,
-      sameSite: this.isProduction ? 'strict' : 'none',
+      sameSite: this.isProduction ? 'strict' : 'lax',
       maxAge: 15 * 60 * 1000, // 15 minutes
     };
   }
@@ -23,7 +23,7 @@ export class CookieService {
     return {
       httpOnly: true,
       secure: true,
-      sameSite: this.isProduction ? 'strict' : 'none',
+      sameSite: this.isProduction ? 'strict' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
   }

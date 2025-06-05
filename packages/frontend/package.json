@@ -2,8 +2,10 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev:http": "next dev -p 3001",
+    "dev": "NODE_EXTRA_CA_CERTS=/home/evilnis/.local/share/mkcert/rootCA.pem node --loader ts-node/esm server.mts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -25,6 +27,7 @@
     "date-fns": "^4.1.0",
     "hono": "^4.7.8",
     "jose": "^6.0.11",
+    "lodash.isequal": "^4.5.0",
     "lucide-react": "^0.507.0",
     "next": "15.3.1",
     "react": "^18.3.1",
@@ -41,12 +44,13 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.17.41",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   }
 }

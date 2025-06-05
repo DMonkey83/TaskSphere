@@ -16,7 +16,7 @@ import { Team } from './entities/team.entity';
 import { User } from '../users/entities/user.entity';
 import { TeamDto } from './dto/team.dto';
 
-@Controller('teamss')
+@Controller('teams')
 export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
@@ -28,6 +28,7 @@ export class TeamsController {
     @Query('take') take: number = 10,
     @GetUser() user: User,
   ): Promise<Team[]> {
+    console.log('Fetching teams for account.id:', accountId, 'User:', user);
     if (user.account.id !== accountId) {
       throw new ForbiddenException('Access denied to this account');
     }

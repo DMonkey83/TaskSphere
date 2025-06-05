@@ -1,158 +1,131 @@
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { handle } from "hono/vercel";
-import { AxiosError } from "axios";
-import { HttpStatusCode } from "@/types/apiCalls.types";
-import { getEnv } from "@shared/utils/validateEnv";
-import { serverApi } from "@/lib/axios";
-import { getCookie, setCookie } from "hono/cookie";
-
-const env = getEnv();
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { handle } from 'hono/vercel';
+import { AxiosError } from 'axios';
+import { HttpStatusCode } from '@/types/apiCalls.types';
+import { serverApi } from '@/lib/axios';
 
 const app = new Hono();
 
-// Enable CORS
-// Middleware: CORS and cookie parsing
+// Middleware
 app.use(
-  "*",
+  '*',
   cors({
-    origin: env.FRONTEND_API_URL,
+    origin: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://localhost:3000',
     credentials: true,
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    exposeHeaders: ['Set-Cookie'],
   })
 );
 
-// Proxy: Register route
-app.post("/api/auth/register", async (c) => {
+// Utility: forward Set-Cookie headers
+import { Context } from 'hono';
+
+const forwardSetCookies = (c: Context, headers: Record<string, string | string[] | undefined>) => {
+  const setCookieHeaders = headers['set-cookie'];
+  const cookies = Array.isArray(setCookieHeaders)
+    ? setCookieHeaders
+    : setCookieHeaders ? [setCookieHeaders] : [];
+
+  cookies.forEach((cookie: string) => {
+    c.header('Set-Cookie', cookie, { append: true });
+  });
+};
+
+// Auth: Register
+app.post('/api/auth/register', async (c) => {
   try {
     const body = await c.req.json();
-    console.log("body", body);
-    const { data, status } = await serverApi.post(`/auth/register`, body);
+    const { data, status, headers } = await serverApi.post(`/auth/register`, body);
+    forwardSetCookies(c, headers as Record<string, string | string[]>);
     return c.json(data, status as HttpStatusCode);
   } catch (err) {
     const axiosErr = err as AxiosError;
-    const errorData = axiosErr.response?.data ?? {
-      message: "Registration failed",
-    };
+    const errorData = axiosErr.response?.data ?? { message: 'Registration failed' };
     const status = axiosErr.response?.status ?? 500;
     return c.json(errorData, status as HttpStatusCode);
   }
 });
 
-// Proxy: Login route
-app.post("/api/auth/login", async (c) => {
+// Auth: Login
+app.post('/api/auth/login', async (c) => {
   try {
     const body = await c.req.json();
-    console.log("Received login request with body:", body);
+    const { data, status, headers } = await serverApi.post(`/auth/login`, body, {
+      withCredentials: true,
+    });
+    forwardSetCookies(c, headers as Record<string, string | string[]>);
+    return c.json(data, status as HttpStatusCode);
+  } catch (err) {
+    const axiosErr = err as AxiosError;
+    const errorData = axiosErr.response?.data ?? { message: 'Login failed' };
+    const status = axiosErr.response?.status ?? 500;
+    return c.json(errorData, status as HttpStatusCode);
+  }
+});
 
+// Auth: Refresh
+app.post('/api/auth/refresh', async (c) => {
+  try {
+    const cookieHeader = c.req.header('cookie') || '';
     const { data, status, headers } = await serverApi.post(
-      `/auth/login`,
-      body,
+      `/auth/refresh`,
+      {},
       {
+        headers: {
+          Cookie: cookieHeader,
+        },
         withCredentials: true,
       }
     );
-    if (headers["set-cookie"]) {
-      headers["set-cookie"].forEach((cookie: string) => {
-        c.header("Set-Cookie", cookie, { append: true });
-      });
-    } else {
-      console.log("No Set-Cookie headers received from backend");
-    }
-
+    forwardSetCookies(c, headers as Record<string, string | string[]>);
     return c.json(data, status as HttpStatusCode);
   } catch (err) {
     const axiosErr = err as AxiosError;
-    const errorData = axiosErr.response?.data ?? { message: "Login failed" };
+    const errorData = axiosErr.response?.data ?? { message: 'Refresh failed' };
     const status = axiosErr.response?.status ?? 500;
     return c.json(errorData, status as HttpStatusCode);
   }
 });
 
-// Proxy: Refresh token route
-app.post("/api/auth/refresh", async (c) => {
-  try {
-    const refreshToken = getCookie(c, "refresh_token");
-    if (!refreshToken) {
-      return c.json(
-        { message: "No refresh token provided" },
-        401 as HttpStatusCode
-      );
-    }
-    const { data, status } = await serverApi.post("/auth/refresh", {
-      refresh_token: refreshToken,
-    });
-    // Update access_token cookie
-    if (data.access_token) {
-      setCookie(c, "access_token", data.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Strict",
-        path: "/",
-        maxAge: 900, // 15 minutes
-      });
-    }
-    return c.json(data, status as HttpStatusCode);
-  } catch (err: unknown) {
-    const axiosErr = err as AxiosError;
-    const errorData = axiosErr.response?.data ?? {
-      message: "Failed to refresh token",
-    };
-    const status = axiosErr.response?.status ?? 401;
-    return c.json(errorData, status as HttpStatusCode);
+// Proxy fallback for other API routes
+app.all('*', async (c) => {
+  const path = c.req.path.replace('/api', '');
+
+  // Prevent double handling of /auth/refresh
+  if (path === '/auth/refresh') {
+    return c.json({ message: 'Route already handled directly.' }, 400);
   }
-});
 
-app.all("*", async (c) => {
   try {
-    console.log(`Received ${c.req.method} request for: ${c.req.path}`);
-    const path = c.req.path.replace("/api", "");
-    const backendUrl = `${env.BACKEND_API_URL}${path}`;
-    console.log(
-      `Proxying ${c.req.method} ${c.req.path} request to: ${backendUrl}`
-    );
-    const cookieHeader = c.req.header("cookie") || "";
-    console.log(`Request Cookie header: ${cookieHeader}`);
+    const cookieHeader = c.req.header('cookie') || '';
+    const method = c.req.method.toLowerCase();
+    const body =
+      ['post', 'put', 'patch'].includes(method) ? await c.req.json() : undefined;
 
-    const body = ["POST", "PATCH", "PUT"].includes(c.req.method)
-      ? await c.req.json()
-      : undefined;
     const { data, status, headers } = await serverApi({
-      method: c.req.method.toLowerCase() as
-        | "get"
-        | "post"
-        | "put"
-        | "patch"
-        | "delete",
+      method,
       url: path,
       headers: {
         Cookie: cookieHeader,
       },
       data: body,
+      withCredentials: true,
     });
 
-    if (headers["set-cookie"]) {
-      headers["set-cookie"].forEach((cookie: string) => {
-        c.header("Set-Cookie", cookie, { append: true });
-      });
-    }
+    forwardSetCookies(c, headers as Record<string, string | string[]>);
     return c.json(data, status as HttpStatusCode);
-  } catch (error) {
-    const axiosErr = error as AxiosError;
-    const errorData = axiosErr.response?.data ?? { message: "Request faild" };
+  } catch (err) {
+    const axiosErr = err as AxiosError;
+    const errorData = axiosErr.response?.data ?? { message: 'Request failed' };
     const status = axiosErr.response?.status ?? 500;
-    console.error(`Proxy error for ${c.req.path}:`, errorData);
+    console.error(`Proxy error for ${c.req.method} ${c.req.path}:`, errorData);
     return c.json(errorData, status as HttpStatusCode);
   }
 });
 
-app.all('*', (c) => {
-  console.log('Unmatched route:', c.req.method, c.req.path);
-  return c.json({error: 'Not Found'}, 404)
-})
-
-// Required by Next.js App Router
-export const runtime = "nodejs";
-
+export const runtime = 'nodejs';
 const handler = handle(app);
 export const GET = handler;
 export const POST = handler;

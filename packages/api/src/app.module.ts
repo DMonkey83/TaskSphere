@@ -21,6 +21,8 @@ import { TaskModule } from './tasks/task.module';
 import { TeamsModule } from './teams/teams.module';
 import { TimeTrackingModule } from './time-trackings/time-tracking.module';
 import { UsersModule } from './users/users.module';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { RefreshTokenInterceptor } from './auth/refresh-token.interceptor';
 
 @Module({
   imports: [
@@ -61,6 +63,12 @@ import { UsersModule } from './users/users.module';
     }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RefreshTokenInterceptor,
+    },
+  ],
 })
 export class AppModule {}

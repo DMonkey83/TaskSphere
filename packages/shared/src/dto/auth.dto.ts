@@ -22,7 +22,7 @@ export const LoginResponseSchema = z.object({
 
 export const RefreshTokenResponseSchema = z.object({
   access_token: z.string(),
-  refresh_token: z.string().uuid(),
+  refresh_token: z.string(),
 });
 
 export const ValidateUserSchema = z.object({
