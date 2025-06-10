@@ -10,6 +10,7 @@ import {
   UpdateProjectDto,
 } from './dto/project.dto';
 import { ProjectMemberService } from '../project-members/project-member.service';
+import { DeepPartial } from 'react-hook-form';
 
 @Injectable()
 export class ProjectsService {
@@ -28,42 +29,61 @@ export class ProjectsService {
     private projectViewsRepository: Repository<ProjectView>,
     private projectMembersService: ProjectMemberService,
     private accountsService: AccountsService,
-  ) {}
+  ) { }
 
   private async generateProjectKey(
     projectName: string,
     industry: string,
     accountId: string,
   ): Promise<string> {
+    // Step 1: Generate 4-letter prefix from project name
     const words = projectName.trim().split(/\s+/);
-    let initials = words.map((word) => word[0].toUpperCase()).join('');
+    let prefix = '';
 
-    if (initials.length < 3 && words.length > 0) {
-      const lastWord = words[words.length - 1];
-      const needed = 3 - initials.length;
-      initials += lastWord.slice(1, 1 + needed).toUpperCase();
-    } else if (initials.length > 3) {
-      initials = initials.slice(0, 3);
+    if (words.length === 1) {
+      // Single word: take first 4 characters
+      prefix = words[0].substring(0, 4).toUpperCase();
+    } else if (words.length === 2) {
+      // Two words: first 2 characters of each
+      prefix =
+        words[0].substring(0, 2).toUpperCase() +
+        words[1].substring(0, 2).toUpperCase();
+    } else {
+      // 3+ words: take first letter of first 4 words
+      prefix = words
+        .slice(0, 4)
+        .map((w) => w[0].toUpperCase())
+        .join('');
     }
 
-    const industryInitial = industry[0]?.toUpperCase() || 'X';
-    const baseKey = `${initials}${industryInitial || 'O'}`;
+    // Pad to exactly 4 characters
+    prefix = (prefix + 'XXXX').substring(0, 4);
 
-    // Get existing project keys for this account
+    // Step 2: Use 3-letter industry code
+    const industryCode = (industry.substring(0, 3) || 'GEN').toUpperCase();
+
+    // Step 3: Combine to baseKey
+    const baseKey = `${prefix}-${industryCode}`;
+
+    // Step 4: Check existing keys
     const existingKeys = await this.projectsRepository.find({
       where: { account: { id: accountId } },
       select: ['projectKey'],
     });
+
     const existingKeySet = new Set(existingKeys.map((p) => p.projectKey));
 
     if (!existingKeySet.has(baseKey)) return baseKey;
 
+    // Step 5: Append suffix if needed
     let suffix = 1;
-    while (true) {
-      const candidate = `${baseKey}${suffix}`;
+    while (suffix < 1000) {
+      const candidate = `${baseKey}-${suffix}`;
       if (!existingKeySet.has(candidate)) return candidate;
       suffix++;
     }
+
+    throw new Error('Project key limit reached for this name and industry');
   }
 
   async create(dto: CreateProjectDto): Promise<Project> {
@@ -81,9 +101,9 @@ export class ProjectsService {
       owner: { id: dto.ownerId },
       account: { id: dto.accountId },
       industry,
-      planningType: dto.planningType,
+      workflow: dto.workflow || 'kanban',
       matterNumber: dto.matterNumber,
-    });
+    } as DeepPartial<Project>);
     const savedProject = await this.projectsRepository.save(project);
 
     await this.projectMembersService.addMember({
@@ -117,7 +137,7 @@ export class ProjectsService {
       name: dto.name ?? project.name,
       description: dto.description ?? project.description,
       status: dto.status ?? project.status,
-      planningType: dto.planningType ?? project.planningType,
+      workflow: dto.workflow ?? project.workflow,
       startDate: dto.startDate ?? project.startDate,
       endDate: dto.endDate ?? project.endDate,
       matterNumber: dto.matterNumber ?? project.matterNumber,
@@ -146,7 +166,7 @@ export class ProjectsService {
     const view = this.projectViewsRepository.create({
       project: { id: projectId },
       viewType: dto.viewType,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       configuration: dto.configuration,
     });
     return this.projectViewsRepository.save(view);

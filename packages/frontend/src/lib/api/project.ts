@@ -1,9 +1,12 @@
 import {
+  CreateProject,
+  ProjectResponse,
   ProjectsListResponse,
   ProjectsListResponseSchema,
 } from "@shared/dto/projects.dto";
 import clientApi from "../axios";
 import { z } from "zod";
+import { AxiosError } from "axios";
 
 export async function fetchProjectsClient(
   accountId: string
@@ -23,5 +26,21 @@ export async function fetchProjectsClient(
     }
     console.error("Error fetching projects data:", error);
     throw error;
+  }
+}
+
+export const createProject = async (data: CreateProject): Promise<ProjectResponse> => {
+  try {
+    console.log("Creating project with data:", data);
+    const response = await clientApi.post('/api/projects', data, {
+      withCredentials: true,
+      headers: { 'Content-Type': 'application/json' },
+    })
+    console.log('response')
+    return response.data
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    const errorData = axiosError.response?.data ?? { message: 'Failed to Create Project' }
+    throw new Error(JSON.stringify(errorData))
   }
 }

@@ -2,16 +2,22 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
   ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
+import { IndustriesEnum } from '../../../../shared/src/enumsTypes/industries.enum';
+import { WorkflowEnum } from '../../../../shared/src/enumsTypes/workflow.enum';
 import { ProjectMember } from '../../project-members/entities/project-member.entity';
 import { Account } from './../../accounts/entities/account.entity';
 import { User } from '../../users/entities/user.entity';
 import { Team } from '../../teams/entities/team.entity';
 
+@Unique(['account', 'projectKey'])
+@Unique(['account', 'slug'])
 @Entity('project')
 export class Project {
   @PrimaryGeneratedColumn('uuid')
@@ -35,14 +41,18 @@ export class Project {
   @ManyToMany(() => ProjectMember, (pm) => pm.project)
   members: ProjectMember[];
 
-  @Column({ nullable: true })
-  industry: string;
+  @Column({ type: 'enum', enum: IndustriesEnum, nullable: true })
+  industry: IndustriesEnum;
 
-  @ManyToOne(() => Team, (teams) => teams.members)
+  @ManyToMany(() => Team, (teams) => teams.projects)
+  @JoinTable()
   teams: Team[];
 
-  @Column()
-  planningType: string;
+  @Column({ unique: true, nullable: true })
+  slug: string;
+
+  @Column({ type: 'enum', enum: WorkflowEnum, default: WorkflowEnum.Kanban })
+  workflow: WorkflowEnum;
 
   @Column({ default: 'planned' })
   status: string;
@@ -55,6 +65,18 @@ export class Project {
 
   @Column({ nullable: true })
   matterNumber: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  config: Record<string, any>;
+
+  @Column({ default: false })
+  archived: boolean;
+
+  @Column({ type: 'varchar', nullable: true })
+  visibility: 'private' | 'team' | 'account';
+
+  @Column({ type: 'text', array: true, nullable: true })
+  tags: string[];
 
   @CreateDateColumn({
     name: 'created_at',

@@ -1,10 +1,11 @@
-import { ProjectsListResponse } from "@shared/dto/projects.dto";
+import { ProjectsListResponse, CreateProject, ProjectResponse } from "@shared/dto/projects.dto";
 import {
+  useMutation,
   useQuery,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
-import { fetchProjectsClient } from "../api/project";
+import { createProject, fetchProjectsClient } from "../api/project";
 
 type ProjectsQueryKey = ["projects", { accountId: string }];
 
@@ -34,3 +35,9 @@ export const useProjectsQuery = (
     ...options,
   });
 };
+
+export const useCreateProject = () => {
+  return useMutation<CreateProject, Error, ProjectResponse>({
+    mutationFn: createProject,
+  })
+}

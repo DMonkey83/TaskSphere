@@ -23,7 +23,7 @@ import { Project } from './entities/project.entity';
 @Controller('projects')
 export class ProjectController {
   private readonly logger = new Logger(ProjectsService.name);
-  constructor(private projectsService: ProjectsService) {}
+  constructor(private projectsService: ProjectsService) { }
 
   @UseGuards(AuthGuard('jwt'), RoleGuard)
   @Roles('project_manager', 'owner', 'admin')
@@ -37,7 +37,7 @@ export class ProjectController {
       description: body.description,
       industry: body.industry,
       matterNumber: body.matterNumber,
-      planningType: body.planningType,
+      workflow: body.workflow,
       accountId: body.accountId,
       ownerId: body.ownerId,
     });

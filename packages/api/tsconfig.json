@@ -1,11 +1,21 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "outDir": "./dist",
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "@shared/*": [
+        "../shared/src/*"
+      ]
+    },
   },
   "include": [
-    "src/**/*",
-    "migrations/**/*", "../shared/src/enumsTypes/relations.enum.ts",
+    "src",
+    "../shared/src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ]
 }

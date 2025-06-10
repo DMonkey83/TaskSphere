@@ -26,8 +26,8 @@ export class Team {
   @JoinTable()
   members: User[];
 
-  @ManyToOne(() => Project, (project) => project.teams)
-  project: Project;
+  @ManyToMany(() => Project, (project) => project.teams)
+  projects: Project[];
 
   @ManyToOne(() => Account, { nullable: false })
   account: Account;
