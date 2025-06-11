@@ -2,7 +2,6 @@ import { create } from "zustand";
 
 export interface Account {
   name: string;
-  industry: string;
 }
 
 interface AccountState {

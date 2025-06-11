@@ -13,6 +13,7 @@ import { DottedSeparator } from '@/components/dotted-separator';
 import { Form, FormField, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 
 export const RegisterCard = () => {
 
@@ -25,7 +26,6 @@ export const RegisterCard = () => {
       firstName: '',
       lastName: '',
       password: '',
-      industry: 'other'
     }
 
   })
@@ -63,79 +63,66 @@ export const RegisterCard = () => {
               control={form.control}
               render={({ field }) => (
                 <FormItem>
+                  <Label htmlFor="accountName">Account Name</Label>
                   <Input
                     {...field}
                     type="text"
-                    placeholder="whatever"
+                    placeholder="Please enter account name"
                   />
                 </FormItem>
-              )}>
-            </FormField>
+              )} />
             <FormField
               name="email"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     {...field}
                     type="email"
                     placeholder="email@email.com"
                   />
                 </FormItem>
-              )}>
-            </FormField>
+              )} />
             <FormField
               name="firstName"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
                     {...field}
                     type="text"
                     placeholder="First Name"
                   />
                 </FormItem>
-              )}>
-            </FormField>
+              )} />
             <FormField
               name="lastName"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
+                  <Label htmlFor="lastName">Last Name</Label>
                   <Input
                     {...field}
                     type="text"
                     placeholder="Last Name"
                   />
                 </FormItem>
-              )}>
-            </FormField>
-            <FormField
-              name="industry"
-              control={form.control}
-              render={({ field }) => (
-                <FormItem>
-                  <Input
-                    {...field}
-                    type="text"
-                    placeholder="Industry"
-                  />
-                </FormItem>
-              )}>
-            </FormField>
+              )} />
             <FormField
               name="password"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
+                  <Label htmlFor="password">Password</Label>
                   <Input
                     {...field}
                     type="password"
                     placeholder='Password'
                   />
                 </FormItem>
-              )}>
-            </FormField>
+              )} />
             <Button type='submit' disabled={isPending} size='lg' className="w-full">
               Sign Up
             </Button>

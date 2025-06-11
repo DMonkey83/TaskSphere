@@ -8,6 +8,10 @@ export const loginUser = async (data: LoginInput): Promise<LoginResponse> => {
       withCredentials: true,
       headers: { "Content-Type": "application/json" },
     });
+    if (Object.keys(response.data).length === 0) {
+      throw new Error("Login response is empty");
+    }
+    console.log("Login response:", response.data);
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError;

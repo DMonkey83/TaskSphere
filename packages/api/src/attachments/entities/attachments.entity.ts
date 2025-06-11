@@ -2,13 +2,17 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Task } from '../../tasks/entities/task.entity';
 import { User } from '../../users/entities/user.entity';
 
-@Entity()
+@Entity('attachments')
+@Index(['task'])
+@Index(['uploadedBy'])
 export class Attachment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -22,13 +26,21 @@ export class Attachment {
   @Column()
   fileType: string;
 
-  @Column()
+  @Column({ type: 'bigint' })
   fileSize: number;
 
-  @ManyToOne(() => Task, (task) => task.attachments)
+  @Column({ nullable: true })
+  mimeType: string;
+
+  @Column({ default: false })
+  isPublic: boolean;
+
+  @ManyToOne(() => Task, (task) => task.attachments, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { nullable: false })
+  @JoinColumn({ name: 'uploaded_by_id' })
   uploadedBy: User;
 
   @CreateDateColumn({

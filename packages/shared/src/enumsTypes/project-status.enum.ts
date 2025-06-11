@@ -1,18 +1,20 @@
-import { enumToOptions } from "../utils/enum-to-options";
 import { z } from "zod";
+import { enumToOptions } from "../utils/enum-to-options";
 
 export enum ProjectStatusEnum {
-  NotPlanned = 'not-planned',
   Planned = 'planned',
   InProgress = 'in-progress',
+  OnHold = 'on-hold',
   Completed = 'completed',
+  Cancelled = 'cancelled',
 }
 
 export const ProjectStatusLabels: Record<ProjectStatusEnum, string> = {
-  [ProjectStatusEnum.NotPlanned]: 'Not Planned',
+  [ProjectStatusEnum.OnHold]: 'On Hold',
   [ProjectStatusEnum.Planned]: 'Planned',
   [ProjectStatusEnum.InProgress]: 'In Progress',
   [ProjectStatusEnum.Completed]: 'Completed',
+  [ProjectStatusEnum.Cancelled]: 'Cancelled',
 }
 
 export const ProjectStatusZodEnum = z.enum(Object.values(ProjectStatusEnum) as [string, ...string[]]);

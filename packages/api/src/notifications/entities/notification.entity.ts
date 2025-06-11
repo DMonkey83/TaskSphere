@@ -4,11 +4,17 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { NotificationTypeEnum } from '../../../../shared/src/enumsTypes/notification-type.enum';
+import { NotificationStatusEnum } from '../../../../shared/src/enumsTypes/notification-status.enum';
 
 @Entity('notifications')
+@Index(['customer'])
+@Index(['status'])
+@Index(['createdAt'])
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -19,14 +25,18 @@ export class Notification {
   @ManyToOne(() => Task, { onDelete: 'CASCADE' })
   task: Task;
 
-  @Column()
-  type: string;
+  @Column({ type: 'enum', enum: NotificationTypeEnum })
+  type: NotificationTypeEnum;
 
   @Column()
   content: string;
 
-  @Column({ default: 'pending' })
-  status: string;
+  @Column({
+    type: 'enum',
+    enum: NotificationStatusEnum,
+    default: NotificationStatusEnum.Pending,
+  })
+  status: NotificationStatusEnum;
 
   @CreateDateColumn({
     name: 'created_at',

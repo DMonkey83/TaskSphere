@@ -4,8 +4,7 @@ import { Task } from './task.entity';
 @Entity()
 export class TaskRelation {
   @PrimaryGeneratedColumn('uuid')
-  id;
-  string;
+  id: string;
 
   @ManyToOne(() => Task)
   task: Task;

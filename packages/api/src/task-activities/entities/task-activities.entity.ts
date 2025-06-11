@@ -32,9 +32,9 @@ export class TaskActivity {
   newValue: string;
 
   @CreateDateColumn({
-    name: 'crated_at',
+    name: 'created_at',
     type: 'timestamptz',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  cratedAt: Date;
+  createdAt: Date;
 }

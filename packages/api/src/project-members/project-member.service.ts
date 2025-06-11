@@ -3,7 +3,7 @@ import { Project } from './../projects/entities/project.entity';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProjectMember } from './entities/project-member.entity';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 
 @Injectable()
 export class ProjectMemberService {
@@ -25,7 +25,7 @@ export class ProjectMemberService {
       user: { id: data.userId },
       project: { id: data.projectId },
       role: data.role,
-    });
+    } as DeepPartial<ProjectMember>);
     return this.projectMemberRepository.save(member);
   }
 

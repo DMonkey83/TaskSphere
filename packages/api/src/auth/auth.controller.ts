@@ -15,7 +15,6 @@ import { AccountsService } from '../accounts/accounts.service';
 import { Request, Response } from 'express';
 import { CookieService, TokenCookieOptions } from './auth.utils';
 import { User } from '../users/entities/user.entity';
-import { Role } from '../common/enums/role.enum';
 import { Public } from './public.decorator';
 
 @Controller('auth')
@@ -31,16 +30,21 @@ export class AuthController {
   async login(
     @Body(new ZodValidationPipe(LoginDto)) body: LoginDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<LoginResponseDto> {
+  ): Promise<LoginResponseDto | Error> {
     const user: User = await this.authService.validateUser(body);
+    this.logger.log('User validated successfully', user.email);
     const tokens: TokenCookieOptions = await this.authService.login({
       id: user.id,
       email: user.email,
-      role: user.role as Role,
+      role: user.role,
       account: { id: user.account.id },
       passwordHash: user.passwordHash, // Ensure passwordHash is included for validation
     });
     CookieService.setAuthCookies(res, tokens);
+
+    if (!user.id) {
+      return Error(`User not found`);
+    }
 
     const loginResponse: LoginResponseDto = {
       id: user.id,
@@ -85,7 +89,6 @@ export class AuthController {
     console.log('body', body);
     const account = await this.accountService.create({
       name: body.accountName,
-      industry: body.industry,
     });
 
     const user = await this.usersService.create({

@@ -1,4 +1,5 @@
 import { User } from '../../users/entities/user.entity';
+import { Account } from '../../accounts/entities/account.entity';
 import {
   Column,
   CreateDateColumn,
@@ -6,12 +7,20 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Index,
+  JoinColumn,
 } from 'typeorm';
+import { IndustriesEnum } from '../../../../shared/src/enumsTypes';
 
 @Entity('customers')
+@Index(['account'])
 export class Customer {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @ManyToOne(() => Account, { nullable: false })
+  @JoinColumn({ name: 'account_id' })
+  account: Account;
 
   @Column()
   name: string;
@@ -25,8 +34,8 @@ export class Customer {
   @Column({ nullable: true })
   address: string;
 
-  @Column()
-  industry: string;
+  @Column({ type: 'enum', enum: IndustriesEnum, nullable: true })
+  industry: IndustriesEnum;
 
   @ManyToOne(() => User, { nullable: true })
   createdBy: User;

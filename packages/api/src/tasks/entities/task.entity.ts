@@ -10,6 +10,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinTable,
   ManyToMany,
   ManyToOne,
@@ -41,7 +42,8 @@ export class Task {
   @ManyToOne(() => User, { nullable: true })
   creator: User;
 
-  @ManyToOne(() => Task, (task) => task.children, { nullable: true })
+  @ManyToOne(() => Team, { nullable: true })
+  @JoinTable({ name: 'team_id' })
   team: Team;
 
   @Column({
@@ -87,6 +89,7 @@ export class Task {
   priority: string;
 
   @Column({ type: 'timestamptz', nullable: true })
+  @Index()
   dueDate: Date;
 
   @Column({ nullable: true })

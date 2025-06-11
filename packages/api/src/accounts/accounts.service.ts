@@ -9,12 +9,11 @@ export class AccountsService {
   constructor(
     @InjectRepository(Account)
     private accountsRepository: Repository<Account>,
-  ) {}
+  ) { }
 
   async create(dto: CreateAccountDto): Promise<Account> {
     const account = this.accountsRepository.create({
       name: dto.name,
-      industry: dto.industry,
     });
     return this.accountsRepository.save(account);
   }

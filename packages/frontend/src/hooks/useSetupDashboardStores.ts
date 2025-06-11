@@ -7,6 +7,7 @@ import { ProjectsListResponse } from "@shared/dto/projects.dto";
 import { TeamsResponse } from "@shared/dto/team.dto";
 import { UserResponse } from "@shared/dto/user.dto";
 import isEqual from "lodash.isequal";
+import { RoleEnum } from "../../../shared/src/enumsTypes";
 
 export function useSetupDashboardStores({
   account,
@@ -15,7 +16,7 @@ export function useSetupDashboardStores({
   user,
 }: {
   user?: UserResponse;
-  account?: { name: string; industry: string };
+  account?: { name: string; };
   teams?: TeamsResponse;
   projects?: ProjectsListResponse;
 }) {
@@ -35,7 +36,7 @@ export function useSetupDashboardStores({
     const newUser = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role as RoleEnum,
       accountId: user.account.id,
       firstName: user.firstName || "",
       lastName: user.lastName || "",

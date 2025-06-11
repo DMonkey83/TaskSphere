@@ -56,6 +56,7 @@ app.post('/api/auth/login', async (c) => {
       withCredentials: true,
     });
     forwardSetCookies(c, headers as Record<string, string | string[]>);
+    console.log('response, body', data)
     return c.json(data, status as HttpStatusCode);
   } catch (err) {
     const axiosErr = err as AxiosError;

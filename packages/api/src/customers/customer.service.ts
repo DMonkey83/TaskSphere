@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Customer } from './entities/customer.entity';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { CreateCustomerDto } from './dto/customer.dto';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class CustomerService {
       address: dto.address,
       industry: dto.industry,
       createdBy: { id: dto.createdById },
-    });
+    } as DeepPartial<Customer>);
     return this.customersRepository.save(customer);
   }
 }

@@ -37,7 +37,7 @@ export const useProjectsQuery = (
 };
 
 export const useCreateProject = () => {
-  return useMutation<CreateProject, Error, ProjectResponse>({
+  return useMutation<ProjectResponse, Error, CreateProject>({
     mutationFn: createProject,
   })
 }

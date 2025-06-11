@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { IndustriesZodEnum } from "../enumsTypes";
 
 export const LoginSchema = z.object({
   email: z.string().email(),
@@ -10,7 +11,6 @@ export const RegisterSchema = z.object({
   password: z.string().min(6),
   firstName: z.string().min(2),
   lastName: z.string().min(2),
-  industry: z.enum(["programming", "legal", "logistics", "other"]).optional(),
 });
 
 export const LoginResponseSchema = z.object({

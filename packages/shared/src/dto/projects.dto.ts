@@ -1,27 +1,33 @@
 import { IndustriesZodEnum, WorkflowZodEnum, ProjectStatusZodEnum } from "../enumsTypes";
 import { z } from "zod";
+import { VisibilityZodEnum } from "../enumsTypes/visibility.enum";
+import { AccountData, UserResponseSchema } from "./user.dto";
 
 
 export const CreateProjectSchema = z.object({
   name: z.string().min(1),
-  industry: IndustriesZodEnum.optional(),
-  workflow: WorkflowZodEnum,
+  description: z.string().optional(),
   accountId: z.string().uuid(),
   ownerId: z.string().uuid(),
-  description: z.string().optional(),
-  matterNumber: z.string().optional(),
-});
-
-export const UpdateProjectSchema = z.object({
-  name: z.string().min(1),
   industry: IndustriesZodEnum.optional(),
-  workflow: WorkflowZodEnum.optional(),
-  status: ProjectStatusZodEnum.optional(),
-  description: z.string().optional(),
+  workflow: WorkflowZodEnum,
   matterNumber: z.string().optional(),
+  slug: z.string().optional(),
+  visibility: VisibilityZodEnum.optional(),
+  tags: z.array(z.string()).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
+  config: z.record(z.any()).optional(),
 });
+
+export const UpdateProjectSchema = CreateProjectSchema.partial().extend({
+  id: z.string().uuid(),
+})
+
+export const UpdateProjectStatusSchema = CreateProjectSchema.partial().extend({
+  id: z.string().uuid(),
+  status: ProjectStatusZodEnum,
+})
 
 export const CreateProjectViewSchema = z.object({
   viewType: WorkflowZodEnum,
@@ -29,18 +35,25 @@ export const CreateProjectViewSchema = z.object({
 });
 
 export const ProjectResponseSchema = z.object({
-  id: z.string().uuid().optional(),
-  projectKey: z.string().optional(),
-  name: z.string().optional(),
-  industry: IndustriesZodEnum.optional(),
-  workflow: WorkflowZodEnum.optional(),
-  accountId: z.string().uuid().optional(),
-  ownerId: z.string().uuid().optional(),
+  id: z.string().uuid(),
+  name: z.string().min(1),
   description: z.string().optional(),
-  matterNumber: z.string().or(z.null()).optional(),
-  status: ProjectStatusZodEnum.optional(),
+  account: AccountData,
+  owner: UserResponseSchema.partial(),
+  industry: IndustriesZodEnum.optional(),
+  workflow: WorkflowZodEnum,
+  matterNumber: z.string().optional(),
+  slug: z.string().nullable(),
+  visibility: VisibilityZodEnum.optional(),
+  tags: z.array(z.string()).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
+  config: z.record(z.any()).optional(),
+  projectKey: z.string(),
+  status: ProjectStatusZodEnum,
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  archived: z.boolean()
 });
 
 export const ProjectsListResponseSchema = z.array(ProjectResponseSchema);

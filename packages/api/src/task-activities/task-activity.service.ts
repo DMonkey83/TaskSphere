@@ -61,7 +61,7 @@ export class TaskActivityService {
         task: { team: { id: teamId }, project: { account: { id: accountId } } },
       },
       relations: ['task', 'user'],
-      order: { cratedAt: 'DESC' },
+      order: { createdAt: 'DESC' },
       skip,
       take,
     });
@@ -88,7 +88,7 @@ export class TaskActivityService {
         task: { taskKey: task.id, project: { account: { id: accountId } } },
       },
       relations: ['task', 'user'],
-      order: { cratedAt: 'DESC' },
+      order: { createdAt: 'DESC' },
       skip,
       take,
     });

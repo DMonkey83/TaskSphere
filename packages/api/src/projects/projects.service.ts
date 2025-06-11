@@ -8,9 +8,13 @@ import {
   CreateProjectDto,
   CreateProjectViewDto,
   UpdateProjectDto,
+  UpdateProjectStatusDto,
 } from './dto/project.dto';
 import { ProjectMemberService } from '../project-members/project-member.service';
 import { DeepPartial } from 'react-hook-form';
+import { VisiblityEnum } from '@shared/enumsTypes/visibility.enum';
+import { IndustriesEnum, ProjectStatusEnum } from '@shared/enumsTypes';
+import { slugify } from 'src/common/slugify.util';
 
 @Injectable()
 export class ProjectsService {
@@ -29,7 +33,7 @@ export class ProjectsService {
     private projectViewsRepository: Repository<ProjectView>,
     private projectMembersService: ProjectMemberService,
     private accountsService: AccountsService,
-  ) { }
+  ) {}
 
   private async generateProjectKey(
     projectName: string,
@@ -87,22 +91,27 @@ export class ProjectsService {
   }
 
   async create(dto: CreateProjectDto): Promise<Project> {
-    const account = await this.accountsService.findById(dto.accountId);
-    const industry = dto.industry || account?.industry || null;
     const projectKey = await this.generateProjectKey(
       dto.name,
-      industry,
+      dto.industry,
       dto.accountId,
     );
+    const slug = slugify(dto.name);
     const project = this.projectsRepository.create({
       projectKey,
       name: dto.name,
       description: dto.description,
       owner: { id: dto.ownerId },
       account: { id: dto.accountId },
-      industry,
+      industry: dto.industry as IndustriesEnum,
       workflow: dto.workflow || 'kanban',
       matterNumber: dto.matterNumber,
+      slug,
+      visibility: (dto.visibility as VisiblityEnum) || 'private',
+      tags: dto.tags || [],
+      startDate: dto.startDate || null,
+      endDate: dto.endDate || null,
+      config: dto.config || {},
     } as DeepPartial<Project>);
     const savedProject = await this.projectsRepository.save(project);
 
@@ -123,29 +132,43 @@ export class ProjectsService {
       where: { id: projectId },
     });
     if (!project) throw new NotFoundException('Project not found');
-    let projectKey = '';
-    if (project.name !== dto.name || project.industry !== dto.industry) {
-      projectKey = await this.generateProjectKey(
-        dto.name,
-        dto.industry,
-        project.account.id,
-      );
+    let slug = project.name;
+    if (project.name !== dto.name) {
+      slug = slugify(dto.name);
     }
 
     Object.assign(project, {
-      projectKey: projectKey ?? project.projectKey,
       name: dto.name ?? project.name,
       description: dto.description ?? project.description,
-      status: dto.status ?? project.status,
+      industry: (dto.industry as IndustriesEnum) ?? project.industry,
       workflow: dto.workflow ?? project.workflow,
-      startDate: dto.startDate ?? project.startDate,
-      endDate: dto.endDate ?? project.endDate,
       matterNumber: dto.matterNumber ?? project.matterNumber,
+      slug,
+      visibility: (dto.visibility as VisiblityEnum) ?? project.visibility,
+      tags: dto.tags ?? project.tags,
+      startDate: dto.startDate ?? (project.startDate || null),
+      endDate: dto.endDate ?? (project.endDate || null),
+      config: dto.config ?? project.config,
     });
 
     return this.projectsRepository.save(project);
   }
 
+  async changeProjectStatus(
+    projectId: string,
+    dto: UpdateProjectStatusDto,
+  ): Promise<Project> {
+    const project = await this.projectsRepository.findOne({
+      where: { id: projectId },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    Object.assign(project, {
+      status: (dto.status as ProjectStatusEnum) ?? project.status,
+    });
+
+    return this.projectsRepository.save(project);
+  }
   async listProjectsByAccount(accountId: string): Promise<Project[]> {
     this.logger.log(`Listing projects for account ID: ${accountId}`);
     return this.projectsRepository.find({
@@ -166,7 +189,6 @@ export class ProjectsService {
     const view = this.projectViewsRepository.create({
       project: { id: projectId },
       viewType: dto.viewType,
-
       configuration: dto.configuration,
     });
     return this.projectViewsRepository.save(view);

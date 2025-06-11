@@ -4,11 +4,12 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import {
   CreateUserDto,
   RegisterFromInviteDto,
@@ -19,13 +20,14 @@ import { UserResponseSchema } from '@shared/dto/user.dto';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private inviteService: AccountInvitesService,
     @InjectRepository(AccountInvite)
     private inviteRepository: Repository<AccountInvite>,
-  ) {}
+  ) { }
 
   async findByEmail(email: string): Promise<User> {
     const user = await this.usersRepository.findOne({
@@ -33,6 +35,8 @@ export class UsersService {
       relations: ['account'], // Ensure account relation is loaded
       select: ['id', 'email', 'account', 'role', 'passwordHash'],
     });
+
+    this.logger.log(`Finding user by email: ${user}`);
     if (!user) {
       throw new NotFoundException(`User with email ${email} not found`);
     }
@@ -67,8 +71,8 @@ export class UsersService {
       passwordHash,
       firstName: dto.firstName,
       lastName: dto.lastName,
-      role: dto.role || 'member',
-    });
+      role: dto.role, // Default to Member if no role is provided
+    } as DeepPartial<User>);
     return this.usersRepository.save(user);
   }
 
@@ -102,7 +106,7 @@ export class UsersService {
       account: { id: invite.account.id },
       isEmailVerified: false,
       mfaEnabled: false,
-    });
+    } as DeepPartial<User>);
 
     const savedUser = await this.usersRepository.save(user);
     invite.accepted = true;

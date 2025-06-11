@@ -2,24 +2,30 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Task } from '../../tasks/entities/task.entity';
 import { User } from '../../users/entities/user.entity';
 
-@Entity()
+@Entity('time_trackings')
+@Index(['user', 'workDate'])
+@Index(['task'])
 export class TimeTracking {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Task, (task) => task.timeTrackings)
+  @ManyToOne(() => Task, (task) => task.timeTrackings, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { nullable: false })
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column('float')
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
   hours: number;
 
   @Column({ nullable: true })

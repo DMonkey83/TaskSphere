@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AccountInvite } from './entities/account-invite.entity';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import dayjs from 'dayjs';
 
@@ -37,7 +37,7 @@ export class AccountInvitesService {
       role,
       expiresAt: dayjs().add(7, 'days').toDate(),
       account: { id: user.account.id },
-    });
+    } as DeepPartial<AccountInvite>);
     return this.invitesRepository.save(invite);
   }
 

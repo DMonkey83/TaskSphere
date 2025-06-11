@@ -1,12 +1,15 @@
-import { Role } from '../../common/enums/role.enum';
+import { RoleEnum } from '../../../../shared/src/enumsTypes/role.enum';
 import { Account } from '../../accounts/entities/account.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
+  JoinColumn,
   JoinTable,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -14,6 +17,7 @@ import { ProjectMember } from '../../project-members/entities/project-member.ent
 import { Team } from '../../teams/entities/team.entity';
 
 @Entity('users')
+@Index(['account', 'email'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -21,10 +25,11 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @ManyToOne(() => Account)
+  @ManyToOne(() => Account, { nullable: true })
+  @JoinColumn({ name: 'account_id' })
   account: Account;
 
-  @ManyToMany(() => ProjectMember, (pm) => pm.user)
+  @OneToMany(() => ProjectMember, (pm) => pm.user)
   projectMemberships: ProjectMember[];
 
   @Column({ name: 'password_hash' })
@@ -36,8 +41,8 @@ export class User {
   @Column({ nullable: true })
   lastName: string;
 
-  @Column({ type: 'enum', enum: Role, default: Role.User })
-  role: string;
+  @Column({ type: 'enum', enum: RoleEnum, default: RoleEnum.Member })
+  role: RoleEnum;
 
   @ManyToMany(() => Team, (team) => team.members)
   @JoinTable()
@@ -49,7 +54,7 @@ export class User {
   @Column({ name: 'mfa_enabled', default: false })
   mfaEnabled: boolean;
 
-  @Column({ name: 'mfa_secret', default: false })
+  @Column({ name: 'mfa_secret', nullable: true })
   mfaSecret: string;
 
   @CreateDateColumn({

@@ -29,10 +29,15 @@ export class AuthService {
 
   async validateUser({ email, password }: LoginDto): Promise<User> {
     this.logger.log(`Validating user with email: ${email}`);
-    const user = await this.usersService.findByEmail(email);
-    if (!user) {
-      this.logger.warn(`User not found for email: ${email}`);
-      throw new UnauthorizedException('Invalid credentials');
+    let user: User;
+    try {
+      user = await this.usersService.findByEmail(email);
+    } catch (error) {
+      if (error) {
+        this.logger.warn(`User not found for email: ${email}`);
+        throw new UnauthorizedException('Invalid credentials');
+      }
+      throw error;
     }
 
     const isPasswordValid = await this.comparePassword(

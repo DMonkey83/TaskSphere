@@ -14,7 +14,7 @@ import { useProjectsQuery } from "@/lib/queries/useProjects";
 import { useTeamsQuery } from "@/lib/queries/useTeams";
 import { useUserQuery } from "@/lib/queries/useUser";
 
-export default function ClientDashboard({}) {
+export default function ClientDashboard({ }) {
   const {
     data: user,
     isLoading: userLoading,
@@ -42,7 +42,6 @@ export default function ClientDashboard({}) {
     user,
     account: {
       name: user?.account?.name || "",
-      industry: user?.account?.industry || "",
     },
     teams,
     projects,

@@ -15,6 +15,7 @@ export async function fetchProjectsClient(
     const response = await clientApi.get<ProjectsListResponse>(
       `/api/projects/${accountId}`
     );
+    console.log('Fetched projects data:', response.data);
     return ProjectsListResponseSchema.parse(response.data);
   } catch (error) {
     if (error instanceof z.ZodError) {

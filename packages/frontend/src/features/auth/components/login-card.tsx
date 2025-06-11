@@ -31,6 +31,13 @@ export const LoginCard = () => {
       onSuccess: () => {
         router.push("/dashboard");
       },
+      onError: (error) => {
+        const message = error.message || "Login failed";
+        form.setError("root", {
+          type: 'server',
+          message: message
+        })
+      }
     });
   };
 
@@ -53,7 +60,7 @@ export const LoginCard = () => {
                   <Input {...field} type="email" placeholder="Email" />
                 </FormItem>
               )}
-            ></FormField>
+            />
             <FormField
               name="password"
               control={form.control}
@@ -62,10 +69,15 @@ export const LoginCard = () => {
                   <Input {...field} type="password" />
                 </FormItem>
               )}
-            ></FormField>
+            />
             <Button disabled={isPending} size="lg" className="w-full">
               Login
             </Button>
+            {form.formState.errors.root && (
+              <div className="text-sm font-medium text-destructive">
+                {JSON.parse(form.formState.errors.root.message).message}
+              </div>
+            )}
           </form>
         </Form>
       </CardContent>

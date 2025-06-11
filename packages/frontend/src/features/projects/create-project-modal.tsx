@@ -41,24 +41,30 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
       accountId: accountId || '',
       ownerId: id || '',
       description: "",
-      matterNumber: ""
+      matterNumber: "",
+      config: {},
+      visibility: 'private',
+      tags: [],
+      startDate: undefined,
+      endDate: undefined,
+      slug: "",
     },
   })
 
   useEffect(() => {
     form.setValue('accountId', accountId || '', { shouldValidate: true })
     form.setValue('ownerId', id || '', { shouldValidate: true })
-  }, [accountId, id, form])
+  }, [accountId, id, form.getValues()])
 
   const { mutate: createProject } = useCreateProject();
 
   const onSubmit = (data: CreateProject) => {
     createProject(data, {
       onSuccess: (response: ProjectResponse) => {
-        queryClient.invalidateQueries({ queryKey: projectKeys.all })
         addProject({ ...data, id: response.id || Date.now().toString() });
         toast.success("Project created successfully!")
         form.reset();
+        queryClient.invalidateQueries({ queryKey: projectKeys.byAccount(data.accountId) })
         setOpen(false);
       },
       onError: (error) => {
