@@ -31,7 +31,7 @@ export const UpdateProjectStatusSchema = CreateProjectSchema.partial().extend({
 
 export const CreateProjectViewSchema = z.object({
   viewType: WorkflowZodEnum,
-  configuration: z.any().optional(),
+  configuration: z.record(z.any()).optional(),
 });
 
 export const ProjectResponseSchema = z.object({

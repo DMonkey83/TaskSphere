@@ -19,7 +19,7 @@ export class ProjectView {
   viewType: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  configuration: any;
+  configuration: Record<string, any>;
 
   @CreateDateColumn({
     name: 'created_at',

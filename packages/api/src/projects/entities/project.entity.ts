@@ -70,7 +70,7 @@ export class Project {
     enum: ProjectStatusEnum,
     default: ProjectStatusEnum.Planned,
   })
-  status: string;
+  status: ProjectStatusEnum;
 
   @Column({ nullable: true })
   startDate: Date;
@@ -102,7 +102,7 @@ export class Project {
   createdAt: Date;
 
   @UpdateDateColumn({
-    name: 'update_at',
+    name: 'updated_at',
     type: 'timestamptz',
     default: () => 'CURRENT_TIMESTAMP',
   })

@@ -1,9 +1,14 @@
 import { AccountsService } from './../accounts/accounts.service';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Project } from './entities/project.entity';
 import { ProjectView } from './entities/project-view.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import {
   CreateProjectDto,
   CreateProjectViewDto,
@@ -13,63 +18,90 @@ import {
 import { ProjectMemberService } from '../project-members/project-member.service';
 import { DeepPartial } from 'react-hook-form';
 import { VisiblityEnum } from '@shared/enumsTypes/visibility.enum';
-import { IndustriesEnum, ProjectStatusEnum } from '@shared/enumsTypes';
+import {
+  IndustriesEnum,
+  ProjectStatusEnum,
+  RoleEnum,
+} from '@shared/enumsTypes';
 import { slugify } from 'src/common/slugify.util';
+
+const PROJECT_KEY_GENERATION_LIMIT = 99; // Limit for unique key generation
 
 @Injectable()
 export class ProjectsService {
-  private projectCounts: { [industry: string]: number } = {
-    programming: 0,
-    legal: 0,
-    logistics: 0,
-    other: 0,
-  };
   private readonly logger = new Logger(ProjectsService.name);
 
   constructor(
     @InjectRepository(Project)
-    private projectsRepository: Repository<Project>,
+    private readonly projectsRepository: Repository<Project>,
     @InjectRepository(ProjectView)
-    private projectViewsRepository: Repository<ProjectView>,
-    private projectMembersService: ProjectMemberService,
-    private accountsService: AccountsService,
-  ) {}
+    private readonly projectViewsRepository: Repository<ProjectView>,
+    private readonly projectMembersService: ProjectMemberService,
+    private readonly accountsService: AccountsService,
+    private readonly dataSourse: DataSource,
+  ) { }
 
+  /**
+   * Generates a unique project key based on project name and industry
+   */
   private async generateProjectKey(
     projectName: string,
     industry: string,
     accountId: string,
   ): Promise<string> {
-    // Step 1: Generate 4-letter prefix from project name
+    if (!projectName?.trim()) {
+      throw new BadRequestException(
+        'Project name is required for key generation',
+      );
+    }
+
+    const prefix = this.generateProjectPrefix(projectName);
+    const industryCode = this.generateIndustryCode(industry);
+    const baseKey = `${prefix}-${industryCode}`;
+
+    const uniqueKey = await this.ensureUniqueProjectKey(baseKey, accountId);
+
+    return uniqueKey;
+  }
+
+  /**
+   * Generates a 4-character prefix from project name
+   */
+  private generateProjectPrefix(projectName: string): string {
     const words = projectName.trim().split(/\s+/);
     let prefix = '';
 
     if (words.length === 1) {
-      // Single word: take first 4 characters
       prefix = words[0].substring(0, 4).toUpperCase();
     } else if (words.length === 2) {
-      // Two words: first 2 characters of each
       prefix =
         words[0].substring(0, 2).toUpperCase() +
         words[1].substring(0, 2).toUpperCase();
     } else {
-      // 3+ words: take first letter of first 4 words
       prefix = words
         .slice(0, 4)
-        .map((w) => w[0].toUpperCase())
+        .map((word) => word[0]?.toUpperCase() || 'X')
         .join('');
     }
 
     // Pad to exactly 4 characters
-    prefix = (prefix + 'XXXX').substring(0, 4);
+    return (prefix + 'XXXX').substring(0, 4);
+  }
 
-    // Step 2: Use 3-letter industry code
-    const industryCode = (industry.substring(0, 3) || 'GEN').toUpperCase();
+  /**
+   * Generates a 3-character industry code
+   */
+  private generateIndustryCode(industry: string): string {
+    return (industry?.substring(0, 3) || 'GEN').toUpperCase();
+  }
 
-    // Step 3: Combine to baseKey
-    const baseKey = `${prefix}-${industryCode}`;
-
-    // Step 4: Check existing keys
+  /**
+   * Ensures the project key is unique within the account
+   */
+  private async ensureUniqueProjectKey(
+    baseKey: string,
+    accountId: string,
+  ): Promise<string> {
     const existingKeys = await this.projectsRepository.find({
       where: { account: { id: accountId } },
       select: ['projectKey'],
@@ -77,51 +109,68 @@ export class ProjectsService {
 
     const existingKeySet = new Set(existingKeys.map((p) => p.projectKey));
 
-    if (!existingKeySet.has(baseKey)) return baseKey;
-
-    // Step 5: Append suffix if needed
-    let suffix = 1;
-    while (suffix < 1000) {
-      const candidate = `${baseKey}-${suffix}`;
-      if (!existingKeySet.has(candidate)) return candidate;
-      suffix++;
+    if (!existingKeySet.has(baseKey)) {
+      return baseKey;
     }
 
-    throw new Error('Project key limit reached for this name and industry');
+    // Find unique suffix
+    for (let suffix = 1; suffix < PROJECT_KEY_GENERATION_LIMIT; suffix++) {
+      const candidate = `${baseKey}-${suffix}`;
+      if (!existingKeySet.has(candidate)) {
+        return candidate;
+      }
+    }
+
+    throw new BadRequestException(
+      `Unable to generate unique project key. Limit of ${PROJECT_KEY_GENERATION_LIMIT} reached for this name and industry combination.`,
+    );
   }
 
   async create(dto: CreateProjectDto): Promise<Project> {
-    const projectKey = await this.generateProjectKey(
-      dto.name,
-      dto.industry,
-      dto.accountId,
+    this.logger.log(
+      `Creating project: ${dto.name} for account: ${dto.accountId}`,
     );
-    const slug = slugify(dto.name);
-    const project = this.projectsRepository.create({
-      projectKey,
-      name: dto.name,
-      description: dto.description,
-      owner: { id: dto.ownerId },
-      account: { id: dto.accountId },
-      industry: dto.industry as IndustriesEnum,
-      workflow: dto.workflow || 'kanban',
-      matterNumber: dto.matterNumber,
-      slug,
-      visibility: (dto.visibility as VisiblityEnum) || 'private',
-      tags: dto.tags || [],
-      startDate: dto.startDate || null,
-      endDate: dto.endDate || null,
-      config: dto.config || {},
-    } as DeepPartial<Project>);
-    const savedProject = await this.projectsRepository.save(project);
+    return this.dataSourse.transaction(async () => {
+      try {
+        const projectKey = await this.generateProjectKey(
+          dto.name,
+          dto.industry || IndustriesEnum.Other,
+          dto.accountId,
+        );
+        const slug = slugify(dto.name);
+        const project = this.projectsRepository.create({
+          projectKey,
+          name: dto.name,
+          description: dto.description,
+          owner: { id: dto.ownerId },
+          account: { id: dto.accountId },
+          industry: dto.industry as IndustriesEnum,
+          workflow: dto.workflow || 'kanban',
+          matterNumber: dto.matterNumber,
+          slug,
+          visibility: (dto.visibility as VisiblityEnum) || 'private',
+          tags: dto.tags || [],
+          startDate: dto.startDate || null,
+          endDate: dto.endDate || null,
+          config: dto.config || {},
+          status: ProjectStatusEnum.Planned,
+        } as DeepPartial<Project>);
 
-    await this.projectMembersService.addMember({
-      userId: dto.ownerId,
-      projectId: savedProject.id,
-      role: 'owner',
+        const savedProject = await this.projectsRepository.save(project);
+
+        await this.projectMembersService.addMember({
+          userId: dto.ownerId,
+          projectId: savedProject.id,
+          role: RoleEnum.Owner,
+        });
+
+        this.logger.log(`Project created successfully: ${savedProject.id}`);
+        return savedProject;
+      } catch (error) {
+        this.logger.error(`Failed to create project: ${error as string}`);
+        throw error;
+      }
     });
-
-    return savedProject;
   }
 
   async updateProject(
@@ -132,10 +181,8 @@ export class ProjectsService {
       where: { id: projectId },
     });
     if (!project) throw new NotFoundException('Project not found');
-    let slug = project.name;
-    if (project.name !== dto.name) {
-      slug = slugify(dto.name);
-    }
+    const slug =
+      dto.name && dto.name !== project.name ? slugify(dto.name) : project.slug;
 
     Object.assign(project, {
       name: dto.name ?? project.name,
@@ -150,31 +197,63 @@ export class ProjectsService {
       endDate: dto.endDate ?? (project.endDate || null),
       config: dto.config ?? project.config,
     });
+    const updatedProject = await this.projectsRepository.save(project);
+    this.logger.log(`Project updated successfully: ${projectId}`);
 
-    return this.projectsRepository.save(project);
+    return updatedProject;
   }
 
   async changeProjectStatus(
     projectId: string,
     dto: UpdateProjectStatusDto,
   ): Promise<Project> {
-    const project = await this.projectsRepository.findOne({
-      where: { id: projectId },
-    });
-    if (!project) throw new NotFoundException('Project not found');
+    if (!projectId) {
+      throw new BadRequestException('Project ID is required');
+    }
 
-    Object.assign(project, {
-      status: (dto.status as ProjectStatusEnum) ?? project.status,
-    });
+    if (!dto.status) {
+      throw new BadRequestException('Status is required');
+    }
 
-    return this.projectsRepository.save(project);
+    this.logger.log(
+      `Changing status for project ID: ${projectId} to ${dto.status}`,
+    );
+
+    const project = await this.findProjectById(projectId);
+
+    project.status = dto.status as ProjectStatusEnum;
+
+    const updatedProject = await this.projectsRepository.save(project);
+    this.logger.log(`Project status updated successfully: ${projectId}`);
+
+    return updatedProject;
   }
   async listProjectsByAccount(accountId: string): Promise<Project[]> {
+    if (!accountId) {
+      throw new BadRequestException('Account ID is required');
+    }
+
     this.logger.log(`Listing projects for account ID: ${accountId}`);
+
     return this.projectsRepository.find({
-      where: { account: { id: accountId } },
-      relations: ['owner', 'account'],
+      where: {
+        account: { id: accountId },
+        archived: false,
+      },
+      relations: { owner: true, account: true },
       order: { createdAt: 'DESC' },
+      select: {
+        owner: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+        },
+        account: {
+          id: true,
+          name: true,
+        },
+      },
     });
   }
 
@@ -182,31 +261,93 @@ export class ProjectsService {
     projectId: string,
     dto: CreateProjectViewDto,
   ): Promise<ProjectView> {
-    const project = await this.projectsRepository.findOne({
-      where: { id: projectId },
-    });
-    if (!project) throw new NotFoundException('Project not found');
+    if (!projectId) {
+      throw new BadRequestException('Project ID is required');
+    }
+    this.logger.log(`Adding view for project ID: ${projectId}`);
+
+    await this.findProjectById(projectId);
+
     const view = this.projectViewsRepository.create({
       project: { id: projectId },
       viewType: dto.viewType,
-      configuration: dto.configuration,
+      configuration: dto.configuration || {},
     });
-    return this.projectViewsRepository.save(view);
+
+    const savedView = await this.projectViewsRepository.save(view);
+    this.logger.log(`View added successfully for project ID: ${projectId}`);
+    return savedView;
   }
 
   async findByKey(projectKey: string): Promise<Project> {
+    if (!projectKey) {
+      throw new BadRequestException('Project key is required');
+    }
     const project = await this.projectsRepository.findOne({
       where: { projectKey },
+      relations: { owner: true, account: true },
     });
     if (!project) throw new NotFoundException('Project not found');
     return project;
   }
 
-  async findById(id: string): Promise<Project> {
+  async findProjectById(id: string): Promise<Project> {
+    if (!id) {
+      throw new BadRequestException('Project ID is required');
+    }
     const project = await this.projectsRepository.findOne({
       where: { id },
+      relations: { owner: true, account: true },
     });
     if (!project) throw new NotFoundException('Project not found');
     return project;
+  }
+
+  async archiveProject(projectId: string): Promise<Project> {
+    const project = await this.findProjectById(projectId);
+
+    project.archived = true;
+
+    const archivedProject = await this.projectsRepository.save(project);
+    this.logger.log(`Project archived successfully: ${projectId}`);
+
+    return archivedProject;
+  }
+
+  async getProjectStats(accountId: string): Promise<{
+    total: number;
+    byStatus: Record<string, number>;
+    byIndustry: Record<string, number>;
+  }> {
+    const projects = await this.projectsRepository.find({
+      where: {
+        account: { id: accountId },
+        archived: false,
+      },
+      select: ['status', 'industry'],
+    });
+
+    const byStatus = projects.reduce(
+      (acc, project) => {
+        acc[project.status] = (acc[project.status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    const byIndustry = projects.reduce(
+      (acc, project) => {
+        const industry = project.industry || IndustriesEnum.Other;
+        acc[industry] = (acc[industry] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    return {
+      total: projects.length,
+      byStatus,
+      byIndustry,
+    };
   }
 }
