@@ -12,9 +12,13 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ZodValidationPipe } from 'nestjs-zod';
 
-import { AuthenticatedRequest } from '@shared/dto/user.dto';
+import { AuthenticatedRequest, UserResponse } from '@shared/dto/user.dto';
 
-import { CreateUserDto, RegisterFromInviteDto } from './dto/user.dto';
+import {
+  CreateUserDto,
+  RegisterFromInviteDto,
+  UserResponseDto,
+} from './dto/user.dto';
 import { UsersService } from './users.service';
 import { RoleGuard } from '../auth/role.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -42,12 +46,33 @@ export class UsersController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
-  async findCurrentUser(@Request() req: AuthenticatedRequest): Promise<User> {
+  async findCurrentUser(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<UserResponse> {
     const userId = req.user.userId;
     if (!userId) {
       throw new NotFoundException('User not found');
     }
-    return this.usersService.findById(userId);
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    this.logger.log(`Current user found: ${user.email}`);
+    const userResponse: UserResponseDto = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      account: {
+        id: user.account.id,
+        name: user.account.name,
+      },
+      firstLoginAt: user.firstLoginAt,
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
+    };
+
+    return userResponse;
   }
 
   @Get(':id')

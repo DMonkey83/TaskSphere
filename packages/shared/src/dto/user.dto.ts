@@ -32,6 +32,8 @@ export const UserResponseSchema = z.object({
   lastName: z.string(),
   role: RoleZodEnum,
   account: AccountData,
+  firstLoginAt: z.date().nullable().optional(),
+  hasCompletedOnboarding: z.boolean().optional(),
 });
 
 export type UserResponse = z.infer<typeof UserResponseSchema>;

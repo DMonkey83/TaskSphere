@@ -72,6 +72,9 @@ export class User {
   @Column({ name: 'has_completed_onboarding', default: false })
   hasCompletedOnboarding: boolean;
 
+  @Column({ name: 'first_login_at', type: 'timestamptz', nullable: true })
+  firstLoginAt: Date | null;
+
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamptz',

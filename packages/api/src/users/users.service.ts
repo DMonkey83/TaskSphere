@@ -18,6 +18,7 @@ import {
 } from './dto/user.dto';
 import { AccountInvitesService } from '../account-invites/account-invites.service';
 import { AccountInvite } from './../account-invites/entities/account-invite.entity';
+import { OnBoardingService } from './../onboarding/on-boarding.service';
 import { User } from './entities/user.entity';
 
 @Injectable()
@@ -27,6 +28,7 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private inviteService: AccountInvitesService,
+    private readonly onboardingService: OnBoardingService,
     @InjectRepository(AccountInvite)
     private inviteRepository: Repository<AccountInvite>,
   ) {}
@@ -57,6 +59,8 @@ export class UsersService {
         'account',
         'firstName',
         'lastName',
+        'firstLoginAt',
+        'hasCompletedOnboarding',
       ],
     });
     if (!user) {
@@ -66,16 +70,30 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto): Promise<User> {
-    const passwordHash = await bcrypt.hash(dto.passwordHash, 10);
-    const user = this.usersRepository.create({
-      email: dto.email,
-      account: { id: dto.accountId }, // Ensure account is properly referenced
-      passwordHash,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      role: dto.role, // Default to Member if no role is provided
-    } as DeepPartial<User>);
-    return this.usersRepository.save(user);
+    this.logger.log(`Creating user with email: ${dto.email}`);
+    try {
+      const passwordHash = await bcrypt.hash(dto.passwordHash, 10);
+      const user = this.usersRepository.create({
+        email: dto.email,
+        account: { id: dto.accountId }, // Ensure account is properly referenced
+        passwordHash,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        role: dto.role, // Default to Member if no role is provided
+        firstLoginAt: null, // Initialize firstLoginAt to null
+      } as DeepPartial<User>);
+      const savedUser = await this.usersRepository.save(user);
+      this.logger.log(`User created successfully with ID: ${savedUser.id}`);
+      await this.onboardingService.createDraft(savedUser.id);
+      this.logger.log(`Onboarding draft created for user ID: ${savedUser.id}`);
+      return savedUser;
+    } catch (error) {
+      this.logger.error(
+        `Error creating user: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException('Failed to create user');
+    }
   }
 
   async registerFromInvite(
