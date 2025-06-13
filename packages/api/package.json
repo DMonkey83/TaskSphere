@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "pnpm lint && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate src/migrations/$NAME -d ormconfig.ts",
