@@ -1,6 +1,7 @@
-import { NavigationItem } from "@/types/sidebar.types";
-import { NavigationButton } from "./navigation-button";
 import { useSidebar } from "@/store/use-sidebar-store";
+import { NavigationItem } from "@/types/sidebar.types";
+
+import { NavigationButton } from "./navigation-button";
 
 interface NavigationSectionProps {
   title?: string;

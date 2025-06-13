@@ -27,7 +27,7 @@ export class UsersService {
     private inviteService: AccountInvitesService,
     @InjectRepository(AccountInvite)
     private inviteRepository: Repository<AccountInvite>,
-  ) { }
+  ) {}
 
   async findByEmail(email: string): Promise<User> {
     const user = await this.usersRepository.findOne({
@@ -36,7 +36,7 @@ export class UsersService {
       select: ['id', 'email', 'account', 'role', 'passwordHash'],
     });
 
-    this.logger.log(`Finding user by email: ${user}`);
+    this.logger.log(`Finding user by email: ${user.email}`);
     if (!user) {
       throw new NotFoundException(`User with email ${email} not found`);
     }

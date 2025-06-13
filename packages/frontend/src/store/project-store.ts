@@ -1,5 +1,6 @@
-import { ProjectResponse } from "@shared/dto/projects.dto";
 import { create } from "zustand";
+
+import { ProjectResponse } from "@shared/dto/projects.dto";
 
 interface ProjectState {
   projects: ProjectResponse[];
@@ -13,12 +14,14 @@ export const projectStore = create<ProjectState>((set) => ({
   projects: [],
   addProject: (project) =>
     set((state) => {
-      if (state.projects.some((p) => p.id === project.id)) return state
+      if (state.projects.some((p) => p.id === project.id)) return state;
       return { projects: [...state.projects, project] };
     }),
   updateProjet: (updated: ProjectResponse) =>
     set((state) => ({
-      projects: state.projects.map((p) => p.id === updated.id ? { ...p, ...updated } : p),
+      projects: state.projects.map((p) =>
+        p.id === updated.id ? { ...p, ...updated } : p
+      ),
     })),
   removeProject: (id: string) =>
     set((state) => ({

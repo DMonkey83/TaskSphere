@@ -1,15 +1,17 @@
 import { MdAdd, MdFolder } from "react-icons/md";
-import { ProjectItem } from "./project-item";
+
 import { Button } from "@/components/ui/button";
-import { Project } from "@/types/sidebar.types";
 import { useSidebar } from "@/store/use-sidebar-store";
+import { Project } from "@/types/sidebar.types";
+
+import { ProjectItem } from "./project-item";
 
 interface ProjectsSectionProps {
   projects: Project[];
 }
 
 export function ProjectsSection({ projects }: ProjectsSectionProps) {
-  const {isCollapsed} = useSidebar();
+  const { isCollapsed } = useSidebar();
 
   if (isCollapsed) {
     return (

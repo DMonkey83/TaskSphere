@@ -1,4 +1,5 @@
 import { MdPerson, MdSettings, MdLogout } from "react-icons/md";
+
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/store/use-sidebar-store";
 import { userStore } from "@/store/user-store";
@@ -11,7 +12,7 @@ const userActions = [
 
 export function UserSection() {
   const { isCollapsed } = useSidebar();
-  const {user} = userStore();
+  const { user } = userStore();
 
   if (isCollapsed) {
     return (

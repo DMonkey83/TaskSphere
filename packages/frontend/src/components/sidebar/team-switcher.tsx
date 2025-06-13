@@ -1,6 +1,6 @@
 import * as React from "react";
 import { MdExpandMore, MdCheck } from "react-icons/md";
-import { cn } from "@/lib/utils";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,8 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSidebar } from "@/store/use-sidebar-store";
 import { teams } from "@/lib/sidebar-config";
+import { cn } from "@/lib/utils";
+import { useSidebar } from "@/store/use-sidebar-store";
 
 export function TeamSwitcher() {
   const { isCollapsed } = useSidebar();

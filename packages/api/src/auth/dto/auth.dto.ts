@@ -8,13 +8,13 @@ import {
 } from '@shared/dto/auth.dto';
 import { RoleEnum } from '@shared/enumsTypes/role.enum';
 
-export class LoginDto extends createZodDto(LoginSchema) { }
-export class LoginResponseDto extends createZodDto(LoginResponseSchema) { }
-export class RegisterDto extends createZodDto(RegisterSchema) { }
+export class LoginDto extends createZodDto(LoginSchema) {}
+export class LoginResponseDto extends createZodDto(LoginResponseSchema) {}
+export class RegisterDto extends createZodDto(RegisterSchema) {}
 export class RefreshTokenResponseDto extends createZodDto(
   RefreshTokenResponseSchema,
-) { }
-export class ValidateUserDto extends createZodDto(ValidateUserSchema) { }
+) {}
+export class ValidateUserDto extends createZodDto(ValidateUserSchema) {}
 
 export type UserPayload = {
   id: string;

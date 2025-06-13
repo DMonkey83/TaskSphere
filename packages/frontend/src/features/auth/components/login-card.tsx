@@ -1,18 +1,19 @@
 "use client";
 
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 
 import { DottedSeparator } from "@/components/dotted-separator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Form, FormField, FormItem } from "@/components/ui/form";
-import { useRouter } from "next/navigation";
-import { LoginInput, LoginSchema } from "@shared/dto/auth.dto";
+import { Input } from "@/components/ui/input";
 import { useLogin } from "@/lib/queries/auth";
+
+import { LoginInput, LoginSchema } from "@shared/dto/auth.dto";
 
 export const LoginCard = () => {
   const router = useRouter();
@@ -34,10 +35,10 @@ export const LoginCard = () => {
       onError: (error) => {
         const message = error.message || "Login failed";
         form.setError("root", {
-          type: 'server',
-          message: message
-        })
-      }
+          type: "server",
+          message: message,
+        });
+      },
     });
   };
 

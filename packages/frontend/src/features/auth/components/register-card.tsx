@@ -1,55 +1,63 @@
-'use client'
+"use client";
 
-import { FaGithub } from 'react-icons/fa'
-import { FcGoogle } from 'react-icons/fc'
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { RegisterSchema, RegisterInput } from "@shared/dto/auth.dto";
+import { useForm } from "react-hook-form";
+import { FaGithub } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
+
+import { DottedSeparator } from "@/components/dotted-separator";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Form, FormField, FormItem } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useRegister } from "@/lib/queries/auth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
-import { DottedSeparator } from '@/components/dotted-separator';
-import { Form, FormField, FormItem } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+
+import { RegisterSchema, RegisterInput } from "@shared/dto/auth.dto";
 
 export const RegisterCard = () => {
-
-  const router = useRouter()
+  const router = useRouter();
   const form = useForm<RegisterInput>({
     resolver: zodResolver(RegisterSchema),
     defaultValues: {
-      accountName: '',
-      email: '',
-      firstName: '',
-      lastName: '',
-      password: '',
-    }
+      accountName: "",
+      email: "",
+      firstName: "",
+      lastName: "",
+      password: "",
+    },
+  });
 
-  })
-
-  const { mutate: registerUser, isPending } = useRegister()
+  const { mutate: registerUser, isPending } = useRegister();
 
   const onSubmit = (data: RegisterInput) => {
     registerUser(data, {
       onSuccess: () => {
-        router.push('/login')
-      }
-    })
-  }
+        router.push("/login");
+      },
+    });
+  };
   return (
     <Card className="w-full h-full md:w-[487px] border-none shadow-none">
       <CardHeader className="flex items-center justify-center text-center p-7">
-        <CardTitle className="text-2xl">
-          Sign Up
-        </CardTitle>
+        <CardTitle className="text-2xl">Sign Up</CardTitle>
         <CardDescription>
-          By signing up, you agree to our {' '}
-          <Link href='/terms'><span className='text-blue-700'>Terms of Service</span></Link>{' '}
-          and {' '}
-          <Link href='policy'><span className='text-blue-700'>Privacy Policy</span></Link>
+          By signing up, you agree to our{" "}
+          <Link href="/terms">
+            <span className="text-blue-700">Terms of Service</span>
+          </Link>{" "}
+          and{" "}
+          <Link href="policy">
+            <span className="text-blue-700">Privacy Policy</span>
+          </Link>
         </CardDescription>
       </CardHeader>
       <div className="px-7">
@@ -70,7 +78,8 @@ export const RegisterCard = () => {
                     placeholder="Please enter account name"
                   />
                 </FormItem>
-              )} />
+              )}
+            />
             <FormField
               name="email"
               control={form.control}
@@ -83,47 +92,44 @@ export const RegisterCard = () => {
                     placeholder="email@email.com"
                   />
                 </FormItem>
-              )} />
+              )}
+            />
             <FormField
               name="firstName"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
                   <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    {...field}
-                    type="text"
-                    placeholder="First Name"
-                  />
+                  <Input {...field} type="text" placeholder="First Name" />
                 </FormItem>
-              )} />
+              )}
+            />
             <FormField
               name="lastName"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
                   <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    {...field}
-                    type="text"
-                    placeholder="Last Name"
-                  />
+                  <Input {...field} type="text" placeholder="Last Name" />
                 </FormItem>
-              )} />
+              )}
+            />
             <FormField
               name="password"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    {...field}
-                    type="password"
-                    placeholder='Password'
-                  />
+                  <Input {...field} type="password" placeholder="Password" />
                 </FormItem>
-              )} />
-            <Button type='submit' disabled={isPending} size='lg' className="w-full">
+              )}
+            />
+            <Button
+              type="submit"
+              disabled={isPending}
+              size="lg"
+              className="w-full"
+            >
               Sign Up
             </Button>
           </form>
@@ -134,15 +140,14 @@ export const RegisterCard = () => {
       </div>
       <CardContent className="p-7 flex flex-col gap-y-4">
         <Button variant="secondary" size="lg" className="w-full">
-          <FcGoogle className='mr-2 size-5' />
+          <FcGoogle className="mr-2 size-5" />
           Log in with Google
         </Button>
         <Button variant="secondary" size="lg" className="w-full">
-          <FaGithub className='mr-2 size-5' />
+          <FaGithub className="mr-2 size-5" />
           Log in with GitHub
         </Button>
       </CardContent>
-    </Card >
-  )
-}
-
+    </Card>
+  );
+};

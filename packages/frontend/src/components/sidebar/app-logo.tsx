@@ -1,5 +1,6 @@
-import { useSidebar } from "@/store/use-sidebar-store";
 import { MdCircle } from "react-icons/md";
+
+import { useSidebar } from "@/store/use-sidebar-store";
 
 export function AppLogo() {
   const { isCollapsed } = useSidebar();

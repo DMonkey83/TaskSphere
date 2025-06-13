@@ -1,5 +1,6 @@
-import { TeamsResponse } from "@shared/dto/team.dto";
 import { create } from "zustand";
+
+import { TeamsResponse } from "@shared/dto/team.dto";
 
 interface TeamState {
   teams: TeamsResponse;

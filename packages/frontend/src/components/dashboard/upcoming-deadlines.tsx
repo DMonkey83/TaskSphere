@@ -1,10 +1,18 @@
-import { MdArrowForward, MdCalendarToday } from "react-icons/md"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Deadline } from "@/types/dashboard.types"
+import { MdArrowForward, MdCalendarToday } from "react-icons/md";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Deadline } from "@/types/dashboard.types";
 
 interface UpcomingDeadlinesProps {
-  deadlines: Deadline[]
+  deadlines: Deadline[];
 }
 
 export function UpcomingDeadlines({ deadlines }: UpcomingDeadlinesProps) {
@@ -23,7 +31,9 @@ export function UpcomingDeadlines({ deadlines }: UpcomingDeadlinesProps) {
             <div key={deadline.id} className="flex justify-between gap-2">
               <div>
                 <div className="font-medium">{deadline.task}</div>
-                <div className="text-sm text-muted-foreground">{deadline.project}</div>
+                <div className="text-sm text-muted-foreground">
+                  {deadline.project}
+                </div>
               </div>
               <div className="text-sm font-medium">{deadline.dueDate}</div>
             </div>
@@ -39,5 +49,5 @@ export function UpcomingDeadlines({ deadlines }: UpcomingDeadlinesProps) {
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }

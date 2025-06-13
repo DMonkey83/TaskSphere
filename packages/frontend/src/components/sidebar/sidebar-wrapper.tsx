@@ -1,19 +1,18 @@
 "use client";
 
 import type React from "react";
-import { Sidebar, MainContent } from "@/components/sidebar/sidebar-layout";
+
 import { MobileSidebar } from "@/components/sidebar/mobile-sidebar";
+import { Sidebar, MainContent } from "@/components/sidebar/sidebar-layout";
 import { SidebarTrigger } from "@/components/sidebar/sidebar-trigger";
+
 import { AppSidebar } from "./sidebar";
 
 interface SidebarWrapperProps {
   children: React.ReactNode;
 }
 
-export function SidebarWrapper({
-  children,
-}: SidebarWrapperProps) {
-
+export function SidebarWrapper({ children }: SidebarWrapperProps) {
   return (
     <div className="flex min-h-screen">
       <Sidebar>

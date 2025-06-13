@@ -10,11 +10,13 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { ProjectMember } from '../../project-members/entities/project-member.entity';
 import { Team } from '../../teams/entities/team.entity';
+import { Onboarding } from '../../onboarding/entities/onboardings.entity';
 
 @Entity('users')
 @Index(['account', 'email'])
@@ -31,6 +33,12 @@ export class User {
 
   @OneToMany(() => ProjectMember, (pm) => pm.user)
   projectMemberships: ProjectMember[];
+
+  @OneToOne(() => Onboarding, (draft) => draft.user, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'onboarding_draft_id' })
+  onboardingDraft: Onboarding;
 
   @Column({ name: 'password_hash' })
   passwordHash: string;
@@ -56,6 +64,12 @@ export class User {
 
   @Column({ name: 'mfa_secret', nullable: true })
   mfaSecret: string;
+
+  @Column({ name: 'onboarding_step', type: 'int', default: 0 })
+  onboardingStep: number;
+
+  @Column({ name: 'has_completed_onboarding', default: false })
+  hasCompletedOnboarding: boolean;
 
   @CreateDateColumn({
     name: 'created_at',

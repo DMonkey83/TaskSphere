@@ -1,12 +1,15 @@
+import isEqual from "lodash.isequal";
 import { useEffect } from "react";
+
 import { accountStore } from "@/store/account-store";
-import { teamStore } from "@/store/team-store";
 import { projectStore } from "@/store/project-store";
+import { teamStore } from "@/store/team-store";
 import { userStore } from "@/store/user-store";
+
 import { ProjectsListResponse } from "@shared/dto/projects.dto";
 import { TeamsResponse } from "@shared/dto/team.dto";
 import { UserResponse } from "@shared/dto/user.dto";
-import isEqual from "lodash.isequal";
+
 import { RoleEnum } from "../../../shared/src/enumsTypes";
 
 export function useSetupDashboardStores({
@@ -16,7 +19,7 @@ export function useSetupDashboardStores({
   user,
 }: {
   user?: UserResponse;
-  account?: { name: string; };
+  account?: { name: string };
   teams?: TeamsResponse;
   projects?: ProjectsListResponse;
 }) {

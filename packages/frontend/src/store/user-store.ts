@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { RoleEnum } from "@shared/enumsTypes";
 
+import { RoleEnum } from "@shared/enumsTypes";
 
 export interface User {
   id: string;
@@ -24,4 +24,4 @@ export const userStore = create<UserState>((set) => ({
     accountId: "",
   },
   setUser: (user) => set({ user }),
-}))
+}));

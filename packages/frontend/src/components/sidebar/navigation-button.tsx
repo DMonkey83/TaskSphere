@@ -1,7 +1,7 @@
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { NavigationItem } from "@/types/sidebar.types";
+import { cn } from "@/lib/utils";
 import { useSidebar } from "@/store/use-sidebar-store";
+import { NavigationItem } from "@/types/sidebar.types";
 
 interface NavigationButtonProps {
   item: NavigationItem;

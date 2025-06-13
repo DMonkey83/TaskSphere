@@ -3,7 +3,9 @@ import {
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
+
 import { TeamsResponse } from "@shared/dto/team.dto";
+
 import { fetchTeamsClient } from "../api/teams";
 
 type TeamsQueryKey = ["teams", { accountId: string }];

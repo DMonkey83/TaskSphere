@@ -1,12 +1,14 @@
+import { AxiosError } from "axios";
+import { z } from "zod";
+
 import {
   CreateProject,
   ProjectResponse,
   ProjectsListResponse,
   ProjectsListResponseSchema,
 } from "@shared/dto/projects.dto";
+
 import clientApi from "../axios";
-import { z } from "zod";
-import { AxiosError } from "axios";
 
 export async function fetchProjectsClient(
   accountId: string
@@ -15,7 +17,7 @@ export async function fetchProjectsClient(
     const response = await clientApi.get<ProjectsListResponse>(
       `/api/projects/${accountId}`
     );
-    console.log('Fetched projects data:', response.data);
+    console.log("Fetched projects data:", response.data);
     return ProjectsListResponseSchema.parse(response.data);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -30,18 +32,22 @@ export async function fetchProjectsClient(
   }
 }
 
-export const createProject = async (data: CreateProject): Promise<ProjectResponse> => {
+export const createProject = async (
+  data: CreateProject
+): Promise<ProjectResponse> => {
   try {
     console.log("Creating project with data:", data);
-    const response = await clientApi.post('/api/projects', data, {
+    const response = await clientApi.post("/api/projects", data, {
       withCredentials: true,
-      headers: { 'Content-Type': 'application/json' },
-    })
-    console.log('response')
-    return response.data
+      headers: { "Content-Type": "application/json" },
+    });
+    console.log("response");
+    return response.data;
   } catch (error) {
     const axiosError = error as AxiosError;
-    const errorData = axiosError.response?.data ?? { message: 'Failed to Create Project' }
-    throw new Error(JSON.stringify(errorData))
+    const errorData = axiosError.response?.data ?? {
+      message: "Failed to Create Project",
+    };
+    throw new Error(JSON.stringify(errorData));
   }
-}
+};

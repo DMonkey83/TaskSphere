@@ -1,4 +1,3 @@
-import { NavigationItem, Project, Team, User } from "@/types/sidebar.types";
 import {
   MdDashboard,
   MdBarChart,
@@ -6,6 +5,8 @@ import {
   MdPeople,
   MdSettings,
 } from "react-icons/md";
+
+import { NavigationItem, Project, Team, User } from "@/types/sidebar.types";
 
 export const navigationItems: NavigationItem[] = [
   { name: "Dashboard", icon: MdDashboard, href: "/dashboard" },

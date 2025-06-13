@@ -1,0 +1,13 @@
+import { Module } from '@nestjs/common';
+import { OnBoardingController } from './on-boarding.controller';
+import { OnBoardingService } from './on-boarding.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Onboarding } from './entities/onboardings.entity';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Onboarding])],
+  controllers: [OnBoardingController],
+  providers: [OnBoardingService],
+  exports: [OnBoardingService, TypeOrmModule],
+})
+export class OnBoardingModule {}

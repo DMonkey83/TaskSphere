@@ -36,7 +36,7 @@ import { IndustriesEnum, ProjectStatusEnum } from '@shared/enumsTypes';
 @Controller('projects')
 export class ProjectController {
   private readonly logger = new Logger(ProjectsService.name);
-  constructor(private readonly projectsService: ProjectsService) { }
+  constructor(private readonly projectsService: ProjectsService) {}
 
   @UseGuards(AuthGuard('jwt'), RoleGuard)
   @Roles('project_manager', 'owner', 'admin')

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import "./globals.css";
-import QueryProvider from "@/utils/tanstackProvider";
-import { Toaster } from "@/components/ui/sonner";
 
+import { Toaster } from "@/components/ui/sonner";
+import QueryProvider from "@/utils/tanstackProvider";
+
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "TaskSphere",
@@ -16,9 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`antialiased`}
-      >
+      <body className={`antialiased`}>
         <QueryProvider>
           {children}
           <Toaster />

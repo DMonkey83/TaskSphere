@@ -1,6 +1,8 @@
-import { LoginInput, LoginResponse } from "@shared/dto/auth.dto";
-import clientApi from "../axios";
 import { AxiosError } from "axios";
+
+import { LoginInput, LoginResponse } from "@shared/dto/auth.dto";
+
+import clientApi from "../axios";
 
 export const loginUser = async (data: LoginInput): Promise<LoginResponse> => {
   try {

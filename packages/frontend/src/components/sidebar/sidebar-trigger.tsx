@@ -1,6 +1,7 @@
 import { MdMenu } from "react-icons/md";
-import { cn } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useSidebar } from "@/store/use-sidebar-store";
 
 interface SidebarTriggerProps {

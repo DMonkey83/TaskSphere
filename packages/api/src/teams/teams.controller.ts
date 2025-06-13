@@ -18,7 +18,7 @@ import { TeamDto } from './dto/team.dto';
 
 @Controller('teams')
 export class TeamsController {
-  constructor(private readonly teamsService: TeamsService) { }
+  constructor(private readonly teamsService: TeamsService) {}
 
   @UseGuards(AuthGuard('jwt'), RoleGuard)
   @Get('account/:accountId')

@@ -1,12 +1,13 @@
-"use client"
+"use client";
 
-import { navigationItems, teamItems, projects } from "@/lib/sidebar-config"
-import { AppLogo } from "./app-logo"
-import { TeamSwitcher } from "./team-switcher"
-import { NavigationSection } from "./navigation-section"
-import { ProjectsSection } from "./project-section"
-import { UserSection } from "./user-section"
-import { SidebarContent, SidebarHeader, SidebarFooter } from "./sidebar-layout"
+import { navigationItems, teamItems, projects } from "@/lib/sidebar-config";
+
+import { AppLogo } from "./app-logo";
+import { NavigationSection } from "./navigation-section";
+import { ProjectsSection } from "./project-section";
+import { SidebarContent, SidebarHeader, SidebarFooter } from "./sidebar-layout";
+import { TeamSwitcher } from "./team-switcher";
+import { UserSection } from "./user-section";
 
 export function AppSidebar() {
   return (
@@ -30,5 +31,5 @@ export function AppSidebar() {
         <UserSection />
       </SidebarFooter>
     </>
-  )
+  );
 }

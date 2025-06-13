@@ -1,6 +1,7 @@
-import { LoginCard } from "@/features/auth/components/login-card";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+
+import { LoginCard } from "@/features/auth/components/login-card";
 
 const LoginPage = async () => {
   const cookieStore = cookies();

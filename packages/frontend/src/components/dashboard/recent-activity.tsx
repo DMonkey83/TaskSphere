@@ -1,11 +1,19 @@
-import { MdArrowForward } from "react-icons/md"
-import { ActivityItem } from "./activity-item"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Activity } from "@/types/dashboard.types"
+import { MdArrowForward } from "react-icons/md";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Activity } from "@/types/dashboard.types";
+
+import { ActivityItem } from "./activity-item";
 
 interface RecentActivityProps {
-  activities: Activity[]
+  activities: Activity[];
 }
 
 export function RecentActivity({ activities }: RecentActivityProps) {
@@ -31,5 +39,5 @@ export function RecentActivity({ activities }: RecentActivityProps) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

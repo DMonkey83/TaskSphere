@@ -15,7 +15,7 @@ export class TeamsService {
     private userRepository: Repository<User>,
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
-  ) { }
+  ) {}
 
   async createTeam(dto: TeamDto, user: User): Promise<Team> {
     if (!['admin', 'project_manager', 'owner'].includes(user.role)) {
@@ -23,8 +23,8 @@ export class TeamsService {
     }
     const project = dto.projectId
       ? await this.projectRepository.findOneByOrFail({
-        id: dto.projectId,
-      })
+          id: dto.projectId,
+        })
       : null;
 
     const team = this.teamRepository.create({

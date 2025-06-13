@@ -39,7 +39,7 @@ export class ProjectsService {
     private readonly projectMembersService: ProjectMemberService,
     private readonly accountsService: AccountsService,
     private readonly dataSourse: DataSource,
-  ) { }
+  ) {}
 
   /**
    * Generates a unique project key based on project name and industry

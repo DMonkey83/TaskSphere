@@ -1,10 +1,17 @@
-import { MdArrowForward } from "react-icons/md"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { DashboardStat } from "@/types/dashboard.types"
+import { MdArrowForward } from "react-icons/md";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { DashboardStat } from "@/types/dashboard.types";
 
 interface StatCardProps {
-  stat: DashboardStat
+  stat: DashboardStat;
 }
 
 export function StatCard({ stat }: StatCardProps) {
@@ -25,5 +32,5 @@ export function StatCard({ stat }: StatCardProps) {
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }

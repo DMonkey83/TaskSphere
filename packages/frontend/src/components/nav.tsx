@@ -1,11 +1,12 @@
-import Image from "next/image"
-import { Button } from "./ui/button"
-import Link from "next/link"
-import { SidebarTrigger } from "./ui/sidebar"
-import { Separator } from "./ui/separator"
+import Image from "next/image";
+import Link from "next/link";
+
+import { Button } from "./ui/button";
+import { Separator } from "./ui/separator";
+import { SidebarTrigger } from "./ui/sidebar";
 
 interface NavProps {
-  useSidebar: boolean
+  useSidebar: boolean;
 }
 
 export const Nav = ({ useSidebar }: NavProps) => {
@@ -26,5 +27,5 @@ export const Nav = ({ useSidebar }: NavProps) => {
         </div>
       </div>
     </header>
-  )
-}
+  );
+};
