@@ -1,8 +1,10 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import cookiesParser from 'cookie-parser';
 import fs from 'fs';
 import path from 'path';
+
+import { NestFactory } from '@nestjs/core';
+import cookiesParser from 'cookie-parser';
+
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   console.log(

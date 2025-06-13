@@ -1,4 +1,3 @@
-import { AccountsService } from './../accounts/accounts.service';
 import {
   BadRequestException,
   Injectable,
@@ -6,9 +5,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Project } from './entities/project.entity';
-import { ProjectView } from './entities/project-view.entity';
+import { DeepPartial } from 'react-hook-form';
 import { DataSource, Repository } from 'typeorm';
+
+import { slugify } from 'src/common/slugify.util';
+
+import {
+  IndustriesEnum,
+  ProjectStatusEnum,
+  RoleEnum,
+} from '@shared/enumsTypes';
+import { VisiblityEnum } from '@shared/enumsTypes/visibility.enum';
+
 import {
   CreateProjectDto,
   CreateProjectViewDto,
@@ -16,14 +24,9 @@ import {
   UpdateProjectStatusDto,
 } from './dto/project.dto';
 import { ProjectMemberService } from '../project-members/project-member.service';
-import { DeepPartial } from 'react-hook-form';
-import { VisiblityEnum } from '@shared/enumsTypes/visibility.enum';
-import {
-  IndustriesEnum,
-  ProjectStatusEnum,
-  RoleEnum,
-} from '@shared/enumsTypes';
-import { slugify } from 'src/common/slugify.util';
+import { AccountsService } from './../accounts/accounts.service';
+import { ProjectView } from './entities/project-view.entity';
+import { Project } from './entities/project.entity';
 
 const PROJECT_KEY_GENERATION_LIMIT = 99; // Limit for unique key generation
 

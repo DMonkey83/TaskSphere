@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-jwt';
 import { Request } from 'express';
+import { Strategy } from 'passport-jwt';
+
 import { AuthenticatedUser } from '@shared/dto/user.dto';
 
 @Injectable()

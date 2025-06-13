@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { User } from '../users/entities/user.entity';
+
+import { TeamDto } from './dto/team.dto';
 import { Team } from './entities/team.entity';
 import { Project } from '../projects/entities/project.entity';
-import { TeamDto } from './dto/team.dto';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class TeamsService {

@@ -4,8 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Relations } from 'shared/src/enumsTypes/relations.enum';
 import { Repository } from 'typeorm';
-import { TaskStatusLog } from './entities/task-status-log';
+
 import {
   CreateTaskDto,
   LogTaskStatusDto,
@@ -13,13 +14,13 @@ import {
   UpdateLogTaskStatusDto,
   UpdateTaskDto,
 } from './dto/task.dto';
-import { Task } from './entities/task.entity';
 import { TaskRelation } from './entities/task-relation';
-import { TaskActivityService } from '../task-activities/task-activity.service';
-import { User } from '../users/entities/user.entity';
-import { Team } from '../teams/entities/team.entity';
+import { TaskStatusLog } from './entities/task-status-log';
+import { Task } from './entities/task.entity';
 import { Project } from '../projects/entities/project.entity';
-import { Relations } from 'shared/src/enumsTypes/relations.enum';
+import { TaskActivityService } from '../task-activities/task-activity.service';
+import { Team } from '../teams/entities/team.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class TaskService {

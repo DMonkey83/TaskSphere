@@ -7,7 +7,18 @@ import * as importPlugin from 'eslint-plugin-import';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: [
+      'eslint.config.mjs',
+      '**/*.spec.ts',
+      '**/*.e2e-spec.ts',
+      '**/__tests__/**',
+      '**/__mocks__/**',
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/coverage/**',
+      '**/build/**',
+      '**/ormconfig.ts',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -59,12 +70,12 @@ export default tseslint.config(
               position: 'after',
             },
           ],
-          pathGroupExcludedImportTypes: ['builtin'],
+          pathGroupsExcludedImportTypes: ['builtin'],
           alphabetize: {
             order: 'asc',
             caseInsensitive: true,
           },
-          'newlines-beween': 'always',
+          'newlines-between': 'always',
         },
       ],
     },

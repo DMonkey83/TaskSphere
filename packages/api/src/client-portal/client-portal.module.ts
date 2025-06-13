@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
 import { CustomerModule } from './../customers/customer.module';
 import { ProjectsModule } from './../projects/projects.module';
 import { ClientPortalController } from './client-portal.controller';

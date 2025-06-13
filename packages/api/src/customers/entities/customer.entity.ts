@@ -1,5 +1,3 @@
-import { User } from '../../users/entities/user.entity';
-import { Account } from '../../accounts/entities/account.entity';
 import {
   Column,
   CreateDateColumn,
@@ -10,7 +8,10 @@ import {
   Index,
   JoinColumn,
 } from 'typeorm';
+
 import { IndustriesEnum } from '../../../../shared/src/enumsTypes';
+import { Account } from '../../accounts/entities/account.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('customers')
 @Index(['account'])

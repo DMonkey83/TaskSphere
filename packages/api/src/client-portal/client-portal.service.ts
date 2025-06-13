@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { v4 as uuidv4 } from 'uuid';
-import { ClientPortalAccess } from './entities/client-portal-access.entity';
 import { Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
+
 import { GrantAccessDtoClass } from './dto/client-portal.dto';
+import { ClientPortalAccess } from './entities/client-portal-access.entity';
 
 @Injectable()
 export class ClientPortalService {

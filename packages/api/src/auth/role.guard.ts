@@ -1,4 +1,3 @@
-import { ProjectMemberService } from './../project-members/project-member.service';
 import {
   CanActivate,
   ExecutionContext,
@@ -7,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
+
+import { ProjectMemberService } from './../project-members/project-member.service';
 import { ROLES_KEY } from './roles.decorator';
 
 @Injectable()

@@ -1,5 +1,12 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
+import { Repository } from 'typeorm';
+
+import { LoginResponse } from '@shared/dto/auth.dto';
+
 import {
   LoginDto,
   RefreshTokenResponseDto,
@@ -7,12 +14,7 @@ import {
   UserPayload,
 } from './dto/auth.dto';
 import { UsersService } from '../users/users.service';
-import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
 import { RefreshToken } from './entities/refresh-token.entity';
-import { Repository } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
-import { LoginResponse } from '@shared/dto/auth.dto';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()

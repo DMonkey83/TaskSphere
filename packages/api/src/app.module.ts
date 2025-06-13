@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
 import { AccountInvitesModule } from './account-invites/account-invites.module';
 import { AccountsModule } from './accounts/accounts.module';
 import { AppController } from './app.controller';

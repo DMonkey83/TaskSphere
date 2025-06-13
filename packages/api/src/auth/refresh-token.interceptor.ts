@@ -7,16 +7,18 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
+import { Response, Request } from 'express';
 import { Observable, throwError, lastValueFrom } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+
 import { AuthService } from './auth.service';
-import { Response, Request } from 'express';
 
 @Injectable()
 export class RefreshTokenInterceptor implements NestInterceptor {
   private readonly logger = new Logger(RefreshTokenInterceptor.name);
   constructor(private readonly authService: AuthService) {}
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async intercept(
     context: ExecutionContext,
     next: CallHandler,
@@ -31,8 +33,8 @@ export class RefreshTokenInterceptor implements NestInterceptor {
       catchError(async (error) => {
         if ((error as { status?: number }).status === 401 && refreshToken) {
           try {
-            console.log(
-              'RefreshTokenInterceptor: Intercepting request for refresh token',
+            this.logger.log(
+              'refreshtokeninterceptor: intercepting request for refresh token after 401 error',
               error,
             );
             const { access_token, refresh_token } =

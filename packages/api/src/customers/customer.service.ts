@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Customer } from './entities/customer.entity';
 import { DeepPartial, Repository } from 'typeorm';
+
 import { CreateCustomerDto } from './dto/customer.dto';
+import { Customer } from './entities/customer.entity';
 
 @Injectable()
 export class CustomerService {

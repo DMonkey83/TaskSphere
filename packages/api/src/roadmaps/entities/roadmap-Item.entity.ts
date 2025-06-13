@@ -1,5 +1,3 @@
-import { Task } from './../../tasks/entities/task.entity';
-import { Project } from './../../projects/entities/project.entity';
 import {
   Column,
   CreateDateColumn,
@@ -7,6 +5,9 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+
+import { Project } from './../../projects/entities/project.entity';
+import { Task } from './../../tasks/entities/task.entity';
 import { Roadmap } from './readmap.entity';
 
 @Entity('roadmap_items')

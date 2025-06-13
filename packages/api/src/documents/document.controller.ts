@@ -1,9 +1,10 @@
-import { RoleGuard } from './../auth/role.guard';
 import { Body, Controller, UseGuards, Post } from '@nestjs/common';
-import { DocumentService } from './document.service';
 import { AuthGuard } from '@nestjs/passport';
-import { Roles } from '../auth/roles.decorator';
 import { ZodValidationPipe } from 'nestjs-zod';
+
+import { RoleGuard } from './../auth/role.guard';
+import { DocumentService } from './document.service';
+import { Roles } from '../auth/roles.decorator';
 import { UploadDocumentDto } from './dto/document.dto';
 
 @Controller('documents')

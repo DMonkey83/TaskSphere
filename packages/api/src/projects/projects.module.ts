@@ -1,9 +1,10 @@
+import { forwardRef, Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { UsersModule } from '../users/users.module';
 import { AccountsModule } from './../accounts/accounts.module';
 import { Account } from './../accounts/entities/account.entity';
 import { ProjectMember } from './../project-members/entities/project-member.entity';
-import { forwardRef, Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from '../users/users.module';
 import { ProjectView } from './entities/project-view.entity';
 import { Project } from './entities/project.entity';
 import { ProjectController } from './project.controller';

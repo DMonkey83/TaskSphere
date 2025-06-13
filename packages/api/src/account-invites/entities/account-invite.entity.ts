@@ -1,6 +1,3 @@
-import { RoleEnum } from '../../../../shared/src/enumsTypes/role.enum';
-import { Account } from './../../accounts/entities/account.entity';
-import { InviteStatusEnum } from '../../common/enums/invite-status.enum';
 import {
   Column,
   CreateDateColumn,
@@ -10,6 +7,10 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+
+import { Account } from './../../accounts/entities/account.entity';
+import { RoleEnum } from '../../../../shared/src/enumsTypes/role.enum';
+import { InviteStatusEnum } from '../../common/enums/invite-status.enum';
 
 @Entity('account_invites')
 @Index(['email', 'account'])

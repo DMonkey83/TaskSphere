@@ -7,13 +7,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { TaskActivityService } from './task-activity.service';
+import { AuthGuard } from '@nestjs/passport';
+
 import { CreateTaskActivityDto } from './dto/task-activities.dto';
+import { TaskActivityService } from './task-activity.service';
 import { RoleGuard } from '../auth/role.guard';
 import { TaskActivity } from './entities/task-activities.entity';
 import { GetUser } from '../auth/get-user.decorator';
 import { User } from '../users/entities/user.entity';
-import { AuthGuard } from '@nestjs/passport';
 
 @Controller('task-activitys')
 export class TaskActivityController {

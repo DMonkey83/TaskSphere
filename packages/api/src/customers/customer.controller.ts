@@ -1,9 +1,10 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { CustomerService } from './customer.service';
 import { AuthGuard } from '@nestjs/passport';
+import { ZodValidationPipe } from 'nestjs-zod';
+
+import { CustomerService } from './customer.service';
 import { RoleGuard } from '../auth/role.guard';
 import { Roles } from '../auth/roles.decorator';
-import { ZodValidationPipe } from 'nestjs-zod';
 import { CreateCustomerDto } from './dto/customer.dto';
 
 @Controller('customers')

@@ -9,14 +9,16 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ZodValidationPipe } from 'nestjs-zod';
+
+import { AuthenticatedRequest } from '@shared/dto/user.dto';
+
 import { CreateUserDto, RegisterFromInviteDto } from './dto/user.dto';
 import { UsersService } from './users.service';
-import { AuthGuard } from '@nestjs/passport';
 import { RoleGuard } from '../auth/role.guard';
 import { Roles } from '../auth/roles.decorator';
-import { ZodValidationPipe } from 'nestjs-zod';
 import { User } from './entities/user.entity';
-import { AuthenticatedRequest } from '@shared/dto/user.dto';
 
 @Controller('users')
 export class UsersController {

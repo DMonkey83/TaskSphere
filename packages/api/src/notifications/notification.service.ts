@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
+
 import { SendNotificationDto } from './dto/notification.dto';
 import { encrypt } from '../common/encryption.util';
 import { Notification } from './entities/notification.entity';

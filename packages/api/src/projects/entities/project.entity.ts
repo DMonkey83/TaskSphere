@@ -11,14 +11,15 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+
+import { ProjectStatusEnum } from '../../../../shared/src/enumsTypes';
 import { IndustriesEnum } from '../../../../shared/src/enumsTypes/industries.enum';
 import { WorkflowEnum } from '../../../../shared/src/enumsTypes/workflow.enum';
-import { ProjectStatusEnum } from '../../../../shared/src/enumsTypes';
 import { ProjectMember } from '../../project-members/entities/project-member.entity';
-import { Account } from './../../accounts/entities/account.entity';
-import { User } from '../../users/entities/user.entity';
-import { Team } from '../../teams/entities/team.entity';
 import { Task } from '../../tasks/entities/task.entity';
+import { Team } from '../../teams/entities/team.entity';
+import { User } from '../../users/entities/user.entity';
+import { Account } from './../../accounts/entities/account.entity';
 
 @Unique(['account', 'projectKey'])
 @Unique(['account', 'slug'])

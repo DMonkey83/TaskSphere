@@ -1,4 +1,3 @@
-import { AccountInvite } from './../account-invites/entities/account-invite.entity';
 import {
   BadRequestException,
   Injectable,
@@ -8,15 +7,18 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { User } from './entities/user.entity';
 import { DeepPartial, Repository } from 'typeorm';
+
+import { UserResponseSchema } from '@shared/dto/user.dto';
+
 import {
   CreateUserDto,
   RegisterFromInviteDto,
   UserResponseDto,
 } from './dto/user.dto';
 import { AccountInvitesService } from '../account-invites/account-invites.service';
-import { UserResponseSchema } from '@shared/dto/user.dto';
+import { AccountInvite } from './../account-invites/entities/account-invite.entity';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {

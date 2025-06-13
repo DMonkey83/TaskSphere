@@ -1,8 +1,9 @@
-import { Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Onboarding } from './entities/onboardings.entity';
+import { Repository } from 'typeorm';
+
 import { OnboardingDraftDto } from './dto/onboardings.dto';
+import { Onboarding } from './entities/onboardings.entity';
 
 @Injectable()
 export class OnBoardingService {

@@ -1,5 +1,3 @@
-import { RoleEnum } from '../../../../shared/src/enumsTypes/role.enum';
-import { Account } from '../../accounts/entities/account.entity';
 import {
   Column,
   CreateDateColumn,
@@ -14,9 +12,12 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+
+import { RoleEnum } from '../../../../shared/src/enumsTypes/role.enum';
+import { Account } from '../../accounts/entities/account.entity';
+import { Onboarding } from '../../onboarding/entities/onboardings.entity';
 import { ProjectMember } from '../../project-members/entities/project-member.entity';
 import { Team } from '../../teams/entities/team.entity';
-import { Onboarding } from '../../onboarding/entities/onboardings.entity';
 
 @Entity('users')
 @Index(['account', 'email'])

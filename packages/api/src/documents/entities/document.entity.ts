@@ -1,6 +1,3 @@
-import { User } from './../../users/entities/user.entity';
-import { Task } from './../../tasks/entities/task.entity';
-import { Project } from './../../projects/entities/project.entity';
 import {
   Column,
   CreateDateColumn,
@@ -10,6 +7,10 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+
+import { Project } from './../../projects/entities/project.entity';
+import { Task } from './../../tasks/entities/task.entity';
+import { User } from './../../users/entities/user.entity';
 
 @Entity('documents')
 @Index(['project'])

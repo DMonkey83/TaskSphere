@@ -7,8 +7,9 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Task } from '../../tasks/entities/task.entity';
+
 import { Account } from '../../accounts/entities/account.entity';
+import { Task } from '../../tasks/entities/task.entity';
 
 @Entity('task_tags')
 @Index(['account'])

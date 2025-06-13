@@ -13,10 +13,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ProjectsService } from './projects.service';
 import { AuthGuard } from '@nestjs/passport';
-import { RoleGuard } from '../auth/role.guard';
 import { ZodValidationPipe } from 'nestjs-zod';
+
+import { IndustriesEnum, ProjectStatusEnum } from '@shared/enumsTypes';
+
+import { ProjectsService } from './projects.service';
+import { RoleGuard } from '../auth/role.guard';
 import {
   CreateProjectDto,
   CreateProjectViewDto,
@@ -24,14 +27,13 @@ import {
   UpdateProjectStatusDto,
 } from './dto/project.dto';
 import { Roles } from '../auth/roles.decorator';
+import { ProjectView } from './entities/project-view.entity';
 import { Project } from './entities/project.entity';
 import {
   CreateProjectSchema,
   CreateProjectViewSchema,
   UpdateProjectSchema,
 } from '../../../shared/src/dto/projects.dto';
-import { ProjectView } from './entities/project-view.entity';
-import { IndustriesEnum, ProjectStatusEnum } from '@shared/enumsTypes';
 
 @Controller('projects')
 export class ProjectController {

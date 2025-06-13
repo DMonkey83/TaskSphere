@@ -1,7 +1,8 @@
-import { AccountInvite } from './../account-invites/entities/account-invite.entity';
-import { AccountInvitesModule } from './../account-invites/account-invites.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { AccountInvitesModule } from './../account-invites/account-invites.module';
+import { AccountInvite } from './../account-invites/entities/account-invite.entity';
 import { User } from './entities/user.entity';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';

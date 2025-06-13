@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Document } from './entities/document.entity';
-import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
 import { UploadDocumentDto } from './dto/document.dto';
+import { Document } from './entities/document.entity';
 import { encrypt } from '../common/encryption.util';
 
 @Injectable()

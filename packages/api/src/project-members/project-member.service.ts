@@ -1,9 +1,10 @@
-import { ProjectView } from './../projects/entities/project-view.entity';
-import { Project } from './../projects/entities/project.entity';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ProjectMember } from './entities/project-member.entity';
 import { DeepPartial, Repository } from 'typeorm';
+
+import { ProjectView } from './../projects/entities/project-view.entity';
+import { Project } from './../projects/entities/project.entity';
+import { ProjectMember } from './entities/project-member.entity';
 
 @Injectable()
 export class ProjectMemberService {

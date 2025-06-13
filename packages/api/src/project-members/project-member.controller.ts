@@ -1,6 +1,3 @@
-import { ProjectRoles } from './../auth/roles.decorator';
-import { ProjectsService } from './../projects/projects.service';
-import { UsersService } from './../users/users.service';
 import {
   BadRequestException,
   Body,
@@ -12,16 +9,20 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ProjectMemberService } from './project-member.service';
+import { AuthGuard } from '@nestjs/passport';
+import { InjectRepository } from '@nestjs/typeorm';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { Repository } from 'typeorm';
+
+import { ProjectRoles } from './../auth/roles.decorator';
+import { ProjectsService } from './../projects/projects.service';
+import { UsersService } from './../users/users.service';
 import {
   AddProjectMemberDto,
   RemoveProjectMemberDto,
 } from './dto/project-members.dto';
-import { AuthGuard } from '@nestjs/passport';
-import { InjectRepository } from '@nestjs/typeorm';
 import { ProjectMember } from './entities/project-member.entity';
-import { Repository } from 'typeorm';
+import { ProjectMemberService } from './project-member.service';
 
 @Controller('project-members')
 export class ProjectMemberController {
@@ -31,7 +32,7 @@ export class ProjectMemberController {
     private readonly projectMembersService: ProjectMemberService,
     private readonly userService: UsersService,
     private readonly projectsService: ProjectsService,
-  ) { }
+  ) {}
 
   @UseGuards(AuthGuard('jwt'))
   @ProjectRoles('owner', 'project_manager')

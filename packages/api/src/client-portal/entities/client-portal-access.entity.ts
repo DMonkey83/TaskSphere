@@ -1,5 +1,3 @@
-import { Project } from './../../projects/entities/project.entity';
-import { Customer } from './../../customers/entities/customer.entity';
 import {
   Column,
   CreateDateColumn,
@@ -7,6 +5,9 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+
+import { Customer } from './../../customers/entities/customer.entity';
+import { Project } from './../../projects/entities/project.entity';
 
 @Entity('client_portal_access')
 export class ClientPortalAccess {

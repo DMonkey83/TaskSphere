@@ -1,6 +1,3 @@
-import { RoleEnum } from '../../../../shared/src/enumsTypes/role.enum';
-import { Project } from './../../projects/entities/project.entity';
-import { User } from './../../users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
@@ -11,6 +8,10 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
+
+import { Project } from './../../projects/entities/project.entity';
+import { User } from './../../users/entities/user.entity';
+import { RoleEnum } from '../../../../shared/src/enumsTypes/role.enum';
 
 @Entity('project_members')
 @Unique(['user', 'project'])

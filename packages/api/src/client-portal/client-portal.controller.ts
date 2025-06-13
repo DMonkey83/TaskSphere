@@ -1,9 +1,10 @@
-import { Roles } from './../auth/roles.decorator';
-import { RoleGuard } from './../auth/role.guard';
 import { Body, Controller, Get, Param, UseGuards, Post } from '@nestjs/common';
-import { ClientPortalService } from './client-portal.service';
 import { AuthGuard } from '@nestjs/passport';
 import { ZodValidationPipe } from 'nestjs-zod';
+
+import { RoleGuard } from './../auth/role.guard';
+import { Roles } from './../auth/roles.decorator';
+import { ClientPortalService } from './client-portal.service';
 import { GrantAccessDtoClass } from './dto/client-portal.dto';
 
 @Controller('client-portals')

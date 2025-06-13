@@ -7,15 +7,16 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { ZodValidationPipe } from 'nestjs-zod';
-import { LoginDto, LoginResponseDto, RegisterDto } from './dto/auth.dto';
-import { UsersService } from '../users/users.service';
-import { AccountsService } from '../accounts/accounts.service';
 import { Request, Response } from 'express';
+import { ZodValidationPipe } from 'nestjs-zod';
+
+import { AuthService } from './auth.service';
 import { CookieService, TokenCookieOptions } from './auth.utils';
-import { User } from '../users/entities/user.entity';
+import { LoginDto, LoginResponseDto, RegisterDto } from './dto/auth.dto';
 import { Public } from './public.decorator';
+import { AccountsService } from '../accounts/accounts.service';
+import { User } from '../users/entities/user.entity';
+import { UsersService } from '../users/users.service';
 
 @Controller('auth')
 export class AuthController {

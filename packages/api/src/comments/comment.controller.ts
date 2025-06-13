@@ -1,8 +1,10 @@
 import { Body, Controller, Post } from '@nestjs/common';
+import { ZodValidationPipe } from 'nestjs-zod';
+
+import { CreateCommentSchema } from '@shared/dto/comments.dto';
+
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/comments.dto';
-import { ZodValidationPipe } from 'nestjs-zod';
-import { CreateCommentSchema } from '@shared/dto/comments.dto';
 import { GetUser } from '../auth/get-user.decorator';
 import { User } from '../users/entities/user.entity';
 

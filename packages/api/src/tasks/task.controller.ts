@@ -7,15 +7,17 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { TaskService } from './task.service';
 import { AuthGuard } from '@nestjs/passport';
+import { ZodValidationPipe } from 'nestjs-zod';
+
+import { UpateTaskSchema } from '@shared/dto/tasks.dto';
+
+import { TaskService } from './task.service';
+import { GetUser } from '../auth/get-user.decorator';
 import { RoleGuard } from '../auth/role.guard';
 import { Roles } from '../auth/roles.decorator';
-import { ZodValidationPipe } from 'nestjs-zod';
 import { CreateTaskDto, LogTaskStatusDto, UpdateTaskDto } from './dto/task.dto';
 import { User } from '../users/entities/user.entity';
-import { GetUser } from '../auth/get-user.decorator';
-import { UpateTaskSchema } from '@shared/dto/tasks.dto';
 
 @Controller('tasks')
 export class TaskController {

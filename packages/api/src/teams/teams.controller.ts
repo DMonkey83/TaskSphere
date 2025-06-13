@@ -8,13 +8,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { TeamsService } from './teams.service';
 import { AuthGuard } from '@nestjs/passport';
-import { RoleGuard } from '../auth/role.guard';
+
+import { TeamsService } from './teams.service';
 import { GetUser } from '../auth/get-user.decorator';
+import { RoleGuard } from '../auth/role.guard';
+import { TeamDto } from './dto/team.dto';
 import { Team } from './entities/team.entity';
 import { User } from '../users/entities/user.entity';
-import { TeamDto } from './dto/team.dto';
 
 @Controller('teams')
 export class TeamsController {

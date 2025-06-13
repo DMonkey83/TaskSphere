@@ -1,11 +1,3 @@
-import { Attachment } from '../../attachments/entities/attachments.entity';
-import { Comment } from '../../comments/entities/comments.entity';
-import { Project } from '../../projects/entities/project.entity';
-import { Tag } from '../../task-tags/entities/task-tags.entity';
-import { TaskActivity } from '../../task-activities/entities/task-activities.entity';
-import { Team } from '../../teams/entities/team.entity';
-import { TimeTracking } from '../../time-trackings/entities/time-tracking.entity';
-import { User } from '../../users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
@@ -18,6 +10,15 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+
+import { Attachment } from '../../attachments/entities/attachments.entity';
+import { Comment } from '../../comments/entities/comments.entity';
+import { Project } from '../../projects/entities/project.entity';
+import { TaskActivity } from '../../task-activities/entities/task-activities.entity';
+import { Tag } from '../../task-tags/entities/task-tags.entity';
+import { Team } from '../../teams/entities/team.entity';
+import { TimeTracking } from '../../time-trackings/entities/time-tracking.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('tasks')
 export class Task {

@@ -1,5 +1,3 @@
-import { Task } from './../../tasks/entities/task.entity';
-import { Customer } from './../../customers/entities/customer.entity';
 import {
   Column,
   CreateDateColumn,
@@ -8,8 +6,11 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { NotificationTypeEnum } from '../../../../shared/src/enumsTypes/notification-type.enum';
+
+import { Customer } from './../../customers/entities/customer.entity';
+import { Task } from './../../tasks/entities/task.entity';
 import { NotificationStatusEnum } from '../../../../shared/src/enumsTypes/notification-status.enum';
+import { NotificationTypeEnum } from '../../../../shared/src/enumsTypes/notification-type.enum';
 
 @Entity('notifications')
 @Index(['customer'])

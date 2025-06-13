@@ -1,4 +1,3 @@
-import { User } from '../../users/entities/user.entity';
 import {
   Column,
   Entity,
@@ -7,6 +6,8 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+
+import { User } from '../../users/entities/user.entity';
 
 @Entity('onboarding_drafts')
 @Index(['userId'], { unique: true })
