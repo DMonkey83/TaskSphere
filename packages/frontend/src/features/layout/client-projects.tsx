@@ -5,11 +5,11 @@ import {
   ProjectsHeader,
   ProjectsFilters,
   ProjectsStats,
-  CreateProjectButton,
 } from "@/components/projects";
 import { useSetupProjectsStores } from "@/hooks/useSetupProjectsStore";
 import { useProjectsQuery } from "@/lib/queries/useProjects";
 import { useUserQuery } from "@/lib/queries/useUser";
+import { CreateProjectModal } from "../projects/create-project-modal";
 
 export default function ClientProjects() {
   const {
@@ -45,7 +45,7 @@ export default function ClientProjects() {
       <ProjectsHeader />
       <div className="flex justify-between items-center">
         <ProjectsFilters />
-        <CreateProjectButton />
+        <CreateProjectModal />
       </div>
       <ProjectsStats projects={projects} />
       <ProjectsList data={projects} />
