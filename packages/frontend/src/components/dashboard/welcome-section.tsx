@@ -2,6 +2,7 @@ import { MdTask } from "react-icons/md";
 
 import { Button } from "@/components/ui/button";
 import { CreateProjectModal } from "@/features/projects/create-project-modal";
+import { CreateTaskModal } from "@/features/tasks/create-task-modal";
 
 export function WelcomeSection({ name }: { name?: string }) {
   return (
@@ -16,10 +17,7 @@ export function WelcomeSection({ name }: { name?: string }) {
       </div>
       <div className="flex gap-2">
         <CreateProjectModal />
-        <Button variant="outline">
-          <MdTask className="mr-1 h-4 w-4" />
-          New Task
-        </Button>
+        <CreateTaskModal />
       </div>
     </div>
   );

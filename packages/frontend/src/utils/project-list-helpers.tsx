@@ -12,19 +12,15 @@ import {
 
 export const getStatusIcon = (status: string) => {
   switch (status) {
-    case "COMPLETED":
     case "completed":
       return <HiCheckCircle className="w-4 h-4 text-green-500" />;
-    case "IN_PROGRESS":
-    case "active":
+    case "in-progress":
       return <HiClock className="w-4 h-4 text-blue-500" />;
-    case "ON_HOLD":
     case "on-hold":
       return <HiExclamationCircle className="w-4 h-4 text-yellow-500" />;
-    case "CANCELLED":
     case "cancelled":
       return <HiXCircle className="w-4 h-4 text-red-500" />;
-    case "NOT_STARTED":
+    case "not-started":
     case "planned":
       return <HiDocumentText className="w-4 h-4 text-gray-500" />;
     case "archived":
@@ -36,19 +32,16 @@ export const getStatusIcon = (status: string) => {
 
 export const getStatusVariant = (status: string) => {
   switch (status) {
-    case "COMPLETED":
     case "completed":
       return "default";
-    case "IN_PROGRESS":
     case "active":
       return "default";
-    case "ON_HOLD":
     case "on-hold":
       return "secondary";
-    case "CANCELLED":
     case "cancelled":
       return "destructive";
-    case "NOT_STARTED":
+    case "not-started":
+      return "outline";
     case "planned":
       return "outline";
     case "archived":

@@ -16,6 +16,7 @@ import { CustomerModule } from './customers/customer.module';
 import { DocumentModule } from './documents/document.module';
 import { NotificationModule } from './notifications/notification.module';
 import { OnBoardingModule } from './onboarding/on-boarding.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { ProjectMemberModule } from './project-members/project-member.module';
 import { ProjectsModule } from './projects/projects.module';
 import { RoadmapModule } from './roadmaps/roadmap.module';
@@ -47,6 +48,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     AuthModule,
     AccountsModule,
+    PrismaModule, // Add PrismaModule here
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -59,8 +61,8 @@ import { UsersModule } from './users/users.module';
         database: configService.get('POSTGRES_DATABASE'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
-        migrationsRun: false, // Set to true to auto-run migrations on startup (optional)
-        synchronize: false, // Disable auto-sync to use migrations
+        migrationsRun: false,
+        synchronize: false,
       }),
       inject: [ConfigService],
     }),

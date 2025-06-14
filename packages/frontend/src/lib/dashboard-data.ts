@@ -1,11 +1,16 @@
-import { Activity, DashboardStat, Deadline, Project } from "@/types/dashboard.types";
+import {
+  Activity,
+  DashboardStat,
+  Deadline,
+  Project,
+} from "@/types/dashboard.types";
 
 export const dashboardData = {
   stats: [
-    { label: "Active Projects", value: 0, href: "/dashboard/projects" },
-    { label: "Open Tasks", value: 0, href: "/dashboard/tasks" },
-    { label: "Team Members", value: 0, href: "/dashboard/team" },
-    { label: "Upcoming Sprints", value: 0, href: "/dashboard/sprints" },
+    { label: "Active Projects", value: 0, href: "/projects" },
+    { label: "Open Tasks", value: 0, href: "/tasks" },
+    { label: "Team Members", value: 0, href: "/team" },
+    { label: "Upcoming Sprints", value: 0, href: "/sprints" },
   ] as DashboardStat[],
 
   recentProjects: [
@@ -17,7 +22,11 @@ export const dashboardData = {
   activities: [
     {
       id: "1",
-      user: { name: "John Doe", avatar: "/placeholder.svg?height=32&width=32", initials: "JD" },
+      user: {
+        name: "John Doe",
+        avatar: "/placeholder.svg?height=32&width=32",
+        initials: "JD",
+      },
       action: "completed task",
       target: "Homepage Design",
       project: "Website Redesign",
@@ -25,7 +34,11 @@ export const dashboardData = {
     },
     {
       id: "2",
-      user: { name: "Sarah Smith", avatar: "/placeholder.svg?height=32&width=32", initials: "SS" },
+      user: {
+        name: "Sarah Smith",
+        avatar: "/placeholder.svg?height=32&width=32",
+        initials: "SS",
+      },
       action: "commented on",
       target: "User Authentication",
       project: "Mobile App",
@@ -33,7 +46,11 @@ export const dashboardData = {
     },
     {
       id: "3",
-      user: { name: "Mike Johnson", avatar: "/placeholder.svg?height=32&width=32", initials: "MJ" },
+      user: {
+        name: "Mike Johnson",
+        avatar: "/placeholder.svg?height=32&width=32",
+        initials: "MJ",
+      },
       action: "created sprint",
       target: "June Sprint",
       project: "Marketing Campaign",
@@ -41,7 +58,11 @@ export const dashboardData = {
     },
     {
       id: "4",
-      user: { name: "Emily Davis", avatar: "/placeholder.svg?height=32&width=32", initials: "ED" },
+      user: {
+        name: "Emily Davis",
+        avatar: "/placeholder.svg?height=32&width=32",
+        initials: "ED",
+      },
       action: "assigned task to",
       target: "Alex Wilson",
       project: "Website Redesign",
@@ -50,9 +71,23 @@ export const dashboardData = {
   ] as Activity[],
 
   upcomingDeadlines: [
-    { id: "1", task: "Finalize Homepage", project: "Website Redesign", dueDate: "Tomorrow" },
-    { id: "2", task: "User Testing", project: "Mobile App", dueDate: "In 3 days" },
-    { id: "3", task: "Content Creation", project: "Marketing Campaign", dueDate: "Next week" },
+    {
+      id: "1",
+      task: "Finalize Homepage",
+      project: "Website Redesign",
+      dueDate: "Tomorrow",
+    },
+    {
+      id: "2",
+      task: "User Testing",
+      project: "Mobile App",
+      dueDate: "In 3 days",
+    },
+    {
+      id: "3",
+      task: "Content Creation",
+      project: "Marketing Campaign",
+      dueDate: "Next week",
+    },
   ] as Deadline[],
-}
-
+};
