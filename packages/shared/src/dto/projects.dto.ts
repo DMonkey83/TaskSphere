@@ -1,8 +1,12 @@
-import { IndustriesZodEnum, WorkflowZodEnum, ProjectStatusZodEnum } from "../enumsTypes";
+import {
+  IndustriesZodEnum,
+  WorkflowZodEnum,
+  ProjectStatusZodEnum,
+} from "../enumsTypes";
 import { z } from "zod";
 import { VisibilityZodEnum } from "../enumsTypes/visibility.enum";
 import { AccountData, UserResponseSchema } from "./user.dto";
-
+import { arch } from "os";
 
 export const CreateProjectSchema = z.object({
   name: z.string().min(1),
@@ -22,12 +26,12 @@ export const CreateProjectSchema = z.object({
 
 export const UpdateProjectSchema = CreateProjectSchema.partial().extend({
   id: z.string().uuid(),
-})
+});
 
 export const UpdateProjectStatusSchema = CreateProjectSchema.partial().extend({
   id: z.string().uuid(),
   status: ProjectStatusZodEnum,
-})
+});
 
 export const CreateProjectViewSchema = z.object({
   viewType: WorkflowZodEnum,
@@ -52,16 +56,19 @@ export const ProjectResponseSchema = z.object({
   projectKey: z.string(),
   status: ProjectStatusZodEnum,
   createdAt: z.coerce.date(),
+  archived: z.boolean(),
   updatedAt: z.coerce.date(),
-  archived: z.boolean()
 });
 
-export const ProjectsListResponseSchema = z.array(ProjectResponseSchema);
+export const ProjectsListResponseSchema = z.object({
+  projects: z.array(ProjectResponseSchema),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+});
 
 export type CreateProject = z.infer<typeof CreateProjectSchema>;
 export type UpdateProject = z.infer<typeof UpdateProjectSchema>;
 export type ProjectResponse = z.infer<typeof ProjectResponseSchema>;
 export type ProjectsListResponse = z.infer<typeof ProjectsListResponseSchema>;
 export type CreateProjectView = z.infer<typeof CreateProjectViewSchema>;
-
-

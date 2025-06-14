@@ -15,7 +15,7 @@ export async function fetchProjectsClient(
 ): Promise<ProjectsListResponse> {
   try {
     const response = await clientApi.get<ProjectsListResponse>(
-      `/api/projects/${accountId}`
+      `/api/projects/account/${accountId}/search`
     );
     console.log("Fetched projects data:", response.data);
     return ProjectsListResponseSchema.parse(response.data);

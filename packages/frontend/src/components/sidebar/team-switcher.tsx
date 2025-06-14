@@ -17,8 +17,6 @@ export function TeamSwitcher() {
   const { isCollapsed } = useSidebar();
   const [selectedTeam, setSelectedTeam] = React.useState(teams[0]);
 
-  console.log("Selected Team:", selectedTeam, "isCollapsed:", isCollapsed);
-
   if (isCollapsed) {
     return (
       <div className="flex justify-center">

@@ -10,14 +10,14 @@ interface StatsOverviewProps {
 }
 
 export function StatsOverview({ stats }: StatsOverviewProps) {
-  const { projects } = projectStore((state) => state);
+  const { totalProjectCount } = projectStore((state) => state);
 
   const updatedStats = useMemo(() => {
-    console.log("project count was incread", projects.length);
+    console.log("project count was increased", totalProjectCount);
     return stats.map((stat, index) =>
-      index === 0 ? { ...stat, value: projects.length } : stat
+      index === 0 ? { ...stat, value: totalProjectCount } : stat
     );
-  }, [stats, projects]);
+  }, [stats, totalProjectCount]);
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

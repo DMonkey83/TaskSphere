@@ -28,7 +28,7 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private inviteService: AccountInvitesService,
-    private readonly onboardingService: OnBoardingService,
+    private onboardingService: OnBoardingService,
     @InjectRepository(AccountInvite)
     private inviteRepository: Repository<AccountInvite>,
   ) {}

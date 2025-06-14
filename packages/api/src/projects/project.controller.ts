@@ -243,7 +243,7 @@ export class ProjectController {
     offset: number;
   }> {
     this.logger.log(
-      'Searching projects for account: ${accountId} with terms ${searchTerm}',
+      `Searching projects for account: ${accountId} with terms ${searchTerm}`,
     );
     try {
       const projects =

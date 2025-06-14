@@ -1,6 +1,7 @@
 import { MdAdd, MdFolder } from "react-icons/md";
 
 import { Button } from "@/components/ui/button";
+import { CreateProjectModal } from "@/features/projects/create-project-modal";
 import { useSidebar } from "@/store/use-sidebar-store";
 import { Project } from "@/types/sidebar.types";
 
@@ -26,9 +27,13 @@ export function ProjectsSection({ projects }: ProjectsSectionProps) {
             <MdFolder className="h-4 w-4" />
           </Button>
         ))}
-        <Button variant="ghost" size="icon" className="w-full">
-          <MdAdd className="h-4 w-4" />
-        </Button>
+        <CreateProjectModal
+          trigger={
+            <Button variant="ghost" size="icon" className="w-full">
+              <MdAdd className="h-4 w-4" />
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -41,10 +46,14 @@ export function ProjectsSection({ projects }: ProjectsSectionProps) {
       {projects.map((project) => (
         <ProjectItem key={project.id} project={project} />
       ))}
-      <Button variant="ghost" className="w-full justify-start gap-3">
-        <MdAdd className="h-4 w-4" />
-        <span>Add Project</span>
-      </Button>
+      <CreateProjectModal
+        trigger={
+          <Button variant="ghost" className="w-full justify-start gap-3">
+            <MdAdd className="h-4 w-4" />
+            <span>Add Project</span>
+          </Button>
+        }
+      />
     </div>
   );
 }

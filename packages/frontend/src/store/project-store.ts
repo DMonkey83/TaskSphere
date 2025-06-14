@@ -5,6 +5,8 @@ import { ProjectResponse } from "@shared/dto/projects.dto";
 interface ProjectState {
   projects: ProjectResponse[];
   setProjects: (projects: ProjectResponse[]) => void;
+  totalProjectCount: number;
+  setTotal: (total: number) => void;
   addProject: (project: ProjectResponse) => void;
   updateProjet: (updated: ProjectResponse) => void;
   removeProject: (id: string) => void;
@@ -12,6 +14,8 @@ interface ProjectState {
 
 export const projectStore = create<ProjectState>((set) => ({
   projects: [],
+  totalProjectCount: 0,
+  setTotal: (total) => set({ totalProjectCount: total }),
   addProject: (project) =>
     set((state) => {
       if (state.projects.some((p) => p.id === project.id)) return state;

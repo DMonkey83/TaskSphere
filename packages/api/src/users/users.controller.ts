@@ -67,6 +67,8 @@ export class UsersController {
       account: {
         id: user.account.id,
         name: user.account.name,
+        createdAt: user.account.createdAt.toISOString(),
+        updatedAt: user.account.updatedAt.toISOString(),
       },
       firstLoginAt: user.firstLoginAt,
       hasCompletedOnboarding: user.hasCompletedOnboarding,

@@ -27,11 +27,12 @@ export function useSetupDashboardStores({
   const currentAccount = accountStore((s) => s.account);
   const currentTeams = teamStore((s) => s.teams);
   const currentProjects = projectStore((s) => s.projects);
+  const currentTotal = projectStore((s) => s.totalProjectCount);
 
   const { setUser } = userStore();
   const { setAccount } = accountStore();
   const { setTeams } = teamStore();
-  const { setProjects } = projectStore();
+  const { setProjects, setTotal } = projectStore();
 
   useEffect(() => {
     if (!user || !account || !teams || !projects) return;
@@ -48,7 +49,9 @@ export function useSetupDashboardStores({
     if (!isEqual(currentUser, newUser)) setUser(newUser);
     if (!isEqual(currentAccount, account)) setAccount(account);
     if (!isEqual(currentTeams, teams)) setTeams(teams);
-    if (!isEqual(currentProjects, projects)) setProjects(projects);
+    if (!isEqual(currentProjects, projects.projects))
+      setProjects(projects.projects || []);
+    if (!isEqual(currentTotal, projects.total)) setTotal(projects.total);
   }, [
     user,
     account,
@@ -58,9 +61,11 @@ export function useSetupDashboardStores({
     currentAccount,
     currentTeams,
     currentProjects,
+    currentTotal,
     setUser,
     setAccount,
     setTeams,
     setProjects,
+    setTotal,
   ]);
 }

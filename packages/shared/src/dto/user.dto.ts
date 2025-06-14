@@ -21,8 +21,8 @@ export const RegisterFromInviteSchema = z.object({
 export const AccountData = z.object({
   id: z.string().uuid(),
   name: z.string(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
 });
 
 export const UserResponseSchema = z.object({

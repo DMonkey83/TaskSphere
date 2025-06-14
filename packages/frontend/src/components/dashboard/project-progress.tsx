@@ -24,7 +24,7 @@ export function ProjectProgress({ projects }: ProjectProgressProps) {
           <CardDescription>Track your active projects</CardDescription>
         </div>
         <Button variant="ghost" size="sm" className="ml-auto gap-1" asChild>
-          <a href="/dashboard/projects">
+          <a href="/projects">
             View all
             <MdArrowForward className="h-4 w-4" />
           </a>
