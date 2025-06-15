@@ -1,30 +1,31 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateAccountDto } from './dto/account.dto';
-import { Account } from './entities/account.entity';
+import { Account } from '../../generated/prisma'; // or from '@prisma/client' if default
 
 @Injectable()
 export class AccountsService {
-  constructor(
-    @InjectRepository(Account)
-    private accountsRepository: Repository<Account>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateAccountDto): Promise<Account> {
-    const account = this.accountsRepository.create({
-      name: dto.name,
+    const account = await this.prisma.account.create({
+      data: {
+        name: dto.name,
+      },
     });
-    return this.accountsRepository.save(account);
+    return account;
   }
 
   async findById(id: string): Promise<Account> {
-    const account = await this.accountsRepository.findOne({
+    const account = await this.prisma.account.findUnique({
       where: { id },
     });
 
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
+
     return account;
   }
 }

@@ -1,12 +1,11 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Relations } from 'shared/src/enumsTypes/relations.enum';
-import { Repository } from 'typeorm';
 
+import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateTaskDto,
   LogTaskStatusDto,
@@ -14,66 +13,77 @@ import {
   UpdateLogTaskStatusDto,
   UpdateTaskDto,
 } from './dto/task.dto';
-import { TaskRelation } from './entities/task-relation';
-import { TaskStatusLog } from './entities/task-status-log';
-import { Task } from './entities/task.entity';
-import { Project } from '../projects/entities/project.entity';
+import {
+  Task,
+  User,
+  TaskRelationTypeEnum,
+  TaskStatusLog,
+} from '../../generated/prisma';
 import { TaskActivityService } from '../task-activities/task-activity.service';
-import { Team } from '../teams/entities/team.entity';
-import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class TaskService {
+  private readonly logger = new Logger(TaskService.name);
   constructor(
-    @InjectRepository(Task)
-    private tasksRepository: Repository<Task>,
-    @InjectRepository(TaskStatusLog)
-    private taskStatusLogsRepository: Repository<TaskStatusLog>,
-    @InjectRepository(TaskRelation)
-    private taskRelationsRepository: Repository<TaskRelation>,
-    @InjectRepository(Project)
-    private projectRepository: Repository<Project>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(Team)
-    private teamRepository: Repository<Team>,
+    private prisma: PrismaService,
     private taskActivityService: TaskActivityService,
   ) {}
 
   private async generateTaskKey(projectKey: string): Promise<string> {
-    const projectTasks = await this.tasksRepository.find({
-      where: { project: { projectKey: projectKey } },
-      select: ['id'],
+    const projectTasks = await this.prisma.task.count({
+      where: { project: { projectKey } },
     });
-    const taskCount = projectTasks.length;
+    const taskCount = projectTasks + 1; // Start from 1
     return `${projectKey}-${taskCount}`;
   }
 
   async createTask(dto: CreateTaskDto, user: User): Promise<Task> {
-    const project = await this.projectRepository.findOneOrFail({
-      where: { id: dto.projectId as string },
-      relations: ['tasks'],
-    });
     await this.validateTaskType(
       dto.type as string,
       dto.parentId as string,
       null,
     );
-    const task = this.tasksRepository.create(dto as Task);
-    task.creator = user;
-    const projectKey = await this.generateTaskKey(project.projectKey);
-    task.taskKey = projectKey;
-    await this.assignTaskEntities(task, dto);
-    await this.tasksRepository.save(task);
+
+    const project = await this.prisma.project.findUniqueOrThrow({
+      where: { id: dto.projectId },
+      include: { tasks: true },
+    });
+
+    const taskKey = await this.generateTaskKey(project.projectKey);
+
+    const task = await this.prisma.task.create({
+      data: {
+        title: dto.title, // Ensure required field is present
+        description: dto.description,
+        type: dto.type,
+        priority: dto.priority,
+        dueDate: dto.dueDate ? new Date(dto.dueDate as Date) : undefined,
+        project: { connect: { id: project.id } },
+        creator: { connect: { id: user.id } },
+        assignee: dto.assigneeId
+          ? { connect: { id: dto?.assigneeId as string } }
+          : undefined,
+        team: dto.teamId
+          ? { connect: { id: dto?.teamId as string } }
+          : undefined,
+        parent: dto.parentId
+          ? { connect: { id: dto?.parentId as string } }
+          : undefined,
+        taskKey,
+      },
+    });
     await this.taskActivityService.logActivity({
       taskId: task.id,
       userId: user.id,
       action: 'created',
     });
-    if (dto.relatedTasks) {
+    if (dto.relatedTasks?.length) {
       await this.createRelations(
         task,
-        dto.relatedTasks as { taskId: string; relationType: Relations }[],
+        dto.relatedTasks as {
+          taskId: string;
+          relationType: TaskRelationTypeEnum;
+        }[],
       );
     }
     return task;
@@ -81,17 +91,24 @@ export class TaskService {
 
   private async createRelations(
     task: Task,
-    relations: { taskId: string; relationType: string }[],
+    relations: { taskId: string; relationType: TaskRelationTypeEnum }[],
   ) {
     for (const rel of relations) {
-      const relation = this.taskRelationsRepository.create({
-        task,
-        relatedTask: await this.tasksRepository.findOneOrFail({
-          where: { id: rel.taskId },
-        }),
-        relationType: rel.relationType,
+      const relatedTask = await this.prisma.task.findUnique({
+        where: { id: rel.taskId },
       });
-      await this.taskRelationsRepository.save(relation);
+      if (!relatedTask) {
+        throw new NotFoundException(
+          `Related task with ID ${rel.taskId} not found`,
+        );
+      }
+      await this.prisma.taskRelation.create({
+        data: {
+          sourceTask: { connect: { id: task.id } },
+          relatedTask: { connect: { id: relatedTask.id } },
+          relationType: rel.relationType,
+        },
+      });
     }
   }
 
@@ -107,8 +124,9 @@ export class TaskService {
       throw new BadRequestException('Epics cannot have a parent');
     }
     if (parentId) {
-      const parent = await this.tasksRepository.findOneOrFail({
+      const parent = await this.prisma.task.findUniqueOrThrow({
         where: { id: parentId },
+        select: { type: true },
       });
       if (parent.type === 'subtask') {
         throw new BadRequestException('Subtasks cannot be parents');
@@ -116,58 +134,31 @@ export class TaskService {
     }
   }
 
-  private async assignTaskEntities(
-    task: Task,
-    dto: Partial<TaskDto>,
-  ): Promise<void> {
-    if (dto.projectId) {
-      task.project = await this.projectRepository.findOneOrFail({
-        where: { id: dto.projectId as string },
-      });
-    }
-    task.assignee = dto.assigneeId
-      ? await this.userRepository.findOneOrFail({
-          where: { id: dto.assigneeId as string },
-        })
-      : null;
-    task.team = dto.teamId
-      ? await this.teamRepository.findOneOrFail({
-          where: { id: dto.teamId as string },
-        })
-      : null;
-    task.parent = dto.parentId
-      ? await this.tasksRepository.findOneOrFail({
-          where: { id: dto.parentId as string },
-        })
-      : null;
-  }
+  private async getRelatedTasks(taskId: string): Promise<Task[]> {
+    const relations = await this.prisma.taskRelation.findMany({
+      where: {
+        OR: [{ taskId }, { relatedTaskId: taskId }],
+      },
+      include: {
+        sourceTask: true,
+        relatedTask: true,
+      },
+    });
 
-  private async updateTaskFields(
-    task: Task,
-    dto: Partial<TaskDto>,
-  ): Promise<void> {
-    const simpleFields: (keyof TaskDto)[] = [
-      'title',
-      'description',
-      'status',
-      'priority',
-      'type',
-      'storyPoints',
-    ];
-    simpleFields.forEach((field) => {
-      if (dto[field] !== undefined) {
-        task[field] = dto[field] as string | number;
+    const taskMap = new Map<string, Task>();
+
+    relations.forEach((rel) => {
+      // Add the related task if this task is the source
+      if (rel.taskId === taskId && rel.relatedTask) {
+        taskMap.set(rel.relatedTask.id, rel.relatedTask);
+      }
+      // Add the source task if this task is the related
+      else if (rel.relatedTaskId === taskId && rel.sourceTask) {
+        taskMap.set(rel.sourceTask.id, rel.sourceTask);
       }
     });
-    if (dto.dueDate !== undefined) {
-      task.dueDate = dto.dueDate ? new Date(dto.dueDate as Date) : null;
-    }
-    if (dto.projectId !== task.project?.id) {
-      task.project = await this.projectRepository.findOneOrFail({
-        where: { id: dto.projectId as string },
-      });
-    }
-    await this.assignTaskEntities(task, dto);
+
+    return Array.from(taskMap.values());
   }
 
   private async logTaskChanges(
@@ -179,40 +170,27 @@ export class TaskService {
       key: keyof TaskDto;
       getOldValue: (task: Task) => string | number | null;
     }[] = [
-      { key: 'title', getOldValue: (t) => t.title },
-      { key: 'storyPoints', getOldValue: (t) => t.storyPoints },
-      { key: 'description', getOldValue: (t) => t.description },
-      { key: 'status', getOldValue: (t) => t.status },
-      { key: 'priority', getOldValue: (t) => t.priority },
-      { key: 'type', getOldValue: (t) => t.type },
-      { key: 'assigneeId', getOldValue: (t) => t.assignee?.id },
-      { key: 'teamId', getOldValue: (t) => t.team?.id },
-      { key: 'parentId', getOldValue: (t) => t.parent?.id },
-      { key: 'dueDate', getOldValue: (t) => t.dueDate?.toISOString() },
+      { key: 'title', getOldValue: (t) => t.title as string },
+      { key: 'storyPoints', getOldValue: (t) => t.storyPoints as number },
+      { key: 'description', getOldValue: (t) => t.description as string },
+      { key: 'status', getOldValue: (t) => t.statusId as string },
+      { key: 'priority', getOldValue: (t) => t.priority as string },
+      { key: 'type', getOldValue: (t) => t.type as string },
+      { key: 'assigneeId', getOldValue: (t) => t.assigneeId as string },
+      { key: 'teamId', getOldValue: (t) => t.teamId as string },
+      { key: 'parentId', getOldValue: (t) => t.parentId as string },
       {
-        key: 'relatedTasks',
+        key: 'dueDate',
         getOldValue: (t) =>
-          t.relatedTasks
-            .map((rt) => rt.id)
-            .sort()
-            .join(',') || '',
+          t.dueDate ? (t.dueDate as Date).toISOString() : null,
       },
     ];
 
     for (const { key, getOldValue } of fieldsToTrack) {
       if (dto[key] === undefined) continue;
-      const oldValue = getOldValue(task);
-      let newValue = dto[key] as string | number | Date | null;
 
-      if (key === 'relatedTasks') {
-        newValue =
-          (dto.relatedTasks as { taskId: string; relationType: string }[])
-            .map((rt) => rt.taskId)
-            .sort()
-            .join(',') || '';
-      } else if (key === 'dueDate') {
-        newValue = (dto.dueDate as string) || '';
-      }
+      const oldValue = getOldValue(task);
+      const newValue = dto[key] as string | number | Date | null;
 
       if (
         oldValue !== newValue &&
@@ -228,76 +206,142 @@ export class TaskService {
         });
       }
     }
+
+    if (dto.relatedTasks !== undefined) {
+      const currentRelatedTasks = await this.getRelatedTasks(task.id);
+      const currentIds = currentRelatedTasks
+        .map((t) => t.id as string)
+        .sort()
+        .join(',');
+      const newIds = (dto.relatedTasks || [])
+        .map((t) => t.taskId as string)
+        .sort()
+        .join(',');
+      if (currentIds !== newIds) {
+        await this.taskActivityService.logActivity({
+          taskId: task.id,
+          userId: user.id,
+          action: 'updated',
+          field: 'relatedTasks',
+          oldValue: JSON.stringify(await this.getRelatedTasks(task.id)),
+          newValue: JSON.stringify(dto.relatedTasks || []),
+        });
+      }
+    }
   }
 
   async getTaskWithHierarchy(id: string): Promise<Task> {
-    return this.tasksRepository.findOneOrFail({
+    return await this.prisma.task.findUniqueOrThrow({
       where: { id },
-      relations: [
-        'parent',
-        'children',
-        'children.children',
-        'relatedTasks',
-        'creator',
-        'assignee',
-      ],
+      include: {
+        parent: true,
+        children: {
+          include: {
+            children: true,
+          },
+        },
+        sourceRelations: true,
+        creator: true,
+        assignee: true,
+      },
     });
   }
 
   async update(taskId: string, dto: UpdateTaskDto, user: User): Promise<Task> {
-    const task = await this.tasksRepository.findOneOrFail({
+    const task = await this.prisma.task.findUniqueOrThrow({
       where: { id: taskId },
-      relations: ['assignee', 'team', 'parent', 'relatedTasks', 'project'],
+      include: {
+        assignee: true,
+        team: true,
+        project: true,
+        parent: true,
+        sourceRelations: true,
+        targetRelations: true,
+      },
     });
 
     if (dto.type || dto.parentId !== undefined) {
       await this.validateTaskType(
-        (dto.type as string) || task.type,
-        (dto.parentId as string) ?? task.parent?.id,
+        dto.type || task.type,
+        dto.parentId ?? task.parent?.id,
         task.parent?.id,
       );
     }
     await this.logTaskChanges(task, dto, user);
-    await this.updateTaskFields(task, dto);
+    const updatedData: Partial<Task> = {
+      ...('title' in dto && { title: dto.title }),
+      ...('description' in dto && { description: dto.description }),
+      ...('priority' in dto && { priority: dto.priority }),
+      ...('type' in dto && { type: dto.type }),
+      ...('storyPoints' in dto && { storyPoints: dto.storyPoints }),
+      ...('status' in dto && { status: dto.status }),
+      ...('dueDate' in dto && {
+        dueDate: dto.dueDate ? new Date(dto.dueDate as Date) : null,
+      }),
+      ...('projectId' in dto && { projectId: dto.projectId }),
+      ...('assigneeId' in dto &&
+        (dto.assigneeId
+          ? { assignee: { connect: { id: dto.assigneeId as string } } }
+          : { assignee: { disconnect: true } })),
+      ...('teamId' in dto &&
+        (dto.teamId
+          ? { team: { connect: { id: dto.teamId as string } } }
+          : { team: { disconnect: true } })),
+      ...('parentId' in dto &&
+        (dto.parentId
+          ? { parent: { connect: { id: dto.parentId as string } } }
+          : { parent: { disconnect: true } })),
+    };
+    const updatedTask = await this.prisma.task.update({
+      where: { id: taskId },
+      data: updatedData,
+    });
     if (dto.relatedTasks) {
-      await this.taskRelationsRepository.delete({ task: { id: task.id } });
-      await this.createRelations(
-        task,
-        dto.relatedTasks as { taskId: string; relationType: string }[],
-      );
+      await this.prisma.taskRelation.deleteMany({
+        where: { taskId: task.id },
+      });
+      await this.createRelations(task, dto.sourceRelations);
     }
-    return task;
+    return updatedTask;
   }
 
   async logStatus(
     taskId: string,
     dto: LogTaskStatusDto,
   ): Promise<TaskStatusLog> {
-    const task = await this.tasksRepository.findOne({ where: { id: taskId } });
+    const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) throw new NotFoundException('Task not found');
-    const log = this.taskStatusLogsRepository.create({
-      task: { id: taskId },
-      status: dto.status as string,
-      location: dto.location as string,
-      updatedBy: dto.updatedById ? { id: dto.updatedById as string } : null,
+    return await this.prisma.taskStatusLog.create({
+      data: {
+        task: { connect: { id: taskId } },
+        status: dto.status,
+        location: dto.location,
+        updatedBy: dto.updatedById
+          ? { connect: { id: dto.updatedById } }
+          : undefined,
+      },
     });
-    return this.taskStatusLogsRepository.save(log);
   }
 
   async updateLogStatus(
     logStatusId: string,
     dto: UpdateLogTaskStatusDto,
   ): Promise<TaskStatusLog> {
-    const statusLog = await this.taskStatusLogsRepository.findOne({
+    const statusLog = await this.prisma.taskStatusLog.findUnique({
       where: { id: logStatusId },
     });
-    if (!statusLog) throw new NotFoundException('Status Log not found');
-    Object.assign(statusLog, {
-      status: (dto.status as string) ?? statusLog.status,
-      location: (dto.location as string) ?? statusLog.location,
-      updatedBy: { id: (dto.updatedById as string) ?? statusLog.updatedBy.id },
-    });
 
-    return this.taskStatusLogsRepository.save(statusLog);
+    if (!statusLog) throw new NotFoundException('Status Log not found');
+
+    return await this.prisma.taskStatusLog.update({
+      where: { id: logStatusId },
+      data: {
+        status: dto.status,
+        location: dto.location,
+        updatedBy: dto.updatedById
+          ? { connect: { id: dto.updatedById } }
+          : undefined,
+      },
+    });
   }
 }

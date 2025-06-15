@@ -34,9 +34,11 @@ export const UserResponseSchema = z.object({
   account: AccountData,
   firstLoginAt: z.date().nullable().optional(),
   hasCompletedOnboarding: z.boolean().optional(),
+  onboardingStep: z.number().optional(),
 });
 
 export type UserResponse = z.infer<typeof UserResponseSchema>;
+export type AccountResponse = z.infer<typeof AccountData>;
 
 export interface AuthenticatedUser {
   userId: string;

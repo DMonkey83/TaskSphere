@@ -8,117 +8,131 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model account_invites {
-  id         String                      @id(map: "PK_7f0826bdc4c2883624a745acd4e") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  email      String                      @db.VarChar
-  role       account_invites_role_enum
-  status     account_invites_status_enum @default(pending)
-  token      String                      @unique(map: "UQ_93082695065dfb8bf3e7c5ad92d") @db.VarChar
-  accepted   Boolean                     @default(false)
-  created_at DateTime                    @default(now()) @db.Timestamptz(6)
-  expiresAt  DateTime                    @db.Timestamptz(6)
-  account_id String?                     @db.Uuid
-  accounts   accounts?                   @relation(fields: [account_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_24116967f8fab70b752213d260b")
+model AccountInvite {
+  id        String           @id(map: "PK_7f0826bdc4c2883624a745acd4e") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email     String           @db.VarChar
+  role      InviteRoleEnum
+  status    InviteStatusEnum @default(pending)
+  token     String           @unique(map: "UQ_93082695065dfb8bf3e7c5ad92d") @db.VarChar
+  accepted  Boolean          @default(false)
+  createdAt DateTime         @default(now()) @db.Timestamptz(6)
+  expiresAt DateTime         @db.Timestamptz(6)
+  accountId String?          @db.Uuid
+  accounts  Account?         @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_24116967f8fab70b752213d260b")
 
   @@index([expiresAt], map: "IDX_55ab38828dc33450f3452d8b08")
-  @@index([email, account_id], map: "IDX_8be1fbba5113d5e639fb796aea")
+  @@index([email, accountId], map: "IDX_8be1fbba5113d5e639fb796aea")
   @@index([token], map: "IDX_93082695065dfb8bf3e7c5ad92")
+  @@map("account-invites")
 }
 
-model accounts {
-  id              String            @id(map: "PK_5a7a02c20412299d198e097a8fe") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name            String            @unique(map: "UQ_2db43cdbf7bb862e577b5f540c8") @db.VarChar
-  created_at      DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime          @default(now()) @db.Timestamptz(6)
-  account_invites account_invites[]
-  customers       customers[]
-  project         project[]
-  task_tags       task_tags[]
-  team            team[]
-  users           users[]
+model Account {
+  id        String   @id(map: "PK_5a7a02c20412299d198e097a8fe") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name      String   @unique(map: "UQ_2db43cdbf7bb862e577b5f540c8") @db.VarChar
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  invites   AccountInvite[]
+  customers Customer[]
+  projects  Project[]
+  taskTags  TaskTag[]
+  teams     Team[]
+  users     User[]
+
+  @@map("accounts")
 }
 
-model attachments {
-  id             String   @id(map: "PK_5e1f050bcff31e3084a1d662412") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  fileName       String   @db.VarChar
-  fileUrl        String   @db.VarChar
-  fileType       String   @db.VarChar
-  fileSize       BigInt
-  mimeType       String?  @db.VarChar
-  isPublic       Boolean  @default(false)
-  created_at     DateTime @default(now()) @db.Timestamptz(6)
-  task_id        String?  @db.Uuid
-  uploaded_by_id String   @db.Uuid
-  users          users    @relation(fields: [uploaded_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_70a38fc450d3b433c86b67e69d6")
-  tasks          tasks?   @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e62fd181b97caa6b150b09220b1")
+model Attachment {
+  id           String   @id(map: "PK_5e1f050bcff31e3084a1d662412") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fileName     String   @db.VarChar
+  fileUrl      String   @db.VarChar
+  fileType     String   @db.VarChar
+  fileSize     BigInt
+  mimeType     String?  @db.VarChar
+  isPublic     Boolean  @default(false)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  taskId       String?  @db.Uuid
+  uploadedById String   @db.Uuid
+  users        User     @relation(fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_70a38fc450d3b433c86b67e69d6")
+  tasks        Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e62fd181b97caa6b150b09220b1")
 
-  @@index([uploaded_by_id], map: "IDX_70a38fc450d3b433c86b67e69d")
-  @@index([task_id], map: "IDX_e62fd181b97caa6b150b09220b")
+  @@index([uploadedById], map: "IDX_70a38fc450d3b433c86b67e69d")
+  @@index([taskId], map: "IDX_e62fd181b97caa6b150b09220b")
+  @@map("attachments")
 }
 
-model client_portal_access {
-  id          String     @id(map: "PK_cf03ca6fc12aaa3e74e1e4293df") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  accessToken String     @unique(map: "UQ_52af61c69c075a299d79a5acb4d") @db.VarChar
-  role        String     @default("viewer") @db.VarChar
-  created_at  DateTime   @default(now()) @db.Timestamptz(6)
-  customerId  String?    @db.Uuid
-  projectId   String?    @db.Uuid
-  project     project?   @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_21b1f758eb6eea7b98cf6c7c648")
-  customers   customers? @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_6feaa7cfa4c1f841cba59b392b6")
+model ClientPortalAccess {
+  id          String    @id(map: "PK_cf03ca6fc12aaa3e74e1e4293df") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  accessToken String    @unique(map: "UQ_52af61c69c075a299d79a5acb4d") @db.VarChar
+  role        String    @default("viewer") @db.VarChar
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  customerId  String?   @db.Uuid
+  projectId   String?   @db.Uuid
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_21b1f758eb6eea7b98cf6c7c648")
+  customers   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_6feaa7cfa4c1f841cba59b392b6")
+
+  @@map("client-portal-access")
 }
 
-model comment {
+model Comment {
   id              String    @id(map: "PK_0b0e4bbc8415ec426f87f3a88e2") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   content         String    @db.VarChar
-  created_at      DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @db.Timestamptz(6)
   taskId          String?   @db.Uuid
   authorId        String?   @db.Uuid
   parentCommentId String?   @db.Uuid
-  users           users?    @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_276779da446413a0d79598d4fbd")
-  comment         comment?  @relation("commentTocomment", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_73aac6035a70c5f0313c939f237")
-  other_comment   comment[] @relation("commentTocomment")
-  tasks           tasks?    @relation(fields: [taskId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9fc19c95c33ef4d97d09b72ee95")
+  user            User?     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_276779da446413a0d79598d4fbd")
+  comment         Comment?  @relation("commentTocomment", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_73aac6035a70c5f0313c939f237")
+  other_comment   Comment[] @relation("commentTocomment")
+  task            Task?     @relation(fields: [taskId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9fc19c95c33ef4d97d09b72ee95")
+
+  @@map("comments")
 }
 
-model customers {
-  id                   String                   @id(map: "PK_133ec679a801fab5e070f73d3ea") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name                 String                   @db.VarChar
-  email                String?                  @db.VarChar
-  phone                String?                  @db.VarChar
-  address              String?                  @db.VarChar
-  industry             customers_industry_enum?
-  created_at           DateTime                 @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime                 @default(now()) @db.Timestamptz(6)
-  account_id           String                   @db.Uuid
-  createdById          String?                  @db.Uuid
-  client_portal_access client_portal_access[]
-  users                users?                   @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_aa88a28eac26e514147fc7d2039")
-  accounts             accounts                 @relation(fields: [account_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ebcc29963874e55053e8ee80be5")
-  notifications        notifications[]
+model Customer {
+  id          String                @id(map: "PK_133ec679a801fab5e070f73d3ea") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String                @db.VarChar
+  email       String?               @db.VarChar
+  phone       String?               @db.VarChar
+  address     String?               @db.VarChar
+  industry    CustomerIndustryEnum?
+  createdAt   DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime              @default(now()) @db.Timestamptz(6)
+  accountId   String                @db.Uuid
+  createdById String?               @db.Uuid
 
-  @@index([account_id], map: "IDX_ebcc29963874e55053e8ee80be")
+  clientPortalAccess ClientPortalAccess[]
+
+  user          User?          @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_aa88a28eac26e514147fc7d2039")
+  account       Account        @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ebcc29963874e55053e8ee80be5")
+  notifications Notification[]
+
+  @@index([accountId], map: "IDX_ebcc29963874e55053e8ee80be")
+  @@map("customers")
 }
 
-model documents {
-  id             String   @id(map: "PK_ac51aa5181ee2036f5ca482857c") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  fileSize       BigInt?
-  mimeType       String?  @db.VarChar
-  description    String?
-  fileName       String   @db.VarChar
-  filePath       String   @db.VarChar
-  version        Int      @default(1)
-  created_at     DateTime @default(now()) @db.Timestamptz(6)
-  project_id     String?  @db.Uuid
-  taskId         String?  @db.Uuid
-  uploaded_by_id String?  @db.Uuid
-  users          users?   @relation(fields: [uploaded_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_02306fdd7023e63532159eefb3c")
-  project        project? @relation(fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e156b298c20873e14c362e789bf")
-  tasks          tasks?   @relation(fields: [taskId], references: [id], onUpdate: NoAction, map: "FK_f6a19efc163a9cdd22487193826")
+model Document {
+  id           String   @id(map: "PK_ac51aa5181ee2036f5ca482857c") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fileSize     BigInt?
+  mimeType     String?  @db.VarChar
+  description  String?
+  fileName     String   @db.VarChar
+  filePath     String   @db.VarChar
+  version      Int      @default(1)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  projectId    String?  @db.Uuid
+  taskId       String?  @db.Uuid
+  uploadedById String?  @db.Uuid
 
-  @@index([uploaded_by_id], map: "IDX_02306fdd7023e63532159eefb3")
-  @@index([project_id], map: "IDX_e156b298c20873e14c362e789b")
+  user    User?    @relation(fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_02306fdd7023e63532159eefb3c")
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e156b298c20873e14c362e789bf")
+  task    Task?    @relation(fields: [taskId], references: [id], onUpdate: NoAction, map: "FK_f6a19efc163a9cdd22487193826")
+
+  @@index([uploadedById], map: "IDX_02306fdd7023e63532159eefb3")
+  @@index([projectId], map: "IDX_e156b298c20873e14c362e789b")
   @@index([taskId], map: "IDX_f6a19efc163a9cdd2248719382")
+  @@map("documents")
 }
 
 model migrations {
@@ -127,62 +141,68 @@ model migrations {
   name      String @db.VarChar
 }
 
-model notifications {
-  id         String                    @id(map: "PK_6a72c3c0f683f6462415e653c3a") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  type       notifications_type_enum
-  content    String                    @db.VarChar
-  status     notifications_status_enum @default(pending)
-  created_at DateTime                  @default(now()) @db.Timestamptz(6)
-  customerId String?                   @db.Uuid
-  taskId     String?                   @db.Uuid
-  customers  customers?                @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_c0c710fa8182fe57bf0fd9d6104")
-  tasks      tasks?                    @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ec4858ee62e0008aaa1dcb95c8f")
+model Notification {
+  id         String                 @id(map: "PK_6a72c3c0f683f6462415e653c3a") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  type       NotificationTypeEnum
+  content    String                 @db.VarChar
+  status     NotificationStatusEnum @default(pending)
+  createdAt  DateTime               @default(now()) @db.Timestamptz(6)
+  customerId String?                @db.Uuid
+  taskId     String?                @db.Uuid
 
-  @@index([created_at], map: "IDX_77ee7b06d6f802000c0846f3a5")
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_c0c710fa8182fe57bf0fd9d6104")
+  task     Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ec4858ee62e0008aaa1dcb95c8f")
+
+  @@index([createdAt], map: "IDX_77ee7b06d6f802000c0846f3a5")
   @@index([status], map: "IDX_92f5d3a7779be163cbea7916c6")
   @@index([customerId], map: "IDX_c0c710fa8182fe57bf0fd9d610")
+  @@map("notifications")
 }
 
-model onboarding_drafts {
-  id                                                 String  @id(map: "PK_8e59a03cf261a7807fc9a0c1cb7") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id                                            String  @unique(map: "IDX_d5f11ff13aabc363815b435920") @db.Uuid
-  completed                                          Boolean @default(false)
-  data                                               Json
-  users_onboarding_drafts_user_idTousers             users   @relation("onboarding_drafts_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_d5f11ff13aabc363815b435920a")
-  users_users_onboarding_draft_idToonboarding_drafts users?  @relation("users_onboarding_draft_idToonboarding_drafts")
+model OnboardingDraft {
+  id        String  @id(map: "PK_8e59a03cf261a7807fc9a0c1cb7") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String  @unique(map: "IDX_d5f11ff13aabc363815b435920") @db.Uuid
+  completed Boolean @default(false)
+  data      Json
+
+  user  User  @relation("onboarding_drafts_user_idTousers", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_d5f11ff13aabc363815b435920a")
+  draft User? @relation("users_onboarding_draft_idToonboarding_drafts")
 
   @@index([completed], map: "IDX_2cbbed537c59255337c5960698")
+  @@map("onboarding-drafts")
 }
 
-model project {
-  id                   String                 @id(map: "PK_4d68b1358bb5b766d3e78f32f57") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectKey           String                 @db.VarChar
-  name                 String                 @db.VarChar
-  description          String?
-  industry             project_industry_enum?
-  slug                 String?                @unique(map: "UQ_6fce32ddd71197807027be6ad38") @db.VarChar
-  workflow             project_workflow_enum  @default(kanban)
-  status               project_status_enum    @default(planned)
-  startDate            DateTime?              @db.Timestamp(6)
-  endDate              DateTime?              @db.Timestamp(6)
-  matterNumber         String?                @db.VarChar
-  config               Json?
-  archived             Boolean                @default(false)
-  visibility           String?                @db.VarChar
-  tags                 String[]
-  created_at           DateTime               @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
-  accountId            String?                @db.Uuid
-  ownerId              String?                @db.Uuid
-  client_portal_access client_portal_access[]
-  documents            documents[]
-  accounts             accounts?              @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_8d691f8d69acef59f4ed3a872c4")
-  users                users?                 @relation(fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9884b2ee80eb70b7db4f12e8aed")
-  project_views        project_views[]
-  project_members      project_members[]
-  project_teams_team   project_teams_team[]
-  roadmap_items        roadmap_items[]
-  tasks                tasks[]
+model Project {
+  id           String                @id(map: "PK_4d68b1358bb5b766d3e78f32f57") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectKey   String                @db.VarChar
+  name         String                @db.VarChar
+  description  String?
+  industry     ProjectIndustryEnum?
+  slug         String?               @unique(map: "UQ_6fce32ddd71197807027be6ad38") @db.VarChar
+  workflow     ProjectWorkflowEnum   @default(kanban)
+  status       ProjectStatusEnum     @default(planned)
+  startDate    DateTime?             @db.Timestamp(6)
+  endDate      DateTime?             @db.Timestamp(6)
+  matterNumber String?               @db.VarChar
+  config       Json?
+  archived     Boolean               @default(false)
+  visibility   ProjectVisibilityEnum @default(private)
+  tags         String[]
+  createdAt    DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime              @default(now()) @db.Timestamptz(6)
+  accountId    String?               @db.Uuid
+  ownerId      String?               @db.Uuid
+
+  portalAccess ClientPortalAccess[]
+  documents    Document[]
+  account      Account?             @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_8d691f8d69acef59f4ed3a872c4")
+  owner        User?                @relation(fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9884b2ee80eb70b7db4f12e8aed")
+
+  views        ProjectView[]
+  members      ProjectMember[]
+  teams        ProjectTeam[]
+  roadmapItems RoadmapItem[]
+  tasks        Task[]
 
   @@unique([accountId, slug], map: "UQ_03b8ae50e8e05fd3334802d84e0")
   @@unique([accountId, projectKey], map: "UQ_1371753fc3e2a309eea64fbb103")
@@ -191,66 +211,78 @@ model project {
   @@index([ownerId], map: "IDX_9884b2ee80eb70b7db4f12e8ae")
   @@index([projectKey], map: "IDX_d8f72dfe86073bf0ac5115e7dd")
   @@index([archived], map: "IDX_fe3738d4fb224ea68f13ef43a2")
+  @@map("projects")
 }
 
-model project_views {
+model ProjectView {
   id            String   @id(map: "PK_6849722d03b6124a961da5febbf") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   viewType      String   @db.VarChar
   configuration Json?
-  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
   projectId     String?  @db.Uuid
-  project       project? @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_b95c3010b741df677236fef475f")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_b95c3010b741df677236fef475f")
 
   @@map("project-views")
 }
 
-model project_members {
-  id         String                    @id(map: "PK_0b2f46f804be4aea9234c78bcc9") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  role       project_members_role_enum @default(member)
-  joined_at  DateTime                  @default(now()) @db.Timestamptz(6)
-  user_id    String?                   @db.Uuid
-  project_id String?                   @db.Uuid
-  project    project?                  @relation(fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_b5729113570c20c7e214cf3f58d")
-  users      users?                    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e89aae80e010c2faa72e6a49ce8")
+model ProjectMember {
+  id        String         @id(map: "PK_0b2f46f804be4aea9234c78bcc9") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  role      MemberRoleEnum @default(member)
+  joinedAt  DateTime       @default(now()) @db.Timestamptz(6)
+  userId    String?        @db.Uuid
+  projectId String?        @db.Uuid
 
-  @@unique([user_id, project_id], map: "UQ_b3f491d3a3f986106d281d8eb4b")
-  @@index([project_id], map: "IDX_b5729113570c20c7e214cf3f58")
-  @@index([user_id], map: "IDX_e89aae80e010c2faa72e6a49ce")
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_b5729113570c20c7e214cf3f58d")
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e89aae80e010c2faa72e6a49ce8")
+
+  @@unique([userId, projectId], map: "UQ_b3f491d3a3f986106d281d8eb4b")
+  @@index([projectId], map: "IDX_b5729113570c20c7e214cf3f58")
+  @@index([userId], map: "IDX_e89aae80e010c2faa72e6a49ce")
+  @@map("project-members")
 }
 
-model project_teams_team {
-  projectId String  @db.Uuid
-  teamId    String  @db.Uuid
-  team      team    @relation(fields: [teamId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_6f617c3f27c84b38c8e35837ff7")
-  project   project @relation(fields: [projectId], references: [id], onDelete: Cascade, map: "FK_a7d311f774c34b41ec18ed14f52")
+model ProjectTeam {
+  projectId String @db.Uuid
+  teamId    String @db.Uuid
+
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_6f617c3f27c84b38c8e35837ff7")
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade, map: "FK_a7d311f774c34b41ec18ed14f52")
 
   @@id([projectId, teamId], map: "PK_cd2b83dd2c39ca5da0ae0d66ab1")
   @@index([teamId], map: "IDX_6f617c3f27c84b38c8e35837ff")
   @@index([projectId], map: "IDX_a7d311f774c34b41ec18ed14f5")
+  @@map("project-teams-team")
 }
 
-model refresh_tokens {
-  id         String   @id(map: "PK_7d8bee0204106019488c4c50ffa") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  token      String   @db.VarChar
-  expiresAt  DateTime @db.Timestamp(6)
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  revoked    Boolean  @default(false)
-  userId     String?  @db.Uuid
-  users      users?   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_610102b60fea1455310ccd299de")
+model RefreshToken {
+  id        String   @id(map: "PK_7d8bee0204106019488c4c50ffa") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  token     String   @db.VarChar
+  expiresAt DateTime @db.Timestamp(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  revoked   Boolean  @default(false)
+  userId    String?  @db.Uuid
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_610102b60fea1455310ccd299de")
+
+  @@map("refresh-tokens")
 }
 
-model roadmap {
-  id            String          @id(map: "PK_8652e486587a4e35070c86d2232") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name          String          @db.VarChar
-  description   String?         @db.VarChar
-  created_at    DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime        @default(now()) @db.Timestamptz(6)
-  ownerId       String?         @db.Uuid
-  users         users?          @relation(fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_91045a4b42e58e8d1bbceb92774")
-  roadmap_items roadmap_items[]
+model Roadmap {
+  id          String   @id(map: "PK_8652e486587a4e35070c86d2232") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String   @db.VarChar
+  description String?  @db.VarChar
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @db.Timestamptz(6)
+  ownerId     String?  @db.Uuid
+
+  owner        User?         @relation(fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_91045a4b42e58e8d1bbceb92774")
+  roadmapItems RoadmapItem[]
+
+  @@map("roadmaps")
 }
 
-model roadmap_items {
+model RoadmapItem {
   id           String    @id(map: "PK_e5d959c8ec2deabd242d10e640e") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   startDate    DateTime? @db.Timestamptz(6)
   endDate      DateTime? @db.Timestamptz(6)
@@ -259,278 +291,386 @@ model roadmap_items {
   roadmapId    String?   @db.Uuid
   projectId    String?   @db.Uuid
   taskId       String?   @db.Uuid
-  roadmap      roadmap?  @relation(fields: [roadmapId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_096692657f905f1a832079b5f8d")
-  tasks        tasks?    @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_73e811ddc14983b9176ab7a8582")
-  project      project?  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_cb0807d7e85a91032893b41cda0")
+
+  roadmap Roadmap? @relation(fields: [roadmapId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_096692657f905f1a832079b5f8d")
+  task    Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_73e811ddc14983b9176ab7a8582")
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_cb0807d7e85a91032893b41cda0")
+
+  @@map("roadmap-items")
 }
 
-model task_activity {
-  id         String   @id(map: "PK_a8f24c7952c9ff5533f88279941") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  action     String   @db.VarChar
-  field      String?  @db.VarChar
-  oldValue   String?  @db.VarChar
-  newValue   String?  @db.VarChar
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  taskId     String?  @db.Uuid
-  userId     String?  @db.Uuid
-  tasks      tasks?   @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_dd4d1f026f618e434d9254c0d68")
-  users      users?   @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_fea29116442682a99fa5fa4ab32")
+model TaskActivity {
+  id        String   @id(map: "PK_a8f24c7952c9ff5533f88279941") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  action    String   @db.VarChar
+  field     String?  @db.VarChar
+  oldValue  String?  @db.VarChar
+  newValue  String?  @db.VarChar
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  taskId    String?  @db.Uuid
+  userId    String?  @db.Uuid
+
+  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_dd4d1f026f618e434d9254c0d68")
+  user User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_fea29116442682a99fa5fa4ab32")
+
+  @@map("task-activity")
 }
 
-model task_relations {
-  taskId                                    String @db.Uuid
-  relatedTaskId                             String @db.Uuid
-  tasks_task_relations_taskIdTotasks        tasks  @relation("task_relations_taskIdTotasks", fields: [taskId], references: [id], onDelete: Cascade, map: "FK_a4c25ccf040b077a02ce8be1675")
-  tasks_task_relations_relatedTaskIdTotasks tasks  @relation("task_relations_relatedTaskIdTotasks", fields: [relatedTaskId], references: [id], onDelete: Cascade, map: "FK_f7b26fcdcb3cb999acc4338410c")
+model TaskRelation {
+  taskId        String               @db.Uuid
+  relatedTaskId String               @db.Uuid
+  relationType  TaskRelationTypeEnum @default(cloned_from)
+
+  sourceTask  Task @relation("task_relations_taskIdTotasks", fields: [taskId], references: [id], onDelete: Cascade, map: "FK_a4c25ccf040b077a02ce8be1675")
+  relatedTask Task @relation("task_relations_relatedTaskIdTotasks", fields: [relatedTaskId], references: [id], onDelete: Cascade, map: "FK_f7b26fcdcb3cb999acc4338410c")
 
   @@id([taskId, relatedTaskId], map: "PK_856df4d59da5f05100cab663d6a")
   @@index([taskId], map: "IDX_a4c25ccf040b077a02ce8be167")
   @@index([relatedTaskId], map: "IDX_f7b26fcdcb3cb999acc4338410")
+  @@map("task-relations")
 }
 
-model task_tags {
-  id                    String                  @id(map: "PK_7b47a7628547c0976415988d3cb") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name                  String                  @unique(map: "UQ_2b7f6d79d1bc2822c16feabe586") @db.VarChar
-  description           String?
-  isActive              Boolean?
-  color                 String?                 @db.VarChar
-  accountId             String                  @db.Uuid
-  accounts              accounts                @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ecbaa4f4f1c14519182d8333ae9")
-  task_tags_tasks_tasks task_tags_tasks_tasks[]
-  tasks_tags_task_tags  tasks_tags_task_tags[]
+model TaskStatus {
+  id       String  @id @default(uuid()) @db.Uuid
+  code     String  @unique @db.VarChar // e.g. 'todo', 'done', etc.
+  label    String  @db.VarChar // Human-readable label: 'To Do'
+  color    String? @db.VarChar // Optional UI color hex
+  order    Int? // Optional UI sort order
+  isActive Boolean @default(true)
+
+  // Relations
+  tasks Task[]
+  logs  TaskStatusLog[]
+
+  // Indexes
+  @@index([isActive], map: "IDX_task_status_active")
+  @@index([order], map: "IDX_task_status_order")
+  @@map("task_statuses")
+}
+
+model TaskStatusLog {
+  id     String @id @default(uuid()) @db.Uuid
+  taskId String @db.Uuid
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  statusId String     @db.Uuid
+  status   TaskStatus @relation(fields: [statusId], references: [id])
+
+  location    String? @db.VarChar
+  updatedById String? @db.Uuid
+  updatedBy   User?   @relation(fields: [updatedById], references: [id])
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  // Indexes
+  @@index([taskId], map: "IDX_task_log_task")
+  @@index([statusId], map: "IDX_task_log_status")
+  @@index([updatedById], map: "IDX_task_log_updated_by")
+  @@index([createdAt], map: "IDX_task_log_created_at")
+  @@map("task_status_logs")
+}
+
+model TaskTag {
+  id          String   @id(map: "PK_7b47a7628547c0976415988d3cb") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String   @unique(map: "UQ_2b7f6d79d1bc2822c16feabe586") @db.VarChar
+  description String?
+  isActive    Boolean?
+  color       String?  @db.VarChar
+  accountId   String   @db.Uuid
+
+  account          Account            @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ecbaa4f4f1c14519182d8333ae9")
+  taskLinks        TaskTagLink[]
+  TaskTagsTaskTags TaskTagsTaskTags[]
 
   @@index([name, accountId], map: "IDX_0295ddcf8dbd2996bf906d04f5")
   @@index([accountId], map: "IDX_ecbaa4f4f1c14519182d8333ae")
+  @@map("task-tags")
 }
 
-model task_tags_tasks_tasks {
-  taskTagsId String    @db.Uuid
-  tasksId    String    @db.Uuid
-  tasks      tasks     @relation(fields: [tasksId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_69ee58e96478789725b0c228a11")
-  task_tags  task_tags @relation(fields: [taskTagsId], references: [id], onDelete: Cascade, map: "FK_97b139c262a3651fa74aab5fd63")
+model TaskTagLink {
+  taskTagsId String @db.Uuid
+  tasksId    String @db.Uuid
+
+  task Task    @relation(fields: [tasksId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_69ee58e96478789725b0c228a11")
+  tag  TaskTag @relation(fields: [taskTagsId], references: [id], onDelete: Cascade, map: "FK_97b139c262a3651fa74aab5fd63")
 
   @@id([taskTagsId, tasksId], map: "PK_56e1df1158bb0a32ccba48b6a87")
   @@index([tasksId], map: "IDX_69ee58e96478789725b0c228a1")
   @@index([taskTagsId], map: "IDX_97b139c262a3651fa74aab5fd6")
+  @@map("task-tags-tasks-tasks")
 }
 
-model tasks {
-  id                                                 String                    @id(map: "PK_8d12ff38fcc62aaba2cab748772") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  title                                              String                    @db.VarChar
-  taskKey                                            String                    @unique(map: "UQ_d3b09dfe42e32a456e6d587b21a") @db.VarChar
-  description                                        String?                   @db.VarChar
-  type                                               String                    @default("subtask") @db.VarChar
-  status                                             String                    @default("todo") @db.VarChar
-  priority                                           String                    @default("medium") @db.VarChar
-  dueDate                                            DateTime?                 @db.Timestamptz(6)
-  storyPoints                                        Int?
-  billableHours                                      Int?
-  deliveryAddress                                    String?                   @db.VarChar
-  deliveryWindow                                     Unsupported("tstzrange")?
-  created_at                                         DateTime                  @default(now()) @db.Timestamptz(6)
-  updated_at                                         DateTime                  @default(now()) @db.Timestamptz(6)
-  projectId                                          String?                   @db.Uuid
-  assigneeId                                         String?                   @db.Uuid
-  creatorId                                          String?                   @db.Uuid
-  teamId                                             String?                   @db.Uuid
-  parentId                                           String?                   @db.Uuid
-  attachments                                        attachments[]
-  comment                                            comment[]
-  documents                                          documents[]
-  notifications                                      notifications[]
-  roadmap_items                                      roadmap_items[]
-  task_activity                                      task_activity[]
-  task_relations_task_relations_taskIdTotasks        task_relations[]          @relation("task_relations_taskIdTotasks")
-  task_relations_task_relations_relatedTaskIdTotasks task_relations[]          @relation("task_relations_relatedTaskIdTotasks")
-  task_tags_tasks_tasks                              task_tags_tasks_tasks[]
-  team                                               team?                     @relation(fields: [teamId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_12c5f5304c7d7c4deb27046671d")
-  tasks                                              tasks?                    @relation("tasksTotasks", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_1cbec65196d4cf86dd8ab464085")
-  other_tasks                                        tasks[]                   @relation("tasksTotasks")
-  users_tasks_creatorIdTousers                       users?                    @relation("tasks_creatorIdTousers", fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_90bc62e96b48a437a78593f78f0")
-  users_tasks_assigneeIdTousers                      users?                    @relation("tasks_assigneeIdTousers", fields: [assigneeId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9a16d2c86252529f622fa53f1e3")
-  project                                            project?                  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e08fca67ca8966e6b9914bf2956")
-  tasks_tags_task_tags                               tasks_tags_task_tags[]
-  time_trackings                                     time_trackings[]
+model Task {
+  id              String                    @id(map: "PK_8d12ff38fcc62aaba2cab748772") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title           String                    @db.VarChar
+  taskKey         String                    @unique(map: "UQ_d3b09dfe42e32a456e6d587b21a") @db.VarChar
+  description     String?                   @db.VarChar
+  type            String                    @default("subtask") @db.VarChar
+  priority        String                    @default("medium") @db.VarChar
+  dueDate         DateTime?                 @db.Timestamptz(6)
+  storyPoints     Int?
+  billableHours   Int?
+  deliveryAddress String?                   @db.VarChar
+  deliveryWindow  Unsupported("tstzrange")?
+  createdAt       DateTime                  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime                  @default(now()) @db.Timestamptz(6)
+
+  statusId   String? @db.Uuid
+  projectId  String? @db.Uuid
+  assigneeId String? @db.Uuid
+  creatorId  String? @db.Uuid
+  teamId     String? @db.Uuid
+  parentId   String? @db.Uuid
+
+  attachments     Attachment[]
+  comments        Comment[]
+  documents       Document[]
+  notifications   Notification[]
+  roadmapItems    RoadmapItem[]
+  activities      TaskActivity[]
+  sourceRelations TaskRelation[] @relation("task_relations_taskIdTotasks")
+  targetRelations TaskRelation[] @relation("task_relations_relatedTaskIdTotasks")
+  tagLinks        TaskTagLink[]
+
+  team             Team?              @relation(fields: [teamId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_12c5f5304c7d7c4deb27046671d")
+  parent           Task?              @relation("tasksTotasks", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_1cbec65196d4cf86dd8ab464085")
+  children         Task[]             @relation("tasksTotasks")
+  creator          User?              @relation("tasks_creatorIdTousers", fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_90bc62e96b48a437a78593f78f0")
+  assignee         User?              @relation("tasks_assigneeIdTousers", fields: [assigneeId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9a16d2c86252529f622fa53f1e3")
+  project          Project?           @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e08fca67ca8966e6b9914bf2956")
+  timeTrackings    TimeTracking[]
+  TaskTagsTaskTags TaskTagsTaskTags[]
+  TaskStatusLog    TaskStatusLog[]
+  TaskStatus       TaskStatus?        @relation(fields: [statusId], references: [id])
 
   @@index([dueDate], map: "IDX_c300d154a85801889174e92a3d")
+  @@map("tasks")
 }
 
-model tasks_tags_task_tags {
-  tasksId    String    @db.Uuid
-  taskTagsId String    @db.Uuid
-  task_tags  task_tags @relation(fields: [taskTagsId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_c3664e944de8b5790cad9062e50")
-  tasks      tasks     @relation(fields: [tasksId], references: [id], onDelete: Cascade, map: "FK_daff75d5c66f52b7f28d2f8292b")
+model TaskTagsTaskTags {
+  tasksId    String @db.Uuid
+  taskTagsId String @db.Uuid
+
+  tag  TaskTag @relation(fields: [taskTagsId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_c3664e944de8b5790cad9062e50")
+  task Task    @relation(fields: [tasksId], references: [id], onDelete: Cascade, map: "FK_daff75d5c66f52b7f28d2f8292b")
 
   @@id([tasksId, taskTagsId], map: "PK_222d14ac6418c1ef089f8c78f2a")
   @@index([taskTagsId], map: "IDX_c3664e944de8b5790cad9062e5")
   @@index([tasksId], map: "IDX_daff75d5c66f52b7f28d2f8292")
+  @@map("tasks-tags-task-tags")
 }
 
-model team {
-  id                 String               @id(map: "PK_f57d8293406df4af348402e4b74") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name               String               @db.VarChar
-  description        String?              @db.VarChar
-  created_at         DateTime             @default(now()) @db.Timestamptz(6)
-  accountId          String               @db.Uuid
-  project_teams_team project_teams_team[]
-  tasks              tasks[]
-  accounts           accounts             @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_811aba5f3d476db71e160be3d79")
-  team_members_users team_members_users[]
-  users_teams_team   users_teams_team[]
+model Team {
+  id          String   @id(map: "PK_f57d8293406df4af348402e4b74") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String   @db.VarChar
+  description String?  @db.VarChar
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  accountId   String   @db.Uuid
+
+  projects      ProjectTeam[]
+  tasks         Task[]
+  account       Account        @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_811aba5f3d476db71e160be3d79")
+  members       TeamMember[]
+  userTeamLinks UserTeamLink[]
+
+  @@map("team")
 }
 
-model team_members_users {
+model TeamMember {
   teamId  String @db.Uuid
   usersId String @db.Uuid
-  users   users  @relation(fields: [usersId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_a855d5fc719779fe932d7683519")
-  team    team   @relation(fields: [teamId], references: [id], onDelete: Cascade, map: "FK_c78f3a075638c7be7a3afe233e6")
+  user    User   @relation(fields: [usersId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_a855d5fc719779fe932d7683519")
+  team    Team   @relation(fields: [teamId], references: [id], onDelete: Cascade, map: "FK_c78f3a075638c7be7a3afe233e6")
 
   @@id([teamId, usersId], map: "PK_e899eb8f5b9ddd47130a1d4ee1a")
   @@index([usersId], map: "IDX_a855d5fc719779fe932d768351")
   @@index([teamId], map: "IDX_c78f3a075638c7be7a3afe233e")
+  @@map("team-members-users")
 }
 
-model time_trackings {
+model TimeTracking {
   id          String   @id(map: "PK_4de4afc2b62a49c8badf8defb05") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   hours       Decimal  @default(0) @db.Decimal(10, 2)
   description String?  @db.VarChar
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
   workDate    DateTime @db.Date
-  task_id     String?  @db.Uuid
-  user_id     String   @db.Uuid
-  users       users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_96e8f764e599e3ac4e7725d479c")
-  tasks       tasks?   @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e17330186abd1eaae651f6c1139")
+  taskId      String?  @db.Uuid
+  userId      String   @db.Uuid
 
-  @@index([task_id], map: "IDX_e17330186abd1eaae651f6c113")
-  @@index([user_id, workDate], map: "IDX_f273b36c6f8680099717821c43")
+  user User  @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_96e8f764e599e3ac4e7725d479c")
+  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e17330186abd1eaae651f6c1139")
+
+  @@index([taskId], map: "IDX_e17330186abd1eaae651f6c113")
+  @@index([userId, workDate], map: "IDX_f273b36c6f8680099717821c43")
+  @@map("time-trackings")
 }
 
-model users {
-  id                                                             String               @id(map: "PK_a3ffb1c0c8416b9fc6f907b7433") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  email                                                          String               @unique(map: "UQ_97672ac88f789774dd47f7c8be3") @db.VarChar
-  password_hash                                                  String               @db.VarChar
-  firstName                                                      String?              @db.VarChar
-  lastName                                                       String?              @db.VarChar
-  role                                                           users_role_enum      @default(member)
-  is_email_verified                                              Boolean              @default(false)
-  mfa_enabled                                                    Boolean              @default(false)
-  mfa_secret                                                     String?              @db.VarChar
-  created_at                                                     DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at                                                     DateTime             @default(now()) @db.Timestamptz(6)
-  account_id                                                     String?              @db.Uuid
-  onboarding_step                                                Int                  @default(0)
-  has_completed_onboarding                                       Boolean              @default(false)
-  onboarding_draft_id                                            String?              @unique(map: "UQ_d23e48a69829db2657f7bf7d04c") @db.Uuid
-  first_login_at                                                 DateTime?            @db.Timestamptz(6)
-  attachments                                                    attachments[]
-  comment                                                        comment[]
-  customers                                                      customers[]
-  documents                                                      documents[]
-  onboarding_drafts_onboarding_drafts_user_idTousers             onboarding_drafts?   @relation("onboarding_drafts_user_idTousers")
-  project                                                        project[]
-  project_members                                                project_members[]
-  refresh_tokens                                                 refresh_tokens[]
-  roadmap                                                        roadmap[]
-  task_activity                                                  task_activity[]
-  tasks_tasks_creatorIdTousers                                   tasks[]              @relation("tasks_creatorIdTousers")
-  tasks_tasks_assigneeIdTousers                                  tasks[]              @relation("tasks_assigneeIdTousers")
-  team_members_users                                             team_members_users[]
-  time_trackings                                                 time_trackings[]
-  accounts                                                       accounts?            @relation(fields: [account_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_17a709b8b6146c491e6615c29d7")
-  onboarding_drafts_users_onboarding_draft_idToonboarding_drafts onboarding_drafts?   @relation("users_onboarding_draft_idToonboarding_drafts", fields: [onboarding_draft_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_d23e48a69829db2657f7bf7d04c")
-  users_teams_team                                               users_teams_team[]
+model User {
+  id                     String       @id(map: "PK_a3ffb1c0c8416b9fc6f907b7433") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email                  String       @unique(map: "UQ_97672ac88f789774dd47f7c8be3") @db.VarChar
+  passwordHash           String       @db.VarChar
+  firstName              String?      @db.VarChar
+  lastName               String?      @db.VarChar
+  role                   UserRoleEnum @default(member)
+  isEmailVerified        Boolean      @default(false)
+  mfaEnabled             Boolean      @default(false)
+  mfaSecret              String?      @db.VarChar
+  createdAt              DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime     @default(now()) @db.Timestamptz(6)
+  accountId              String?      @db.Uuid
+  onboardingStep         Int          @default(0)
+  hasCompletedOnboarding Boolean      @default(false)
+  onboardingDraftId      String?      @unique(map: "UQ_d23e48a69829db2657f7bf7d04c") @db.Uuid
+  firstLoginAt           DateTime?    @db.Timestamptz(6)
 
-  @@index([account_id, email], map: "IDX_a6132610e59f1890e60780d660")
+  attachments         Attachment[]
+  comments            Comment[]
+  customers           Customer[]
+  documents           Document[]
+  onboardingDraft     OnboardingDraft? @relation("onboarding_drafts_user_idTousers")
+  projects            Project[]
+  projectMembers      ProjectMember[]
+  refreshTokens       RefreshToken[]
+  roadmaps            Roadmap[]
+  taskActivities      TaskActivity[]
+  createdTasks        Task[]           @relation("tasks_creatorIdTousers")
+  assignedTasks       Task[]           @relation("tasks_assigneeIdTousers")
+  teamMemberships     TeamMember[]
+  timeTrackings       TimeTracking[]
+  account             Account?         @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_17a709b8b6146c491e6615c29d7")
+  userOnboardingDraft OnboardingDraft? @relation("users_onboarding_draft_idToonboarding_drafts", fields: [onboardingDraftId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_d23e48a69829db2657f7bf7d04c")
+  userTeamLink        UserTeamLink[]
+  TaskStatusLog       TaskStatusLog[]
+
+  @@index([accountId, email], map: "IDX_a6132610e59f1890e60780d660")
+  @@map("users")
 }
 
-model users_teams_team {
+model UserTeamLink {
   usersId String @db.Uuid
   teamId  String @db.Uuid
-  team    team   @relation(fields: [teamId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_482bcf983d5a5c92f43420b6d5c")
-  users   users  @relation(fields: [usersId], references: [id], onDelete: Cascade, map: "FK_90b9f667db2161053fbaaff0b3f")
+  team    Team   @relation(fields: [teamId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_482bcf983d5a5c92f43420b6d5c")
+  user    User   @relation(fields: [usersId], references: [id], onDelete: Cascade, map: "FK_90b9f667db2161053fbaaff0b3f")
 
   @@id([usersId, teamId], map: "PK_096f99173e30e1183a05bc4949c")
   @@index([teamId], map: "IDX_482bcf983d5a5c92f43420b6d5")
   @@index([usersId], map: "IDX_90b9f667db2161053fbaaff0b3")
+  @@map("users-teams-team")
 }
 
-enum account_invites_role_enum {
-  owner
-  admin
-  project_manager
-  member
-  viewer
+enum InviteRoleEnum {
+  owner           @map("owner")
+  admin           @map("admin")
+  project_manager @map("project_manager")
+  member          @map("member")
+  viewer          @map("viewer")
+
+  @@map("account_invites_role_enum")
 }
 
-enum account_invites_status_enum {
-  pending
-  accepted
-  expired
-  revoked
+enum InviteStatusEnum {
+  pending  @map("pending")
+  accepted @map("accepted")
+  expired  @map("expired")
+  revoked  @map("revoked")
+
+  @@map("account_invites_status_enum")
 }
 
-enum customers_industry_enum {
-  programming
-  legal
-  logistics
-  marketing
-  product
-  other
+enum CustomerIndustryEnum {
+  programming @map("programming")
+  legal       @map("legal")
+  logistics   @map("logistics")
+  marketing   @map("marketing")
+  product     @map("product")
+  other       @map("other")
+
+  @@map("customers_industry_enum")
 }
 
-enum notifications_status_enum {
-  pending
-  sent
-  delivered
-  failed
+enum NotificationStatusEnum {
+  pending   @map("pending")
+  sent      @map("sent")
+  delivered @map("delivered")
+  failed    @map("failed")
+
+  @@map("notifications_status_enum")
 }
 
-enum notifications_type_enum {
-  task_assigned
-  task_updated
-  task_commented
-  task_overdue
-  task_completed
-  project_updated
+enum TaskRelationTypeEnum {
+  cloned_from @map("cloned_from")
+  blocked_by  @map("blocked_by")
+  depends_on  @map("depends_on")
+  blocking    @map("blocking")
+
+  @@map("task_relations_type_enum")
 }
 
-enum project_industry_enum {
-  programming
-  legal
-  logistics
-  marketing
-  product
-  other
+enum NotificationTypeEnum {
+  task_assigned   @map("task_assigned")
+  task_updated    @map("task_updated")
+  task_commented  @map("task_commented")
+  task_overdue    @map("task_overdue")
+  task_completed  @map("task_completed")
+  project_updated @map("project_updated")
+
+  @@map("notifications_type_enum")
 }
 
-enum project_members_role_enum {
-  owner
-  admin
-  project_manager
-  member
-  viewer
+enum ProjectIndustryEnum {
+  programming @map("programming")
+  legal       @map("legal")
+  logistics   @map("logistics")
+  marketing   @map("marketing")
+  product     @map("product")
+  other       @map("other")
+
+  @@map("project_industry_enum")
 }
 
-enum project_status_enum {
-  planned
+enum MemberRoleEnum {
+  owner           @map("owner")
+  admin           @map("admin")
+  project_manager @map("project_manager")
+  member          @map("member")
+  viewer          @map("viewer")
+
+  @@map("project_members_role_enum")
+}
+
+enum ProjectStatusEnum {
+  planned     @map("planned")
   in_progress @map("in-progress")
   on_hold     @map("on-hold")
-  completed
-  cancelled
+  completed   @map("completed")
+  cancelled   @map("cancelled")
+
+  @@map("project_status_enum")
 }
 
-enum project_workflow_enum {
-  kanban
-  scrum
-  timeline
-  calendar
-  checklist
+enum ProjectWorkflowEnum {
+  kanban    @map("kanban")
+  scrum     @map("scrum")
+  timeline  @map("timeline")
+  calendar  @map("calendar")
+  checklist @map("checklist")
+
+  @@map("project_workflow_enum")
 }
 
-enum users_role_enum {
-  owner
-  admin
-  project_manager
-  member
-  viewer
+enum UserRoleEnum {
+  owner           @map("owner")
+  admin           @map("admin")
+  project_manager @map("project_manager")
+  member          @map("member")
+  viewer          @map("viewer")
+
+  @@map("users_role_enum")
+}
+
+enum ProjectVisibilityEnum {
+  private @map("private")
+  team    @map("team")
+  account @map("account")
+
+  @@map("projects_visibility_enum")
 }

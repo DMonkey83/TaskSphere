@@ -1,8 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-
 import {
   Injectable,
   Logger,
@@ -11,6 +6,14 @@ import {
 } from '@nestjs/common';
 
 import { PrismaClient } from '../../generated/prisma';
+
+// type QueryArgs<T extends object = any> = {
+//   where?: Record<string, unknown>;
+// } & T;
+
+// type PrismaQueryFn<TArgs = any, TResult = any> = (
+//   args: TArgs,
+// ) => Promise<TResult>;
 
 @Injectable()
 export class PrismaService
@@ -42,38 +45,98 @@ export class PrismaService
 
   // Remove the custom transaction method for now - use built-in $transaction
 
-  forAccount(accountId: string) {
-    return this.$extends({
-      name: 'account-scoped',
-      query: {
-        project: {
-          $allOperations({ args, query }: any) {
-            args.where = { ...args.where, accountId };
-            return query(args);
-          },
-        },
-        tasks: {
-          $allOperations({ args, query }: any) {
-            args.where = {
-              ...args.where,
-              project: { accountId },
-            };
-            return query(args);
-          },
-        },
-        team: {
-          $allOperations({ args, query }: any) {
-            args.where = { ...args.where, accountId };
-            return query(args);
-          },
-        },
-        customers: {
-          $allOperations({ args, query }: any) {
-            args.where = { ...args.where, account_id: accountId };
-            return query(args);
-          },
-        },
-      },
-    });
-  }
+  // forAccount(accountId: string) {
+  //   return this.$extends({
+  //     name: 'account-scoped',
+  //     query: {
+  //       project: {
+  //         $allOperations({
+  //           args,
+  //           query,
+  //         }: {
+  //           args: QueryArgs;
+  //           query: PrismaQueryFn;
+  //         }) {
+  //           if (typeof args === 'object' && args !== null && 'where' in args) {
+  //             args.where = { ...args.where, accountId };
+  //           }
+  //           return query(args);
+  //         },
+  //       },
+  //       accountInvite: {
+  //         $allOperations({
+  //           args,
+  //           query,
+  //         }: {
+  //           args: QueryArgs;
+  //           query: PrismaQueryFn;
+  //         }) {
+  //           if (typeof args === 'object' && args !== null && 'where' in args) {
+  //             args.where = { ...args.where, accountId };
+  //           }
+  //           return query(args);
+  //         },
+  //       },
+  //       task: {
+  //         $allOperations({
+  //           args,
+  //           query,
+  //         }: {
+  //           args: QueryArgs;
+  //           query: PrismaQueryFn;
+  //         }) {
+  //           if (typeof args === 'object' && args !== null && 'where' in args) {
+  //             args.where = {
+  //               ...args.where,
+  //               project: { accountId },
+  //             };
+  //           }
+  //           return query(args);
+  //         },
+  //       },
+  //       team: {
+  //         $allOperations({
+  //           args,
+  //           query,
+  //         }: {
+  //           args: QueryArgs;
+  //           query: PrismaQueryFn;
+  //         }) {
+  //           if (typeof args === 'object' && args !== null && 'where' in args) {
+  //             args.where = { ...args.where, accountId };
+  //           }
+  //           return query(args);
+  //         },
+  //       },
+  //       user: {
+  //         $allOperations({
+  //           args,
+  //           query,
+  //         }: {
+  //           args: QueryArgs;
+  //           query: PrismaQueryFn;
+  //         }) {
+  //           if (typeof args === 'object' && args !== null && 'where' in args) {
+  //             args.where = { ...args.where, accountId };
+  //           }
+  //           return query(args);
+  //         },
+  //       },
+  //       customer: {
+  //         $allOperations({
+  //           args,
+  //           query,
+  //         }: {
+  //           args: QueryArgs;
+  //           query: PrismaQueryFn;
+  //         }) {
+  //           if (typeof args === 'object' && args !== null && 'where' in args) {
+  //             args.where = { ...args.where, accountId };
+  //           }
+  //           return query(args);
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
 }

@@ -7,7 +7,7 @@
     "paths": {
       "@shared/*": ["../shared/src/*"]
     },
-    "types": ["@types/node", "@prisma/client"]
+    "types": ["@types/node", "@prisma/client", "jest"]
   },
   "include": ["src", "../shared/src"],
   "exclude": ["node_modules", "dist"]

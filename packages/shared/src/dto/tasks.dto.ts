@@ -75,7 +75,7 @@ export const TaskSchema = z.object({
       })
     )
     .optional(),
-  status: z.enum(["todo", "in_progress", "done", "delivered"]).optional(),
+  status: z.string().optional(),
   deliveryAddress: z.string().optional(),
   billableHours: z.number().optional(),
   storyPoints: z.number().optional(),

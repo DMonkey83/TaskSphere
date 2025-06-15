@@ -5,87 +5,92 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { DeepPartial, Repository } from 'typeorm';
 
-import { UserResponseSchema } from '@shared/dto/user.dto';
+import { UserResponse, UserResponseSchema } from '@shared/dto/user.dto';
 
 import {
   CreateUserDto,
   RegisterFromInviteDto,
   UserResponseDto,
 } from './dto/user.dto';
-import { AccountInvitesService } from '../account-invites/account-invites.service';
-import { AccountInvite } from './../account-invites/entities/account-invite.entity';
+import type { User, UserRoleEnum } from '../../generated/prisma';
+import { PrismaService } from '../prisma/prisma.service';
 import { OnBoardingService } from './../onboarding/on-boarding.service';
-import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
+
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
-    private inviteService: AccountInvitesService,
+    private prisma: PrismaService,
     private onboardingService: OnBoardingService,
-    @InjectRepository(AccountInvite)
-    private inviteRepository: Repository<AccountInvite>,
   ) {}
 
   async findByEmail(email: string): Promise<User> {
-    const user = await this.usersRepository.findOne({
+    const user = await this.prisma.user.findUnique({
       where: { email },
-      relations: ['account'], // Ensure account relation is loaded
-      select: ['id', 'email', 'account', 'role', 'passwordHash'],
+      include: { account: true },
     });
 
-    this.logger.log(`Finding user by email: ${user.email}`);
+    this.logger.log(`Finding user by email: ${email}`);
     if (!user) {
       throw new NotFoundException(`User with email ${email} not found`);
     }
+
     return user;
   }
 
   async findById(id: string): Promise<User> {
-    const user = await this.usersRepository.findOne({
+    const user = await this.prisma.user.findFirst({
       where: { id },
-      relations: ['account'], // Ensure account relation is loaded
-      select: [
-        'id',
-        'email',
-        'account',
-        'role',
-        'account',
-        'firstName',
-        'lastName',
-        'firstLoginAt',
-        'hasCompletedOnboarding',
-      ],
+      include: { account: true },
     });
+
+    this.logger.log(`Finding user by ID: ${id}`);
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundException(`User with ID ${id} not found`);
     }
+
     return user;
   }
 
   async create(dto: CreateUserDto): Promise<User> {
     this.logger.log(`Creating user with email: ${dto.email}`);
     try {
+      const existing = await this.prisma.user.findFirst({
+        where: {
+          email: dto.email,
+          accountId: dto.accountId, // Ensure account ID is used for scoping
+        },
+      });
+      if (existing) {
+        throw new BadRequestException('A user with this email already exists');
+      }
+
       const passwordHash = await bcrypt.hash(dto.passwordHash, 10);
-      const user = this.usersRepository.create({
-        email: dto.email,
-        account: { id: dto.accountId }, // Ensure account is properly referenced
-        passwordHash,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        role: dto.role, // Default to Member if no role is provided
-        firstLoginAt: null, // Initialize firstLoginAt to null
-      } as DeepPartial<User>);
-      const savedUser = await this.usersRepository.save(user);
+
+      const savedUser = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          passwordHash: passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          role: (dto.role as UserRoleEnum) || 'member', // Default to 'member' if not provided
+          accountId: dto.accountId,
+          isEmailVerified: false,
+          mfaEnabled: false,
+          firstLoginAt: null,
+          onboardingStep: 0,
+          hasCompletedOnboarding: false,
+        },
+        include: { account: true },
+      });
       this.logger.log(`User created successfully with ID: ${savedUser.id}`);
+
       await this.onboardingService.createDraft(savedUser.id);
       this.logger.log(`Onboarding draft created for user ID: ${savedUser.id}`);
+
       return savedUser;
     } catch (error) {
       this.logger.error(
@@ -96,69 +101,110 @@ export class UsersService {
     }
   }
 
-  async registerFromInvite(
-    dto: RegisterFromInviteDto,
-  ): Promise<UserResponseDto> {
-    const invite = await this.inviteRepository.findOne({
+  async registerFromInvite(dto: RegisterFromInviteDto): Promise<UserResponse> {
+    const invite = await this.prisma.accountInvite.findFirst({
       where: { token: dto.token, accepted: false },
+      include: { accounts: true },
     });
 
-    if (!invite) {
+    if (!invite || !invite.accounts) {
       throw new BadRequestException('Invalid or expired invite token');
     }
 
-    console.log('invite', invite);
+    this.logger.log('invite', invite);
 
-    const existing = await this.usersRepository.findOne({
-      where: { email: invite.email, account: { id: invite.account.id } },
+    const existing = await this.prisma.user.findFirst({
+      where: { email: invite.email, accountId: invite.accountId },
     });
 
     if (existing)
       throw new BadRequestException('A user with this email already exists');
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
-    const user = this.usersRepository.create({
-      email: invite.email,
-      passwordHash,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      role: dto.role || invite.role,
-      account: { id: invite.account.id },
-      isEmailVerified: false,
-      mfaEnabled: false,
-    } as DeepPartial<User>);
+    const result = await this.prisma.$transaction(async (tx) => {
+      const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    const savedUser = await this.usersRepository.save(user);
-    invite.accepted = true;
-    await this.inviteService.markInviteAsUsed(invite.id);
+      const savedUser = await tx.user.create({
+        data: {
+          email: invite.email,
+          passwordHash: passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          role: (dto.role as UserRoleEnum) || invite.role,
+          accountId: invite.accountId,
+          isEmailVerified: false,
+          mfaEnabled: false,
+        },
+        include: { account: true },
+      });
+
+      const userResponse: UserResponse = {
+        id: savedUser.id,
+        email: savedUser.email,
+        firstName: savedUser.firstName,
+        lastName: savedUser.lastName,
+        role: savedUser.role,
+        account: {
+          id: savedUser.account.id,
+          name: savedUser.account.name,
+        },
+        firstLoginAt: savedUser.firstLoginAt,
+        hasCompletedOnboarding: savedUser.hasCompletedOnboarding,
+        onboardingStep: savedUser.onboardingStep,
+      };
+
+      await tx.accountInvite.update({
+        where: { id: invite.id },
+        data: { accepted: true },
+      });
+
+      return userResponse;
+    });
 
     const response = {
-      id: savedUser.id,
-      email: savedUser.email,
-      firstName: savedUser.firstName,
-      lastName: savedUser.lastName,
-      role: savedUser.role,
-      accountId: savedUser.account.id,
+      id: result.id,
+      email: result.email,
+      firstName: result.firstName,
+      lastName: result.lastName,
+      role: result.role,
+      accountId: result.account.id,
     };
 
     try {
       return UserResponseSchema.parse(response);
-    } catch (err) {
+    } catch (error) {
       throw new InternalServerErrorException(
-        `Invalid user response structure: ${err as string}`,
+        `Invalid user response format: ${error as string}`,
       );
     }
   }
 
-  async updateRole(id: string, role: string): Promise<User> {
-    const user = await this.usersRepository.findOne({
-      where: { id },
-    });
-
-    if (!user) throw new NotFoundException('User not found');
-    Object.assign(user, {
-      role,
-    });
-    return this.usersRepository.save(user);
+  async updateRole(id: string, role: string): Promise<UserResponse> {
+    try {
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: {
+          role: role as UserRoleEnum,
+          updatedAt: new Date(),
+        },
+        include: { account: true },
+      });
+      const userResponse: UserResponseDto = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        account: {
+          id: user.account.id,
+          name: user.account.name,
+        },
+        firstLoginAt: user.firstLoginAt,
+        hasCompletedOnboarding: user.hasCompletedOnboarding,
+        onboardingStep: user.onboardingStep,
+      };
+      return userResponse;
+    } catch (error) {
+      throw new NotFoundException('User not found', error);
+    }
   }
 }

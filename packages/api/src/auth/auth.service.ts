@@ -1,32 +1,27 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { Repository } from 'typeorm';
 
 import { LoginResponse } from '@shared/dto/auth.dto';
 
+import { PrismaService } from '../prisma/prisma.service';
+import { UsersService } from '../users/users.service';
 import {
   LoginDto,
   RefreshTokenResponseDto,
   UserEntity,
   UserPayload,
 } from './dto/auth.dto';
-import { UsersService } from '../users/users.service';
-import { RefreshToken } from './entities/refresh-token.entity';
-import { User } from '../users/entities/user.entity';
+import { User } from '../../generated/prisma';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private usersService: UsersService,
+    private prisma: PrismaService,
     private jwtService: JwtService,
-    @InjectRepository(RefreshToken)
-    private refreshTokenRepository: Repository<RefreshToken>,
-    private configService: ConfigService,
+    private usersService: UsersService,
   ) {}
 
   async validateUser({ email, password }: LoginDto): Promise<User> {
@@ -84,9 +79,9 @@ export class AuthService {
         `User found for refresh token: ${user.id} and refresh token`,
       );
       // Find stored token
-      const storedToken = await this.refreshTokenRepository.findOne({
+      const storedToken = await this.prisma.refreshToken.findFirst({
         where: { token: rToken, revoked: false },
-        relations: ['user'],
+        include: { user: true },
       });
 
       this.logger.log(
@@ -101,14 +96,22 @@ export class AuthService {
 
       // Revoke old token
       storedToken.revoked = true;
-      await this.refreshTokenRepository.save(storedToken);
+      await this.prisma.refreshToken.create({
+        data: {
+          token: storedToken.token,
+          user: { connect: { id: user.id } }, // Explicitly connect user
+          expiresAt: storedToken.expiresAt,
+          createdAt: new Date(),
+          revoked: true,
+        },
+      });
 
       // Generate new tokens
       const payload = {
         id: user.id,
         email: user.email,
         role: user.role,
-        account: { id: user.account.id },
+        account: { id: user.accountId },
       };
 
       const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
@@ -147,12 +150,14 @@ export class AuthService {
         this.logger.log(
           `Attempt ${attempt} to save refresh token for user: ${userId}`,
         );
-        const savedToken = await this.refreshTokenRepository.save({
-          token: refreshToken,
-          user: { id: userId }, // Explicit user_id
-          expiresAt,
-          createdAt: new Date(),
-          revoked: false,
+        const savedToken = await this.prisma.refreshToken.create({
+          data: {
+            token: refreshToken,
+            user: { connect: { id: userId } }, // Explicit user_id
+            expiresAt,
+            createdAt: new Date(),
+            revoked: false,
+          },
         });
         this.logger.log(
           `Saved refresh token: ${savedToken.id} for user: ${userId}`,

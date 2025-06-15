@@ -1,12 +1,14 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
   Logger,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
@@ -16,9 +18,16 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ZodValidationPipe } from 'nestjs-zod';
 
-import { IndustriesEnum, ProjectStatusEnum } from '@shared/enumsTypes';
+import { GetUser } from 'src/auth/get-user.decorator';
 
 import { ProjectsService } from './projects.service';
+import {
+  Project,
+  ProjectIndustryEnum,
+  ProjectStatusEnum,
+  ProjectView,
+  User,
+} from '../../generated/prisma';
 import { RoleGuard } from '../auth/role.guard';
 import {
   CreateProjectDto,
@@ -26,14 +35,12 @@ import {
   UpdateProjectDto,
   UpdateProjectStatusDto,
 } from './dto/project.dto';
-import { Roles } from '../auth/roles.decorator';
-import { ProjectView } from './entities/project-view.entity';
-import { Project } from './entities/project.entity';
 import {
   CreateProjectSchema,
   CreateProjectViewSchema,
   UpdateProjectSchema,
 } from '../../../shared/src/dto/projects.dto';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('projects')
 export class ProjectController {
@@ -47,19 +54,9 @@ export class ProjectController {
   async create(
     @Body(new ZodValidationPipe(CreateProjectSchema))
     createProjectDto: CreateProjectDto,
-  ) {
+  ): Promise<Project> {
     this.logger.log(`Creating project: ${createProjectDto.name}`);
-    try {
-      const project = await this.projectsService.create(createProjectDto);
-      this.logger.log(`Project created successfully: ${project.id}`);
-      return project;
-    } catch (error) {
-      this.logger.error(
-        `Failed to create project: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw error;
-    }
+    return this.projectsService.create(createProjectDto);
   }
 
   @UseGuards(AuthGuard('jwt'), RoleGuard)
@@ -69,23 +66,10 @@ export class ProjectController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body(new ZodValidationPipe(UpdateProjectSchema))
     updateProjectDto: UpdateProjectDto,
-  ) {
+  ): Promise<Project> {
     this.logger.log(`Updating project: ${projectId}`);
 
-    try {
-      const project = await this.projectsService.updateProject(
-        projectId,
-        updateProjectDto,
-      );
-      this.logger.log(`Project updated successfully: ${project.id}`);
-      return project;
-    } catch (error) {
-      this.logger.error(
-        `Failed to update project: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw error;
-    }
+    return this.projectsService.updateProject(projectId, updateProjectDto);
   }
 
   @UseGuards(AuthGuard('jwt'), RoleGuard)
@@ -100,20 +84,7 @@ export class ProjectController {
       `Updating status for project: ${projectId} to ${updateStatusDto.status}`,
     );
 
-    try {
-      const project = await this.projectsService.changeProjectStatus(
-        projectId,
-        updateStatusDto,
-      );
-      this.logger.log(`Project status updated successfully: ${projectId}`);
-      return project;
-    } catch (error) {
-      this.logger.error(
-        `Failed to update project status: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw error;
-    }
+    return this.projectsService.changeProjectStatus(projectId, updateStatusDto);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -126,20 +97,7 @@ export class ProjectController {
   ): Promise<ProjectView> {
     this.logger.log(`Adding view to project: ${projectId}`);
 
-    try {
-      const view = await this.projectsService.addView(
-        projectId,
-        createProjectViewDto,
-      );
-      this.logger.log(`View added successfylly to project: ${projectId}`);
-      return view;
-    } catch (error) {
-      this.logger.error(
-        `Failed to add view: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw error;
-    }
+    return this.projectsService.addView(projectId, createProjectViewDto);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -149,17 +107,7 @@ export class ProjectController {
   ): Promise<Project> {
     this.logger.log('Listing projects for account ID:', projectId);
 
-    try {
-      const project = await this.projectsService.findProjectById(projectId);
-      this.logger.log(`Project found by id: ${projectId}`);
-      return project;
-    } catch (error) {
-      this.logger.error(
-        `Failed to find project by id: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw error;
-    }
+    return this.projectsService.findProjectById(projectId);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -168,18 +116,7 @@ export class ProjectController {
     @Param('projectKey') projectKey: string,
   ): Promise<Project> {
     this.logger.log('Listing projects for account key:', projectKey);
-
-    try {
-      const project = await this.projectsService.findByKey(projectKey);
-      this.logger.log(`Project found by Key: ${projectKey}`);
-      return project;
-    } catch (error) {
-      this.logger.error(
-        `Failed to find project by key: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw error;
-    }
+    return this.projectsService.findByKey(projectKey);
   }
 
   @UseGuards(AuthGuard('jwt'), RoleGuard)
@@ -188,19 +125,10 @@ export class ProjectController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteProject(
     @Param('projectId', ParseUUIDPipe) projectId: string,
+    @GetUser() user: User,
   ): Promise<void> {
-    this.logger.log(`Deleting project: ${projectId}`);
-
-    try {
-      await this.projectsService.archiveProject(projectId);
-      this.logger.log(`Project archived successfully: ${projectId}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to archive project: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw error;
-    }
+    this.logger.log(`Archiving project: ${projectId} by user: ${user.email}`);
+    await this.projectsService.archiveProject(projectId);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -212,19 +140,8 @@ export class ProjectController {
     byStatus: Record<string, number>;
     byIndustry: Record<string, number>;
   }> {
-    this.logger.log('Getting project stats for account ID:', accountId);
-
-    try {
-      const stats = await this.projectsService.getProjectStats(accountId);
-      this.logger.log(`Project stats retrieved for account ID: ${accountId}`);
-      return stats;
-    } catch (error) {
-      this.logger.error(
-        `Failed to get project stats: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw error;
-    }
+    this.logger.log('Getting project stats for account:', accountId);
+    return this.projectsService.getProjectStats(accountId);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -233,9 +150,9 @@ export class ProjectController {
     @Param('accountId', ParseUUIDPipe) accountId: string,
     @Query('q') searchTerm?: string,
     @Query('status') status?: ProjectStatusEnum,
-    @Query('industry') industry?: IndustriesEnum,
-    @Query('limit') limit: number = 20,
-    @Query('offset') offset: number = 0,
+    @Query('industry') industry?: ProjectIndustryEnum,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset?: number,
   ): Promise<{
     projects: Project[];
     total: number;
@@ -245,49 +162,37 @@ export class ProjectController {
     this.logger.log(
       `Searching projects for account: ${accountId} with terms ${searchTerm}`,
     );
-    try {
-      const projects =
-        await this.projectsService.listProjectsByAccount(accountId);
-      let filteredProjects = projects;
 
-      if (searchTerm) {
-        filteredProjects = filteredProjects.filter(
-          (project) =>
-            project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            project.description
-              ?.toLocaleLowerCase()
-              .includes(searchTerm.toLowerCase()),
-        );
-      }
-      if (status) {
-        filteredProjects = filteredProjects.filter(
-          (project) => project.status === status,
-        );
-      }
+    return this.projectsService.searchProjects({
+      accountId,
+      searchTerm,
+      status: status,
+      industry: industry,
+      limit: limit || 20,
+      offset: offset || 0,
+    });
+  }
 
-      if (industry) {
-        filteredProjects = filteredProjects.filter(
-          (project) => project.industry === industry,
-        );
-      }
-
-      const total = filteredProjects.length;
-      const paginatedProjects = filteredProjects.slice(offset, offset + limit);
-
-      this.logger.log(`Found ${total} projects matching search criteria`);
-
-      return {
-        projects: paginatedProjects,
-        total,
-        limit,
-        offset,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Failed to search projects: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw error;
-    }
+  @UseGuards(AuthGuard('jwt'))
+  @Get('account/:accountId')
+  async listProjects(
+    @Param('accountId', ParseUUIDPipe) accountId: string,
+    @GetUser() user: User,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset?: number,
+  ): Promise<{
+    projects: Project[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    this.logger.log(
+      `Listing projects for account ID: ${accountId} by user: ${user.email}`,
+    );
+    return this.projectsService.listProjectsPaginated(
+      accountId,
+      limit || 20,
+      offset || 0,
+    );
   }
 }
