@@ -38,7 +38,7 @@ import {
   ProjectResponse,
 } from "@shared/dto/projects.dto";
 import { Industries } from "@shared/enumsTypes/industries.enum";
-import { Workflows, WorkflowEnum } from "@shared/enumsTypes/workflow.enum";
+import { Workflows } from "@shared/enumsTypes/workflow.enum";
 import { projectKeys } from "@shared/keys/project-keys";
 
 interface CreateProjectModalProps {
@@ -56,7 +56,6 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
     defaultValues: {
       name: "",
       industry: undefined,
-      workflow: WorkflowEnum.Scrum,
       accountId: accountId || "",
       ownerId: id || "",
       description: "",
@@ -71,12 +70,19 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
   });
 
   useEffect(() => {
-    form.setValue("accountId", accountId || "", { shouldValidate: true });
-    form.setValue("ownerId", id || "", { shouldValidate: true });
+    console.log("form default values:", form.getValues());
+    if (accountId && id) {
+      form.setValue("accountId", accountId || "", { shouldValidate: true });
+      form.setValue("ownerId", id || "", { shouldValidate: true });
+    }
   }, [accountId, id, form]);
 
   const { mutate: createProject } = useCreateProject();
-
+  console.log(
+    "CreateProjectModal rendered with accountId:",
+    accountId,
+    form.formState.isValid
+  );
   const onSubmit = (data: CreateProject) => {
     createProject(data, {
       onSuccess: (response: ProjectResponse) => {
@@ -230,7 +236,7 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
               type="submit"
               size="lg"
               variant="primary"
-              disabled={false}
+              disabled={!form.formState.isValid}
               className="w-full"
             >
               Create Project

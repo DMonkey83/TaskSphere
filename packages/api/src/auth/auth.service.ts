@@ -1,5 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { User, UserRoleEnum } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 import { LoginResponse } from '@shared/dto/auth.dto';
@@ -12,7 +13,6 @@ import {
   UserEntity,
   UserPayload,
 } from './dto/auth.dto';
-import { User } from '../../generated/prisma';
 
 @Injectable()
 export class AuthService {
@@ -52,7 +52,7 @@ export class AuthService {
   async login(user: UserEntity): Promise<LoginResponse> {
     this.logger.log(`Generating JWT tokens for user: ${user.email}`);
     const payload: UserPayload = {
-      id: user.id,
+      userId: user.id,
       email: user.email,
       role: user.role,
       account: { id: user.account.id },
@@ -100,10 +100,10 @@ export class AuthService {
       });
 
       // Generate new tokens
-      const payload = {
-        id: user.id,
+      const payload: UserPayload = {
+        userId: user.id,
         email: user.email,
-        role: user.role,
+        role: user.role as UserRoleEnum,
         account: { id: user.account.id },
       };
 

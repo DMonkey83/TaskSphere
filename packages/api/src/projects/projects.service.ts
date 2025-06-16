@@ -4,7 +4,6 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-
 import {
   MemberRoleEnum,
   Prisma,
@@ -14,7 +13,8 @@ import {
   ProjectView,
   ProjectVisibilityEnum,
   ProjectWorkflowEnum,
-} from '../../generated/prisma';
+} from '@prisma/client';
+
 import { slugify } from '../common/slugify.util';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -23,105 +23,32 @@ import {
   UpdateProjectDto,
   UpdateProjectStatusDto,
 } from './dto/project.dto';
+import { ProjectKeyService } from './services/project-key.service';
+import { ProjectSearchService } from './services/project-search.service';
+import { ProjectStatsService } from './services/project-stats.service';
+import { ProjectViewService } from './services/project-view.service';
 import { SearchProjectsParams } from './types/project.types';
-
-const PROJECT_KEY_GENERATION_LIMIT = 99; // Limit for unique key generation
 
 @Injectable()
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly projectKeyService: ProjectKeyService,
+    private readonly projectSearchService: ProjectSearchService,
+    private readonly projectViewService: ProjectViewService,
+    private readonly projectStatsService: ProjectStatsService,
+  ) {}
 
-  /**
-   * Generates a unique project key based on project name and industry
-   */
-  private async generateProjectKey(
-    projectName: string,
-    industry: string,
-    accountId: string,
-  ): Promise<string> {
-    if (!projectName?.trim()) {
-      throw new BadRequestException(
-        'Project name is required for key generation',
-      );
-    }
-
-    const prefix = this.generateProjectPrefix(projectName);
-    const industryCode = this.generateIndustryCode(industry);
-    const baseKey = `${prefix}-${industryCode}`;
-
-    return await this.ensureUniqueProjectKey(baseKey, accountId);
-  }
-
-  /**
-   * Generates a 4-character prefix from project name
-   */
-  private generateProjectPrefix(projectName: string): string {
-    const words = projectName.trim().split(/\s+/);
-    let prefix = '';
-
-    if (words.length === 1) {
-      prefix = words[0].substring(0, 4).toUpperCase();
-    } else if (words.length === 2) {
-      prefix =
-        words[0].substring(0, 2).toUpperCase() +
-        words[1].substring(0, 2).toUpperCase();
-    } else {
-      prefix = words
-        .slice(0, 4)
-        .map((word) => word[0]?.toUpperCase() || 'X')
-        .join('');
-    }
-
-    // Pad to exactly 4 characters
-    return prefix.padEnd(4, 'X').substring(0, 4);
-  }
-
-  /**
-   * Generates a 3-character industry code
-   */
-  private generateIndustryCode(industry: string): string {
-    return (industry?.substring(0, 3) || 'GEN').toUpperCase();
-  }
-
-  /**
-   * Ensures the project key is unique within the account
-   */
-  private async ensureUniqueProjectKey(
-    baseKey: string,
-    accountId: string,
-  ): Promise<string> {
-    const existingKeys = await this.prisma.project.findMany({
-      where: { accountId, projectKey: { startsWith: baseKey } },
-      select: { projectKey: true },
-    });
-
-    const existingKeySet = new Set(existingKeys.map((p) => p.projectKey));
-
-    if (!existingKeySet.has(baseKey)) {
-      return baseKey;
-    }
-
-    // Find unique suffix
-    for (let suffix = 1; suffix < PROJECT_KEY_GENERATION_LIMIT; suffix++) {
-      const candidate = `${baseKey}-${suffix}`;
-      if (!existingKeySet.has(candidate)) {
-        return candidate;
-      }
-    }
-
-    throw new BadRequestException(
-      `Unable to generate unique project key. Limit of ${PROJECT_KEY_GENERATION_LIMIT} reached for this name and industry combination.`,
-    );
-  }
+  // ===================== CORE CRUD OPERATIONS =====================
 
   async create(dto: CreateProjectDto): Promise<Project> {
     this.logger.log(
       `Creating project: ${dto.name} for account: ${dto.accountId}`,
     );
     try {
-      const projectKey = await this.generateProjectKey(
+      const projectKey = await this.projectKeyService.generateProjectKey(
         dto.name,
         dto.industry,
         dto.accountId,
@@ -169,9 +96,72 @@ export class ProjectsService {
     }
   }
 
+  async findProjectById(id: string, accountId?: string): Promise<Project> {
+    if (!id) {
+      throw new BadRequestException('Project ID is required');
+    }
+    try {
+      const project = await this.prisma.project.findUnique({
+        where: { id },
+        include: {
+          owner: true,
+          account: true,
+          _count: {
+            select: {
+              tasks: true,
+              members: true,
+            },
+          },
+        },
+      });
+
+      // Validate account access if accountId provided
+      if (accountId && project && project.accountId !== accountId) {
+        throw new NotFoundException('Project not found');
+      }
+
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+
+      return project;
+    } catch (error) {
+      this.handlePrismaError(error, 'find project by ID');
+    }
+  }
+
+  async findByKey(projectKey: string, accountId?: string): Promise<Project> {
+    if (!projectKey) {
+      throw new BadRequestException('Project key is required');
+    }
+
+    const where: Prisma.ProjectWhereInput = {
+      projectKey,
+      ...(accountId && { accountId }),
+    };
+
+    const project = await this.prisma.project.findFirst({
+      where,
+      include: {
+        owner: true,
+        account: true,
+        _count: {
+          select: {
+            tasks: true,
+            members: true,
+          },
+        },
+      },
+    });
+
+    if (!project) throw new NotFoundException('Project not found');
+    return project;
+  }
+
   async updateProject(
     projectId: string,
     dto: UpdateProjectDto,
+    accountId?: string,
   ): Promise<Project> {
     try {
       const updateData: Prisma.ProjectUpdateInput = {
@@ -185,8 +175,17 @@ export class ProjectsService {
       if (dto.name) {
         const existingProject = await this.prisma.project.findUnique({
           where: { id: projectId },
-          select: { name: true, slug: true },
+          select: { name: true, slug: true, accountId: true },
         });
+
+        // Validate account access
+        if (
+          accountId &&
+          existingProject &&
+          existingProject.accountId !== accountId
+        ) {
+          throw new NotFoundException('Project not found');
+        }
         if (existingProject && existingProject.name !== dto.name) {
           updateData.slug = slugify(dto.name);
         }
@@ -198,7 +197,10 @@ export class ProjectsService {
         updateData.endDate = new Date(dto.endDate);
       }
       const updatedProject = await this.prisma.project.update({
-        where: { id: projectId },
+        where: {
+          id: projectId,
+          ...(accountId && { accountId }),
+        },
         data: {
           ...updateData,
         },
@@ -223,6 +225,7 @@ export class ProjectsService {
   async changeProjectStatus(
     projectId: string,
     dto: UpdateProjectStatusDto,
+    accountId?: string,
   ): Promise<Project> {
     if (!dto.status) {
       throw new BadRequestException('Status is required');
@@ -234,7 +237,10 @@ export class ProjectsService {
 
     try {
       const updatedProject = await this.prisma.project.update({
-        where: { id: projectId },
+        where: {
+          id: projectId,
+          ...(accountId && { accountId }),
+        },
         data: {
           status: dto.status as ProjectStatusEnum,
           updatedAt: new Date(),
@@ -259,6 +265,42 @@ export class ProjectsService {
     }
   }
 
+  async archiveProject(
+    projectId: string,
+    accountId?: string,
+  ): Promise<Project> {
+    try {
+      const archivedProject = await this.prisma.project.update({
+        where: {
+          id: projectId,
+          ...(accountId && { accountId }),
+        },
+        data: {
+          archived: true,
+          updatedAt: new Date(),
+        },
+        include: {
+          owner: true,
+          account: true,
+          _count: {
+            select: {
+              tasks: true,
+              members: true,
+            },
+          },
+        },
+      });
+
+      this.logger.log(`Project archived successfully: ${projectId}`);
+
+      return archivedProject;
+    } catch (error) {
+      this.handlePrismaError(error, 'archive project');
+    }
+  }
+
+  // ===================== LISTING & SEARCH OPERATIONS =====================
+
   async listProjectsByAccount(accountId: string): Promise<Project[]> {
     if (!accountId) {
       throw new BadRequestException('Account ID is required');
@@ -266,7 +308,7 @@ export class ProjectsService {
 
     this.logger.log(`Listing projects for account ID: ${accountId}`);
 
-    return await this.prisma.project.findMany({
+    const result = await this.prisma.project.findMany({
       where: {
         accountId,
         archived: false,
@@ -297,223 +339,19 @@ export class ProjectsService {
         createdAt: 'desc',
       },
     });
+
+    this.logger.log(`Found ${result.length} projects for account ${accountId}`);
+    return result as Project[];
   }
 
-  async addView(
-    projectId: string,
-    dto: CreateProjectViewDto,
-  ): Promise<ProjectView> {
-    this.logger.log(`Adding view for project ID: ${projectId}`);
-
-    await this.findProjectById(projectId);
-
-    const view = await this.prisma.projectView.create({
-      data: {
-        projectId,
-        viewType: dto.viewType,
-        configuration: dto.configuration || Prisma.JsonNull,
-      },
-    });
-
-    this.logger.log(`View added successfully for project ID: ${projectId}`);
-    return view;
-  }
-
-  async findByKey(projectKey: string): Promise<Project> {
-    if (!projectKey) {
-      throw new BadRequestException('Project key is required');
-    }
-
-    const project = await this.prisma.project.findFirst({
-      where: { projectKey },
-      include: {
-        owner: true,
-        account: true,
-        _count: {
-          select: {
-            tasks: true,
-            members: true,
-          },
-        },
-      },
-    });
-
-    if (!project) throw new NotFoundException('Project not found');
-    return project;
-  }
-
-  async findProjectById(id: string): Promise<Project> {
-    if (!id) {
-      throw new BadRequestException('Project ID is required');
-    }
-    try {
-      return await this.prisma.project.findUnique({
-        where: { id },
-        include: {
-          owner: true,
-          account: true,
-          _count: {
-            select: {
-              tasks: true,
-              members: true,
-            },
-          },
-        },
-      });
-    } catch (error) {
-      this.handlePrismaError(error, 'find project by ID');
-    }
-  }
-
-  async archiveProject(projectId: string): Promise<Project> {
-    try {
-      const archivedProject = await this.prisma.project.update({
-        where: { id: projectId },
-        data: {
-          archived: true,
-          updatedAt: new Date(),
-        },
-        include: {
-          owner: true,
-          account: true,
-          _count: {
-            select: {
-              tasks: true,
-              members: true,
-            },
-          },
-        },
-      });
-
-      this.logger.log(`Project archived successfully: ${projectId}`);
-
-      return archivedProject;
-    } catch (error) {
-      this.handlePrismaError(error, 'archive project');
-    }
-  }
-
-  async getProjectStats(accountId: string): Promise<{
-    total: number;
-    byStatus: Record<string, number>;
-    byIndustry: Record<string, number>;
-  }> {
-    const where: Prisma.ProjectWhereInput = {
-      accountId,
-      archived: false,
-    };
-
-    const [total, statusGroups, industryGroups] = await Promise.all([
-      this.prisma.project.count({ where }),
-      this.prisma.project.groupBy({
-        by: ['status'],
-        where,
-        _count: true,
-      }),
-      this.prisma.project.groupBy({
-        by: ['industry'],
-        where,
-        _count: true,
-      }),
-    ]);
-
-    const byStatus = Object.fromEntries(
-      statusGroups.map(({ status, _count }) => [status, _count]),
-    );
-    const byIndustry = Object.fromEntries(
-      industryGroups.map(({ industry, _count }) => [industry, _count]),
-    );
-
-    return {
-      total,
-      byStatus,
-      byIndustry,
-    };
-  }
-
+  // Delegate search operations to ProjectSearchService
   async searchProjects(params: SearchProjectsParams): Promise<{
     projects: Project[];
     total: number;
     limit: number;
     offset: number;
   }> {
-    const { accountId, searchTerm, status, industry, limit, offset } = params;
-
-    // Build the where clause dynamically
-    const where: Prisma.ProjectWhereInput = {
-      accountId,
-      archived: false,
-      // Add search term filter if provided
-      ...(searchTerm && {
-        OR: [
-          {
-            name: {
-              contains: searchTerm,
-              mode: 'insensitive', // Case-insensitive search
-            },
-          },
-          {
-            description: {
-              contains: searchTerm,
-              mode: 'insensitive',
-            },
-          },
-          {
-            projectKey: {
-              contains: searchTerm,
-              mode: 'insensitive',
-            },
-          },
-        ],
-      }),
-      // Add status filter if provided
-      ...(status && { status }),
-      // Add industry filter if provided
-      ...(industry && { industry }),
-    };
-
-    // Execute both queries in a transaction for consistency
-    const [projects, total] = await this.prisma.$transaction([
-      this.prisma.project.findMany({
-        where,
-        include: {
-          owner: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-          account: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          _count: {
-            select: {
-              tasks: true,
-              members: true,
-            },
-          },
-        },
-        orderBy: [
-          { updatedAt: 'desc' }, // Most recently updated first
-          { createdAt: 'desc' },
-        ],
-        skip: offset,
-        take: limit,
-      }),
-      this.prisma.project.count({ where }),
-    ]);
-
-    return {
-      projects,
-      total,
-      limit,
-      offset,
-    };
+    return this.projectSearchService.searchProjects(params);
   }
 
   async listProjectsPaginated(
@@ -526,107 +364,63 @@ export class ProjectsService {
     limit: number;
     offset: number;
   }> {
-    const where: Prisma.ProjectWhereInput = {
+    return this.projectSearchService.listProjectsPaginated(
       accountId,
-      archived: false,
-    };
-
-    const [projects, total] = await this.prisma.$transaction([
-      this.prisma.project.findMany({
-        where,
-        include: {
-          owner: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-          account: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          _count: {
-            select: {
-              tasks: true,
-              members: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        skip: offset,
-        take: limit,
-      }),
-      this.prisma.project.count({ where }),
-    ]);
-
-    return {
-      projects,
-      total,
       limit,
       offset,
-    };
+    );
   }
 
-  // Optional: Add more specific search methods
   async searchProjectsByName(
     accountId: string,
     name: string,
     limit = 10,
   ): Promise<Project[]> {
-    return this.prisma.project.findMany({
-      where: {
-        accountId,
-        archived: false,
-        name: {
-          contains: name,
-          mode: 'insensitive',
-        },
-      },
-      include: {
-        owner: true,
-        _count: {
-          select: { tasks: true, members: true },
-        },
-      },
-      orderBy: {
-        name: 'asc',
-      },
-      take: limit,
-    });
+    return this.projectSearchService.searchProjectsByName(
+      accountId,
+      name,
+      limit,
+    );
   }
 
-  // For autocomplete functionality
   async getProjectSuggestions(
     accountId: string,
     query: string,
     limit = 5,
   ): Promise<Array<{ id: string; name: string; projectKey: string }>> {
-    return this.prisma.project.findMany({
-      where: {
-        accountId,
-        archived: false,
-        OR: [
-          { name: { startsWith: query, mode: 'insensitive' } },
-          { projectKey: { startsWith: query, mode: 'insensitive' } },
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        projectKey: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-      take: limit,
-    });
+    return this.projectSearchService.getProjectSuggestions(
+      accountId,
+      query,
+      limit,
+    );
   }
+
+  // ===================== VIEW OPERATIONS =====================
+
+  async addView(
+    projectId: string,
+    dto: CreateProjectViewDto,
+    accountId?: string,
+  ): Promise<ProjectView> {
+    this.logger.log(`Adding view for project ID: ${projectId}`);
+
+    // Validate project exists and user has access
+    await this.findProjectById(projectId, accountId);
+
+    return this.projectViewService.addView(projectId, dto);
+  }
+
+  // ===================== STATISTICS OPERATIONS =====================
+
+  async getProjectStats(accountId: string): Promise<{
+    total: number;
+    byStatus: Record<string, number>;
+    byIndustry: Record<string, number>;
+  }> {
+    return this.projectStatsService.getProjectStats(accountId);
+  }
+
+  // ===================== ERROR HANDLING =====================
 
   private handlePrismaError(error: unknown, operation: string): never {
     this.logger.error(`Failed to ${operation}:`, error);

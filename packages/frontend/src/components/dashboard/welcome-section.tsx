@@ -1,6 +1,3 @@
-import { MdTask } from "react-icons/md";
-
-import { Button } from "@/components/ui/button";
 import { CreateProjectModal } from "@/features/projects/create-project-modal";
 import { CreateTaskModal } from "@/features/tasks/create-task-modal";
 

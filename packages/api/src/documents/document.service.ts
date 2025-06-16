@@ -1,17 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Document } from '@prisma/client';
+
+import { PrismaService } from 'src/prisma/prisma.service';
 
 import { UploadDocumentDto } from './dto/document.dto';
-import { Document } from './entities/document.entity';
 import { encrypt } from '../common/encryption.util';
 
 @Injectable()
 export class DocumentService {
   constructor(
-    @InjectRepository(Document)
-    private documentsRepository: Repository<Document>,
+    private prisma: PrismaService,
     private configService: ConfigService,
   ) {}
 
@@ -21,13 +20,14 @@ export class DocumentService {
       this.configService.get('ENCRYPTION_KEY'),
       null,
     );
-    const document = this.documentsRepository.create({
-      project: { id: dto.projectId },
-      task: dto.taskId ? { id: dto.taskId } : null,
-      fileName: dto.fileName,
-      filePath: encryptedFilePath,
-      uploadedBy: { id: dto.uploadedById },
+    const document = this.prisma.document.create({
+      data: {
+        project: { connect: { id: dto.projectId } },
+        task: dto.taskId ? { connect: { id: dto.taskId } } : null,
+        fileName: dto.fileName,
+        filePath: encryptedFilePath,
+      },
     });
-    return this.documentsRepository.save(document);
+    return document;
   }
 }

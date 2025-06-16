@@ -10,9 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { InjectRepository } from '@nestjs/typeorm';
+import { ProjectMember } from '@prisma/client';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { Repository } from 'typeorm';
+
+import { PrismaService } from 'src/prisma/prisma.service';
 
 import { ProjectRoles } from './../auth/roles.decorator';
 import { ProjectsService } from './../projects/projects.service';
@@ -21,14 +22,12 @@ import {
   AddProjectMemberDto,
   RemoveProjectMemberDto,
 } from './dto/project-members.dto';
-import { ProjectMember } from './entities/project-member.entity';
 import { ProjectMemberService } from './project-member.service';
 
 @Controller('project-members')
 export class ProjectMemberController {
   constructor(
-    @InjectRepository(ProjectMember)
-    private projectMembersRepository: Repository<ProjectMember>,
+    private prisma: PrismaService,
     private readonly projectMembersService: ProjectMemberService,
     private readonly userService: UsersService,
     private readonly projectsService: ProjectsService,
@@ -39,12 +38,12 @@ export class ProjectMemberController {
   @Post()
   async addMember(
     @Body(new ZodValidationPipe(AddProjectMemberDto)) body: AddProjectMemberDto,
-  ) {
+  ): Promise<ProjectMember> {
     const user = await this.userService.findById(body.userId);
     if (!user) throw new NotFoundException('User not found');
     const project = await this.projectsService.findProjectById(body.projectId);
     if (!project) throw new NotFoundException('project not found');
-    const projectMember = await this.projectMembersRepository.findOne({
+    const projectMember = await this.prisma.projectMember.findFirst({
       where: { user: { id: user.id }, project: { id: project.id } },
     });
     if (projectMember) throw new BadRequestException('Member already added');
@@ -58,7 +57,9 @@ export class ProjectMemberController {
   @UseGuards(AuthGuard('jwt'))
   @ProjectRoles('owner', 'project_manager', 'member')
   @Get('project/:projectId')
-  async listProjectMembers(@Param('projectId') projectId: string) {
+  async listProjectMembers(
+    @Param('projectId') projectId: string,
+  ): Promise<ProjectMember[]> {
     return this.projectMembersService.listProjectMembers(projectId);
   }
 
@@ -67,7 +68,7 @@ export class ProjectMemberController {
   @Delete()
   async removeMember(
     @Body(new ZodValidationPipe()) body: RemoveProjectMemberDto,
-  ) {
+  ): Promise<void> {
     return this.projectMembersService.removeMember(body.userId, body.projectId);
   }
 }

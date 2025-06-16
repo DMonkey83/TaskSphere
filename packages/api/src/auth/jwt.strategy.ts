@@ -30,7 +30,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async validate(payload: {
-    id: string;
+    userId: string;
     email: string;
     role: string;
     account: { id: string };
@@ -38,12 +38,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     this.logger.log(`JWT Payload: ${JSON.stringify(payload)}`);
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!payload.id || !uuidRegex.test(payload.id)) {
-      this.logger.error(`Invalid UUID in payload: ${payload.id}`);
-      throw new Error(`Invalid UUID: ${payload.id}`);
+    if (!payload.userId || !uuidRegex.test(payload.userId)) {
+      this.logger.error(`Invalid UUID in payload: ${payload.userId}`);
+      throw new Error(`Invalid UUID: ${payload.userId}`);
     }
     return {
-      userId: payload.id,
+      userId: payload.userId,
       email: payload.email,
       role: payload.role,
       account: payload.account,

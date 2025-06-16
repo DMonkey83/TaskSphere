@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ProjectMember } from '@prisma/client';
 
 import { RoleEnum } from '@shared/enumsTypes';
 
-import { ProjectMember } from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()

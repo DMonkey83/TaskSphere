@@ -35,8 +35,8 @@ export const useProjectsQuery = (
   >({
     queryKey: ["projects", { accountId }],
     queryFn: ({ queryKey }) => {
-      const [, { accountId }] = queryKey;
-      return fetchProjectsClient(accountId);
+      const [] = queryKey;
+      return fetchProjectsClient();
     },
     ...options,
   });

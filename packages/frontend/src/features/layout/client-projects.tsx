@@ -6,9 +6,11 @@ import {
   ProjectsFilters,
   ProjectsStats,
 } from "@/components/projects";
-import { useSetupProjectsStores } from "@/hooks/useSetupProjectsStore";
+import { useSetupStores } from "@/hooks/useSetupStores";
 import { useProjectsQuery } from "@/lib/queries/useProjects";
+import { useTeamsQuery } from "@/lib/queries/useTeams";
 import { useUserQuery } from "@/lib/queries/useUser";
+
 import { CreateProjectModal } from "../projects/create-project-modal";
 
 export default function ClientProjects() {
@@ -28,17 +30,28 @@ export default function ClientProjects() {
     enabled: !!accountId,
   });
 
-  useSetupProjectsStores({
+  const {
+    data: teams,
+    isLoading: teamsLoading,
+    isError: teamsError,
+  } = useTeamsQuery(accountId!, {
+    enabled: !!accountId,
+  });
+
+  useSetupStores({
     user,
     account: {
       name: user?.account?.name || "",
     },
     projects,
+    teams,
   });
 
-  if (userLoading || projectsLoading) return <div>Loading...</div>;
+  if (userLoading || projectsLoading || teamsLoading)
+    return <div>Loading...</div>;
 
-  if (userError || projectsError) return <div>Error loading projects.</div>;
+  if (userError || projectsError || teamsError)
+    return <div>Error loading projects.</div>;
 
   return (
     <div className="space-y-6">

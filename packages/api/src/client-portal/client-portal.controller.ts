@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, UseGuards, Post } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { ClientPortalAccess } from '@prisma/client';
 import { ZodValidationPipe } from 'nestjs-zod';
 
 import { RoleGuard } from './../auth/role.guard';
@@ -16,12 +17,18 @@ export class ClientPortalController {
   @Post('grant')
   async grantAccess(
     @Body(new ZodValidationPipe(GrantAccessDtoClass)) body: GrantAccessDtoClass,
-  ) {
-    return this.clientPortalService.grantAccess(body);
+  ): Promise<ClientPortalAccess> {
+    const access: ClientPortalAccess =
+      await this.clientPortalService.grantAccess(body);
+    return access;
   }
 
   @Get('access/:accessToken')
-  async getAccessibleProject(@Param('accessToken') accessToken: string) {
-    return this.clientPortalService.getAccessibleProject(accessToken);
+  async getAccessibleProject(
+    @Param('accessToken') accessToken: string,
+  ): Promise<ClientPortalAccess> {
+    const access: ClientPortalAccess =
+      await this.clientPortalService.getAccessibleProject(accessToken);
+    return access;
   }
 }

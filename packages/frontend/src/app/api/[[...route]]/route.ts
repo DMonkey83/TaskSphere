@@ -108,6 +108,11 @@ app.post("/api/auth/refresh", async (c) => {
 app.all("*", async (c) => {
   const path = c.req.path.replace("/api", "");
 
+  console.log(
+    `Proxying request: ${c.req.method} ${path} with cookies: ${c.req.header(
+      "cookie"
+    )}`
+  );
   // Prevent double handling of /auth/refresh
   if (path === "/auth/refresh") {
     return c.json({ message: "Route already handled directly." }, 400);

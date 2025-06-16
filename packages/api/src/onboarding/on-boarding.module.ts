@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { Onboarding } from './entities/onboardings.entity';
 import { OnBoardingController } from './on-boarding.controller';
 import { OnBoardingService } from './on-boarding.service';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Onboarding])],
+  imports: [PrismaModule],
   controllers: [OnBoardingController],
   providers: [OnBoardingService],
-  exports: [OnBoardingService, TypeOrmModule],
+  exports: [OnBoardingService],
 })
 export class OnBoardingModule {}

@@ -8,13 +8,14 @@ import {
   UpcomingDeadlines,
   WelcomeSection,
 } from "@/components/dashboard";
-import { useSetupDashboardStores } from "@/hooks/useSetupDashboardStores";
+import { useSetupStores } from "@/hooks/useSetupStores";
 import { dashboardData } from "@/lib/dashboard-data";
 import { useProjectsQuery } from "@/lib/queries/useProjects";
+import { useTasksQuery } from "@/lib/queries/useTasks";
 import { useTeamsQuery } from "@/lib/queries/useTeams";
 import { useUserQuery } from "@/lib/queries/useUser";
 
-export default function ClientDashboard({ }) {
+export default function ClientDashboard({}) {
   const {
     data: user,
     isLoading: userLoading,
@@ -36,9 +37,16 @@ export default function ClientDashboard({ }) {
   } = useProjectsQuery(accountId!, {
     enabled: !!accountId,
   });
+  const {
+    data: tasks,
+    isLoading: tasksLoading,
+    isError: tasksError,
+  } = useTasksQuery(accountId!, {
+    enabled: !!accountId,
+  });
+  console.log("tasks", tasks);
 
-
-  useSetupDashboardStores({
+  useSetupStores({
     user,
     account: {
       name: user?.account?.name || "",
@@ -47,9 +55,9 @@ export default function ClientDashboard({ }) {
     projects,
   });
 
-  if (userLoading || teamsLoading || projectsLoading)
+  if (userLoading || teamsLoading || projectsLoading || tasksLoading)
     return <div>Loading...</div>;
-  if (userError || teamsError || projectsError)
+  if (userError || teamsError || projectsError || tasksError)
     return <div>Error loading dashboard.</div>;
 
   return (

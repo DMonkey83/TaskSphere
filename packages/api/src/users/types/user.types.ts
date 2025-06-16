@@ -23,4 +23,4 @@ export interface User {
 }
 
 // You can also export the Prisma type with a better name
-export type { User as PrismaUser } from '../../../generated/prisma';
+export type { User as PrismaUser } from '@prisma/client';

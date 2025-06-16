@@ -1,5 +1,6 @@
 import { Body, Controller, UseGuards, Post } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Document } from '@prisma/client';
 import { ZodValidationPipe } from 'nestjs-zod';
 
 import { RoleGuard } from './../auth/role.guard';
@@ -17,7 +18,8 @@ export class DocumentController {
   async upload(
     @Body(new ZodValidationPipe(UploadDocumentDto))
     body: UploadDocumentDto,
-  ) {
-    return this.documentService.upload(body);
+  ): Promise<Document> {
+    const document: Document = await this.documentService.upload(body);
+    return document;
   }
 }

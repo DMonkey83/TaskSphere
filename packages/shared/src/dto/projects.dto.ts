@@ -6,7 +6,6 @@ import {
 import { z } from "zod";
 import { VisibilityZodEnum } from "../enumsTypes/visibility.enum";
 import { AccountData, UserResponseSchema } from "./user.dto";
-import { arch } from "os";
 
 export const CreateProjectSchema = z.object({
   name: z.string().min(1),

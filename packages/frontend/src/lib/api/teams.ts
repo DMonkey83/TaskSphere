@@ -8,9 +8,7 @@ export async function fetchTeamsClient(
   accountId: string
 ): Promise<TeamsResponse> {
   try {
-    const response = await clientApi.get<TeamsResponse>(
-      `/api/teams/account/${accountId}`
-    );
+    const response = await clientApi.get<TeamsResponse>(`/api/teams`);
     console.log("Fetched teams data:", response.data);
     return Array.isArray(response.data)
       ? TeamsResponseSchema.parse(response.data)

@@ -10,21 +10,14 @@ import {
 
 import clientApi from "../axios";
 
-export async function fetchProjectsClient(
-  accountId: string
-): Promise<ProjectsListResponse> {
+export async function fetchProjectsClient(): Promise<ProjectsListResponse> {
   try {
-    const response = await clientApi.get<ProjectsListResponse>(
-      `/api/projects/account/${accountId}/search`
-    );
+    const response = await clientApi.get<ProjectsListResponse>(`/api/projects`);
     console.log("Fetched projects data:", response.data);
     return ProjectsListResponseSchema.parse(response.data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error(
-        "Validation error for /api/projects/account/:accountId:",
-        error.errors
-      );
+      console.error("Validation error for /api/projects/search", error.errors);
       throw new Error("Invalid data structure received from server");
     }
     console.error("Error fetching projects data:", error);

@@ -1,25 +1,33 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { PrismaModule } from '../prisma/prisma.module';
 import { UsersModule } from '../users/users.module';
 import { AccountsModule } from './../accounts/accounts.module';
-import { Account } from './../accounts/entities/account.entity';
-import { ProjectMember } from './../project-members/entities/project-member.entity';
-import { ProjectView } from './entities/project-view.entity';
-import { Project } from './entities/project.entity';
 import { ProjectController } from './project.controller';
 import { ProjectsService } from './projects.service';
+import { ProjectKeyService } from './services/project-key.service';
+import { ProjectSearchService } from './services/project-search.service';
+import { ProjectStatsService } from './services/project-stats.service';
+import { ProjectViewService } from './services/project-view.service';
 import { ProjectMemberModule } from '../project-members/project-member.module';
+import { TaskModule } from '../tasks/task.module';
 
 @Module({
   imports: [
     forwardRef(() => ProjectMemberModule),
-    TypeOrmModule.forFeature([Project, ProjectView, ProjectMember, Account]),
+    forwardRef(() => TaskModule),
+    PrismaModule,
     UsersModule,
     AccountsModule,
   ],
   controllers: [ProjectController],
-  providers: [ProjectsService],
-  exports: [ProjectsService, TypeOrmModule],
+  providers: [
+    ProjectsService,
+    ProjectKeyService,
+    ProjectSearchService,
+    ProjectViewService,
+    ProjectStatsService,
+  ],
+  exports: [ProjectsService],
 })
 export class ProjectsModule {}

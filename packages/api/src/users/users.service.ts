@@ -5,6 +5,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import type { Account, User, UserRoleEnum } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 import { UserResponse, UserResponseSchema } from '@shared/dto/user.dto';
@@ -14,7 +15,6 @@ import {
   RegisterFromInviteDto,
   UserResponseDto,
 } from './dto/user.dto';
-import type { Account, User, UserRoleEnum } from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { OnBoardingService } from './../onboarding/on-boarding.service';
 

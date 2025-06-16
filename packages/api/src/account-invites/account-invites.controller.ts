@@ -1,13 +1,13 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AccountInvite } from '@prisma/client';
 import { ZodValidationPipe } from 'nestjs-zod';
 
 import { RoleGuard } from './../auth/role.guard';
 import { Roles } from './../auth/roles.decorator';
 import { AccountInvitesService } from './account-invites.service';
 import { InviteUserDto } from './dto/account-invite.dto';
-import { AccountInvite } from '../../generated/prisma';
-import { CurrentUser } from '../auth/entities/current-user.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('account-invites')
 export class AccountInvitesController {

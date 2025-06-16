@@ -7,6 +7,7 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
+import { User } from '@prisma/client';
 import { Request, Response } from 'express';
 import { ZodValidationPipe } from 'nestjs-zod';
 
@@ -15,7 +16,6 @@ import { CookieService, TokenCookieOptions } from './auth.utils';
 import { LoginDto, LoginResponseDto, RegisterDto } from './dto/auth.dto';
 import { Public } from './public.decorator';
 import { AccountsService } from '../accounts/accounts.service';
-import { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 
 @Controller('auth')
@@ -38,7 +38,7 @@ export class AuthController {
       id: user.id,
       email: user.email,
       role: user.role,
-      account: { id: user.account.id },
+      account: { id: user.accountId },
       passwordHash: user.passwordHash, // Ensure passwordHash is included for validation
     });
     CookieService.setAuthCookies(res, tokens);
@@ -51,7 +51,7 @@ export class AuthController {
       id: user.id,
       email: user.email,
       role: user.role,
-      accountId: user.account.id,
+      accountId: user.accountId,
     };
 
     return loginResponse;

@@ -6,16 +6,15 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import dayjs from 'dayjs';
-
-import { PrismaService } from 'src/prisma/prisma.service';
-
 import {
   AccountInvite,
   InviteRoleEnum,
   InviteStatusEnum,
   UserRoleEnum,
-} from '../../generated/prisma';
+} from '@prisma/client';
+import dayjs from 'dayjs';
+
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AccountInvitesService {
@@ -68,7 +67,7 @@ export class AccountInvitesService {
         data: {
           email,
           token,
-          status: InviteStatusEnum.Pending,
+          status: InviteStatusEnum.pending,
           role: role as UserRoleEnum,
           expiresAt: dayjs().add(7, 'days').toDate(),
           accountId: user.accountId,
@@ -101,7 +100,7 @@ export class AccountInvitesService {
       where: {
         token,
         accepted: false,
-        status: InviteStatusEnum.Pending,
+        status: InviteStatusEnum.pending,
       },
       include: { accounts: true },
     });
@@ -112,7 +111,7 @@ export class AccountInvitesService {
     if (invite.expiresAt < new Date()) {
       await this.prisma.accountInvite.update({
         where: { id: invite.id },
-        data: { status: InviteStatusEnum.Expired },
+        data: { status: InviteStatusEnum.expired },
       });
       throw new BadRequestException('Invite has expired');
     }
@@ -126,7 +125,7 @@ export class AccountInvitesService {
         where: { id: inviteId },
         data: {
           accepted: true,
-          status: InviteStatusEnum.Accepted,
+          status: InviteStatusEnum.accepted,
         },
         include: { accounts: true },
       });
@@ -151,7 +150,7 @@ export class AccountInvitesService {
       await this.prisma.accountInvite.update({
         where: { id: inviteId },
         data: {
-          status: InviteStatusEnum.Revoked,
+          status: InviteStatusEnum.revoked,
         },
       });
       this.logger.log(`Invite ${inviteId} has been revoked`);

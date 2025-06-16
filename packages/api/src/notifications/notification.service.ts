@@ -1,18 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository } from 'typeorm';
+import { Notification, NotificationTypeEnum } from '@prisma/client';
+
+import { NotificationStatusEnum } from '@shared/enumsTypes/notification-status.enum';
 
 import { SendNotificationDto } from './dto/notification.dto';
 import { encrypt } from '../common/encryption.util';
-import { Notification } from './entities/notification.entity';
-import { NotificationStatusEnum } from '../../../shared/src/enumsTypes/notification-status.enum';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class NotificationService {
   constructor(
-    @InjectRepository(Notification)
-    private notificationsRepository: Repository<Notification>,
+    private prisma: PrismaService,
     private configService: ConfigService,
   ) {}
 
@@ -23,14 +22,16 @@ export class NotificationService {
       null,
     );
 
-    const notification = this.notificationsRepository.create({
-      content: encryptedContent,
-      type: dto.type,
-      customerId: dto.customerId,
-      taskId: dto.taskId,
-      status: NotificationStatusEnum.Pending,
-    } as DeepPartial<Notification>);
+    const notification = this.prisma.notification.create({
+      data: {
+        content: encryptedContent,
+        type: dto.type as NotificationTypeEnum,
+        customer: { connect: { id: dto.customerId } },
+        task: dto.taskId ? { connect: { id: dto.taskId } } : null,
+        status: NotificationStatusEnum.Pending,
+      },
+    });
 
-    return this.notificationsRepository.save(notification);
+    return notification;
   }
 }

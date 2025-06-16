@@ -4,8 +4,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-
-import { PrismaClient } from '../../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 
 // type QueryArgs<T extends object = any> = {
 //   where?: Record<string, unknown>;

@@ -1,45 +1,41 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Roadmap, RoadmapItem } from '@prisma/client';
 
 import { CreateRoadmapDto, CreateRoadmapItemDto } from './dto/roadmap.dto';
-import { Roadmap } from './entities/readmap.entity';
-import { RoadmapItem } from './entities/roadmap-Item.entity';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class RoadmapService {
-  constructor(
-    @InjectRepository(Roadmap)
-    private roadmapsRepository: Repository<Roadmap>,
-    @InjectRepository(RoadmapItem)
-    private roadmapItemsRepository: Repository<RoadmapItem>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateRoadmapDto): Promise<Roadmap> {
-    const roadmap = this.roadmapsRepository.create({
-      name: dto.name,
-      description: dto.description,
-      owner: { id: dto.ownerId },
+    return await this.prisma.roadmap.create({
+      data: {
+        name: dto.name,
+        description: dto.description,
+        owner: { connect: { id: dto.ownerId } },
+      },
     });
-    return this.roadmapsRepository.save(roadmap);
   }
 
   async addItem(
     roadmapId: string,
     dto: CreateRoadmapItemDto,
   ): Promise<RoadmapItem> {
-    const roadmap = await this.roadmapsRepository.findOne({
+    const roadmap = await this.prisma.roadmap.findUnique({
       where: { id: roadmapId },
     });
     if (!roadmap) throw new NotFoundException('Roadmap not found');
-    const item = this.roadmapItemsRepository.create({
-      roadmap: { id: roadmapId },
-      project: { id: dto.projectId },
-      task: { id: dto.taskId },
-      startDate: dto.startDate,
-      endDate: dto.endDate,
-      dependencies: dto.dependencies,
+    const item = await this.prisma.roadmapItem.create({
+      data: {
+        roadmap: { connect: { id: roadmapId } },
+        project: { connect: { id: dto.projectId } },
+        task: { connect: { id: dto.taskId } },
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+        dependencies: dto.dependencies,
+      },
     });
-    return this.roadmapItemsRepository.save(item);
+    return item;
   }
 }

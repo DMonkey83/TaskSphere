@@ -16,18 +16,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ZodValidationPipe } from 'nestjs-zod';
-
-import { GetUser } from 'src/auth/get-user.decorator';
-
-import { ProjectsService } from './projects.service';
 import {
   Project,
   ProjectIndustryEnum,
   ProjectStatusEnum,
   ProjectView,
   User,
-} from '../../generated/prisma';
+} from '@prisma/client';
+import { ZodValidationPipe } from 'nestjs-zod';
+
+import { GetUser } from 'src/auth/get-user.decorator';
+
+import { ProjectsService } from './projects.service';
+import { UserPayload } from '../auth/dto/auth.dto';
 import { RoleGuard } from '../auth/role.guard';
 import {
   CreateProjectDto,
@@ -41,11 +42,16 @@ import {
   UpdateProjectSchema,
 } from '../../../shared/src/dto/projects.dto';
 import { Roles } from '../auth/roles.decorator';
+import { TaskFilterDto, TaskListResponseDto } from '../tasks/dto/task.dto';
+import { TaskService } from '../tasks/task.service';
 
 @Controller('projects')
 export class ProjectController {
   private readonly logger = new Logger(ProjectsService.name);
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly taskService: TaskService,
+  ) {}
 
   @UseGuards(AuthGuard('jwt'), RoleGuard)
   @Roles('project_manager', 'owner', 'admin')
@@ -54,9 +60,18 @@ export class ProjectController {
   async create(
     @Body(new ZodValidationPipe(CreateProjectSchema))
     createProjectDto: CreateProjectDto,
+    @GetUser() user: UserPayload,
   ): Promise<Project> {
-    this.logger.log(`Creating project: ${createProjectDto.name}`);
-    return this.projectsService.create(createProjectDto);
+    this.logger.log(
+      `Creating project: ${createProjectDto.name} for account: ${user.account.id}`,
+    );
+    // Ensure the project is created for the authenticated user's account
+    const projectData = {
+      ...createProjectDto,
+      accountId: user.account.id,
+      ownerId: user.userId,
+    };
+    return this.projectsService.create(projectData);
   }
 
   @UseGuards(AuthGuard('jwt'), RoleGuard)
@@ -132,22 +147,20 @@ export class ProjectController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Get('account/:accountId/stats')
-  async getProjectStats(
-    @Param('accountId', ParseUUIDPipe) accountId: string,
-  ): Promise<{
+  @Get('stats')
+  async getProjectStats(@GetUser() user: UserPayload): Promise<{
     total: number;
     byStatus: Record<string, number>;
     byIndustry: Record<string, number>;
   }> {
-    this.logger.log('Getting project stats for account:', accountId);
-    return this.projectsService.getProjectStats(accountId);
+    this.logger.log('Getting project stats for account:', user.account.id);
+    return this.projectsService.getProjectStats(user.account.id);
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Get('account/:accountId/search')
+  @Get('search')
   async searchProjects(
-    @Param('accountId', ParseUUIDPipe) accountId: string,
+    @GetUser() user: UserPayload,
     @Query('q') searchTerm?: string,
     @Query('status') status?: ProjectStatusEnum,
     @Query('industry') industry?: ProjectIndustryEnum,
@@ -160,11 +173,11 @@ export class ProjectController {
     offset: number;
   }> {
     this.logger.log(
-      `Searching projects for account: ${accountId} with terms ${searchTerm}`,
+      `Searching projects for account: ${user.account.id} with terms ${searchTerm}`,
     );
 
     return this.projectsService.searchProjects({
-      accountId,
+      accountId: user.account.id,
       searchTerm,
       status: status,
       industry: industry,
@@ -174,10 +187,9 @@ export class ProjectController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Get('account/:accountId')
+  @Get()
   async listProjects(
-    @Param('accountId', ParseUUIDPipe) accountId: string,
-    @GetUser() user: User,
+    @GetUser() user: UserPayload,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset?: number,
   ): Promise<{
@@ -187,12 +199,45 @@ export class ProjectController {
     offset: number;
   }> {
     this.logger.log(
-      `Listing projects for account ID: ${accountId} by user: ${user.email}`,
+      `Listing projects for account ID: ${user.account.id} by user: ${user.userId}`,
     );
     return this.projectsService.listProjectsPaginated(
-      accountId,
+      user.account.id,
       limit || 20,
       offset || 0,
     );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('all')
+  async listAllProjects(@GetUser() user: UserPayload): Promise<Project[]> {
+    this.logger.log(`Listing all projects for account: ${user.account.id}`);
+    return this.projectsService.listProjectsByAccount(user.account.id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('suggestions')
+  async getProjectSuggestions(
+    @GetUser() user: UserPayload,
+    @Query('q') query?: string,
+    @Query('limit', new DefaultValuePipe(5), ParseIntPipe) limit?: number,
+  ): Promise<Array<{ id: string; name: string; projectKey: string }>> {
+    this.logger.log(`Getting project suggestions for: ${query}`);
+    return this.projectsService.getProjectSuggestions(
+      user.account.id,
+      query || '',
+      limit || 5,
+    );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get(':projectId/tasks')
+  async getProjectTasks(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Query() filters: Omit<TaskFilterDto, 'projectId'>,
+    @GetUser() user: UserPayload,
+  ): Promise<TaskListResponseDto> {
+    this.logger.log(`Fetching tasks for project: ${projectId}`);
+    return this.taskService.findByProject(projectId, filters, user);
   }
 }

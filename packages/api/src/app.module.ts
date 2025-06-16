@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AccountInvitesModule } from './account-invites/account-invites.module';
 import { AccountsModule } from './accounts/accounts.module';
@@ -29,6 +28,14 @@ import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
+    // Core modules
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true, // Cache config for better performance
+    }),
+    PrismaModule, // Prisma handles database connection
+
+    // Feature modules
     OnBoardingModule,
     TimeTrackingModule,
     TaskActivityModule,
@@ -48,24 +55,6 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     AuthModule,
     AccountsModule,
-    PrismaModule, // Add PrismaModule here
-    ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('POSTGRES_HOST'),
-        port: configService.get('POSTGRES_PORT'),
-        username: configService.get('POSTGRES_USER'),
-        password: configService.get('POSTGRES_PASSWORD'),
-        database: configService.get('POSTGRES_DATABASE'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        migrations: [__dirname + '/migrations/*{.ts,.js}'],
-        migrationsRun: false,
-        synchronize: false,
-      }),
-      inject: [ConfigService],
-    }),
   ],
   controllers: [AppController],
   providers: [

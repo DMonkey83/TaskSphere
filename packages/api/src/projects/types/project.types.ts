@@ -1,7 +1,4 @@
-import {
-  ProjectIndustryEnum,
-  ProjectStatusEnum,
-} from '../../../generated/prisma';
+import { ProjectIndustryEnum, ProjectStatusEnum } from '@prisma/client';
 
 export interface SearchProjectsParams {
   accountId: string;

@@ -1,63 +1,139 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
+  Logger,
   Param,
+  ParseIntPipe,
+  ParseUUIDPipe,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { TaskActivity } from '@prisma/client';
 
 import { CreateTaskActivityDto } from './dto/task-activities.dto';
 import { TaskActivityService } from './task-activity.service';
-import { RoleGuard } from '../auth/role.guard';
-import { TaskActivity } from './entities/task-activities.entity';
+import { UserPayload } from '../auth/dto/auth.dto';
 import { GetUser } from '../auth/get-user.decorator';
-import { User } from '../users/entities/user.entity';
+import { RoleGuard } from '../auth/role.guard';
+import { Roles } from '../auth/roles.decorator';
 
-@Controller('task-activitys')
+@Controller('task-activities')
 export class TaskActivityController {
+  private readonly logger = new Logger(TaskActivityController.name);
+
   constructor(private readonly taskActivityService: TaskActivityService) {}
 
+  // ===================== CORE ACTIVITY OPERATIONS =====================
+
+  @UseGuards(AuthGuard('jwt'), RoleGuard)
+  @Roles('project_manager', 'team_lead', 'admin', 'owner')
   @Post()
-  create(@Body() createTaskActivityDto: CreateTaskActivityDto) {
-    return this.taskActivityService.logActivity(createTaskActivityDto);
+  async create(
+    @Body() createTaskActivityDto: CreateTaskActivityDto,
+    @GetUser() user: UserPayload,
+  ): Promise<TaskActivity> {
+    this.logger.log(
+      `Creating activity for task: ${createTaskActivityDto.taskId}`,
+    );
+    return this.taskActivityService.logActivity(createTaskActivityDto, user);
   }
 
-  @Get('team/:teamId/account/:accountId')
-  @UseGuards(AuthGuard('jwt'), RoleGuard)
+  // ===================== TEAM ACTIVITIES =====================
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('team/:teamId')
   async getRecentActivitiesByTeam(
-    @Param('teamId') teamId: string,
-    @Param('accountId') accountId: string,
-    @GetUser() user: User,
-    @Query('skip') skip: number = 0,
-    @Query('take') take: number = 10,
+    @Param('teamId', ParseUUIDPipe) teamId: string,
+    @GetUser() user: UserPayload,
+    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number = 0,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number = 10,
   ): Promise<TaskActivity[]> {
+    this.logger.log(`Fetching team activities for team: ${teamId}`);
     return this.taskActivityService.listRecentActivitiesByTeam(
       teamId,
-      accountId,
       user,
       skip,
       take,
     );
   }
 
-  @Get('task/:taskId/account/:accountId')
-  @UseGuards(AuthGuard('jwt'), RoleGuard)
+  // ===================== TASK ACTIVITIES =====================
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('task/:taskId')
   async getActivitiesByTask(
-    @Param('taskId') taskId: string,
-    @Param('accountId') accountId: string,
-    @GetUser() user: User,
-    @Query('skip') skip: number = 0,
-    @Query('take') take: number = 10,
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @GetUser() user: UserPayload,
+    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number = 0,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number = 10,
   ): Promise<TaskActivity[]> {
-    return this.taskActivityService.listRecentActivitiesByTeam(
+    this.logger.log(`Fetching task activities for task: ${taskId}`);
+    return this.taskActivityService.listActivitiesByTask(
       taskId,
-      accountId,
       user,
       skip,
       take,
     );
+  }
+
+  // ===================== PROJECT ACTIVITIES =====================
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('project/:projectId')
+  async getProjectActivities(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @GetUser() user: UserPayload,
+    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number = 0,
+    @Query('take', new DefaultValuePipe(20), ParseIntPipe) take: number = 20,
+  ): Promise<TaskActivity[]> {
+    this.logger.log(`Fetching project activities for project: ${projectId}`);
+    return this.taskActivityService.listProjectActivities(
+      projectId,
+      user,
+      skip,
+      take,
+    );
+  }
+
+  // ===================== DASHBOARD ENDPOINTS =====================
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('account')
+  async getAccountActivities(
+    @GetUser() user: UserPayload,
+    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number = 0,
+    @Query('take', new DefaultValuePipe(20), ParseIntPipe) take: number = 20,
+  ): Promise<TaskActivity[]> {
+    this.logger.log(
+      `Fetching account activities for account: ${user.account.id}`,
+    );
+    return this.taskActivityService.listAccountActivities(user, skip, take);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('user')
+  async getUserActivities(
+    @GetUser() user: UserPayload,
+    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number = 0,
+    @Query('take', new DefaultValuePipe(20), ParseIntPipe) take: number = 20,
+  ): Promise<TaskActivity[]> {
+    this.logger.log(`Fetching user activities for user: ${user.userId}`);
+    return this.taskActivityService.listUserActivities(user, skip, take);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('stats')
+  async getActivityStats(@GetUser() user: UserPayload): Promise<{
+    totalActivities: number;
+    userActivities: number;
+    recentActivityCount: number;
+    topActions: Array<{ action: string; count: number }>;
+  }> {
+    this.logger.log(`Fetching activity stats for account: ${user.account.id}`);
+    return this.taskActivityService.getActivityStats(user);
   }
 }

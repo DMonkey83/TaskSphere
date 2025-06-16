@@ -1,11 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { MdTask } from "react-icons/md";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { DottedSeparator } from "@/components/dotted-separator";
 import { Button } from "@/components/ui/button";
@@ -29,11 +29,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useProjectsQuery } from "@/lib/queries/useProjects";
+import { useCreateTask } from "@/lib/queries/useTasks";
 import { useTeamsQuery } from "@/lib/queries/useTeams";
 import { userStore } from "@/store/user-store";
 
 import { CreateTaskSchema } from "@shared/dto/tasks.dto";
-import { z } from "zod";
 
 type CreateTask = z.infer<typeof CreateTaskSchema>;
 
@@ -43,7 +43,6 @@ interface CreateTaskModalProps {
 
 export const CreateTaskModal = ({ trigger }: CreateTaskModalProps) => {
   const { accountId, id } = userStore((state) => state.user);
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState<boolean>(false);
 
   const { data: projects, isLoading: projectsLoading } = useProjectsQuery(
@@ -63,9 +62,6 @@ export const CreateTaskModal = ({ trigger }: CreateTaskModalProps) => {
     defaultValues: {
       title: "",
       description: "",
-      priority: "medium",
-      type: "subtask",
-      status: "todo",
       projectKey: "",
       projectId: "",
       creatorId: id || "",
@@ -75,10 +71,6 @@ export const CreateTaskModal = ({ trigger }: CreateTaskModalProps) => {
       relatedTasks: undefined,
     },
   });
-
-  useEffect(() => {
-    form.setValue("creatorId", id || "", { shouldValidate: true });
-  }, [id, form]);
 
   const selectedProjectId = form.watch("projectId");
 
@@ -91,13 +83,29 @@ export const CreateTaskModal = ({ trigger }: CreateTaskModalProps) => {
         form.setValue("projectKey", selectedProject.projectKey);
       }
     }
-  }, [selectedProjectId, projects, form]);
+    form.setValue("creatorId", id || "", { shouldValidate: true });
+    console.log(form.getValues());
+  }, [id, selectedProjectId, projects, form]);
+
+  const { mutate: createTask, error: createTaskError } = useCreateTask();
 
   const onSubmit = (data: CreateTask) => {
     console.log("Creating task with data:", data);
-    toast.success("Task would be created!");
-    form.reset();
-    setOpen(false);
+    createTask(data, {
+      onSuccess: (task) => {
+        console.log("Task created successfully:", task);
+        toast.success("Task created successfully!");
+        form.reset();
+        setOpen(false);
+      },
+      onError: (error) => {
+        console.error("Error creating task:", error);
+        toast.error(
+          "Failed to create task. Please try again.",
+          createTaskError
+        );
+      },
+    });
   };
 
   return (

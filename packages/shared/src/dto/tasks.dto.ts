@@ -25,8 +25,10 @@ export const CreateTaskSchema = z.object({
       })
     )
     .optional(),
-  status: z.enum(["todo", "in_progress", "done", "delivered"]),
+  status: z.enum(["todo", "in_progress", "done", "delivered"]).default("todo"),
 });
+
+export type CreateTaskDto = z.infer<typeof CreateTaskSchema>;
 
 export const UpateTaskSchema = z.object({
   title: z.string().optional(),
@@ -55,15 +57,15 @@ export const UpateTaskSchema = z.object({
 
 export const TaskSchema = z.object({
   id: z.string().uuid(),
-  projectKey: z.string().optional(),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  assigneeId: z.string().uuid().optional(),
+  projectKey: z.string().nullish(),
+  title: z.string().nullish(),
+  description: z.string().nullish(),
+  assigneeId: z.string().uuid().nullish(),
   creatorId: z.string().uuid(),
-  parentId: z.string().uuid().optional(),
+  parentId: z.string().uuid().nullish(),
   priority: z.enum(["low", "medium", "high"]).default("medium"),
   projectId: z.string().uuid(),
-  teamId: z.string().uuid().optional(),
+  teamId: z.string().uuid().nullish(),
   type: z
     .enum(["epic", "bug", "feature", "story", "subtask"])
     .default("subtask"),
@@ -74,16 +76,18 @@ export const TaskSchema = z.object({
         relationType: z.enum(["cloned_from", "blocked_by", "blocking"]),
       })
     )
-    .optional(),
-  status: z.string().optional(),
-  deliveryAddress: z.string().optional(),
-  billableHours: z.number().optional(),
-  storyPoints: z.number().optional(),
-  deliveryWindow: z.string().optional(),
-  dueDate: z.coerce.date().optional(),
-  createdAt: z.coerce.date().optional(),
-  updatedAt: z.coerce.date().optional(),
+    .nullish(),
+  status: z.string().nullish(),
+  deliveryAddress: z.string().nullish(),
+  billableHours: z.number().nullish(),
+  storyPoints: z.number().nullish(),
+  deliveryWindow: z.string().nullish(),
+  dueDate: z.coerce.date().nullish(),
+  createdAt: z.coerce.date().nullish(),
+  updatedAt: z.coerce.date().nullish(),
 });
+
+export type TaskResponse = z.infer<typeof TaskSchema>;
 
 export const LogTaskStatusSchema = z.object({
   status: z.enum(["todo", "in_progress", "done", "delivered"]),
@@ -96,3 +100,38 @@ export const UpdateLogTaskStatusSchema = z.object({
   location: z.string().optional(),
   updatedById: z.string().uuid().optional(),
 });
+
+// Task Query and Filtering Schemas
+export const TaskFilterSchema = z.object({
+  projectId: z.string().uuid().optional(),
+  assigneeId: z.string().uuid().optional(),
+  creatorId: z.string().uuid().optional(),
+  teamId: z.string().uuid().optional(),
+  parentId: z.string().uuid().optional(),
+  status: z.enum(["todo", "in_progress", "done", "delivered"]).optional(),
+  priority: z.enum(["low", "medium", "high"]).optional(),
+  type: z.enum(["epic", "bug", "feature", "story", "subtask"]).optional(),
+  search: z.string().optional(), // Search in title/description
+  dueDateFrom: z.coerce.date().optional(),
+  dueDateTo: z.coerce.date().optional(),
+  createdFrom: z.coerce.date().optional(),
+  createdTo: z.coerce.date().optional(),
+  hasParent: z.boolean().optional(), // Filter for tasks with/without parent
+  isOverdue: z.boolean().optional(), // Filter for overdue tasks
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(50).default(20),
+  sortBy: z.enum(["createdAt", "updatedAt", "dueDate", "priority", "title"]).default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export type TaskFilterDto = z.infer<typeof TaskFilterSchema>;
+
+export const TaskListResponseSchema = z.object({
+  tasks: z.array(TaskSchema),
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+  totalPages: z.number(),
+});
+
+export type TaskListResponse = z.infer<typeof TaskListResponseSchema>;

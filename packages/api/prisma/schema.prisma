@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -32,12 +31,14 @@ model Account {
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @db.Timestamptz(6)
 
-  invites   AccountInvite[]
-  customers Customer[]
-  projects  Project[]
-  taskTags  TaskTag[]
-  teams     Team[]
-  users     User[]
+  invites         AccountInvite[]
+  customers       Customer[]
+  projects        Project[]
+  taskTags        TaskTag[]
+  teams           Team[]
+  users           User[]
+  Comment         Comment[]
+  OnboardingDraft OnboardingDraft[]
 
   @@map("accounts")
 }
@@ -75,18 +76,27 @@ model ClientPortalAccess {
 }
 
 model Comment {
-  id              String    @id(map: "PK_0b0e4bbc8415ec426f87f3a88e2") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  content         String    @db.VarChar
-  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime  @default(now()) @db.Timestamptz(6)
-  taskId          String?   @db.Uuid
-  authorId        String?   @db.Uuid
-  parentCommentId String?   @db.Uuid
-  user            User?     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_276779da446413a0d79598d4fbd")
-  comment         Comment?  @relation("commentTocomment", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_73aac6035a70c5f0313c939f237")
-  other_comment   Comment[] @relation("commentTocomment")
-  task            Task?     @relation(fields: [taskId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9fc19c95c33ef4d97d09b72ee95")
+  id              String   @id(map: "PK_0b0e4bbc8415ec426f87f3a88e2") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  content         String   @db.VarChar
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @db.Timestamptz(6)
+  taskId          String?  @db.Uuid
+  authorId        String?  @db.Uuid
+  parentCommentId String?  @db.Uuid
+  accountId       String?  @db.Uuid
+  isDeleted       Boolean  @default(false)
 
+  author        User?     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_276779da446413a0d79598d4fbd")
+  parentComment Comment?  @relation("commentTocomment", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_73aac6035a70c5f0313c939f237")
+  replies       Comment[] @relation("commentTocomment")
+  task          Task?     @relation(fields: [taskId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9fc19c95c33ef4d97d09b72ee95")
+  account       Account?  @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([taskId])
+  @@index([authorId])
+  @@index([parentCommentId])
+  @@index([accountId])
+  @@index([createdAt])
   @@map("comments")
 }
 
@@ -160,15 +170,22 @@ model Notification {
 }
 
 model OnboardingDraft {
-  id        String  @id(map: "PK_8e59a03cf261a7807fc9a0c1cb7") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId    String  @unique(map: "IDX_d5f11ff13aabc363815b435920") @db.Uuid
-  completed Boolean @default(false)
-  data      Json
+  id          String    @id(map: "PK_8e59a03cf261a7807fc9a0c1cb7") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId      String    @unique(map: "IDX_d5f11ff13aabc363815b435920") @db.Uuid
+  accountId   String?   @db.Uuid
+  completed   Boolean   @default(false)
+  data        Json      @default("{}") // Default to empty JSON object
+  step        Int?      @default(0)
+  completedAt DateTime? @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt()
 
-  user  User  @relation("onboarding_drafts_user_idTousers", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_d5f11ff13aabc363815b435920a")
-  draft User? @relation("users_onboarding_draft_idToonboarding_drafts")
+  user    User     @relation("onboarding_drafts_user_idTousers", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_d5f11ff13aabc363815b435920a")
+  draft   User?    @relation("users_onboarding_draft_idToonboarding_drafts")
+  account Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
 
   @@index([completed], map: "IDX_2cbbed537c59255337c5960698")
+  @@index([accountId], map: "IDX_onboarding_drafts_account_id")
   @@map("onboarding-drafts")
 }
 
@@ -313,6 +330,13 @@ model TaskActivity {
   task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_dd4d1f026f618e434d9254c0d68")
   user User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_fea29116442682a99fa5fa4ab32")
 
+  // Optimized indexes for task-based activity queries
+  @@index([taskId, createdAt], map: "IDX_task_activity_task_timeline")     // Primary: task activities by timeline
+  @@index([userId, createdAt], map: "IDX_task_activity_user_timeline")     // User activities by timeline  
+  @@index([createdAt], map: "IDX_task_activity_created_at")                // Global timeline ordering
+  @@index([taskId], map: "IDX_task_activity_task_id")                      // Foreign key for joins
+  @@index([action], map: "IDX_task_activity_action")                       // Statistics grouping
+
   @@map("task-activity")
 }
 
@@ -443,7 +467,39 @@ model Task {
   TaskStatusLog    TaskStatusLog[]
   TaskStatus       TaskStatus?        @relation(fields: [statusId], references: [id])
 
+  // Existing index
   @@index([dueDate], map: "IDX_c300d154a85801889174e92a3d")
+  
+  // CRITICAL: Account isolation (most important)
+  @@index([projectId], map: "IDX_task_project_id")
+  
+  // CRITICAL: Core filtering combinations
+  @@index([projectId, statusId], map: "IDX_task_project_status")
+  @@index([projectId, assigneeId], map: "IDX_task_project_assignee")
+  @@index([projectId, creatorId], map: "IDX_task_project_creator")
+  @@index([projectId, teamId], map: "IDX_task_project_team")
+  
+  // HIGH PRIORITY: Individual filters
+  @@index([assigneeId], map: "IDX_task_assignee")
+  @@index([creatorId], map: "IDX_task_creator")
+  @@index([statusId], map: "IDX_task_status")
+  @@index([teamId], map: "IDX_task_team")
+  @@index([parentId], map: "IDX_task_parent")
+  @@index([type], map: "IDX_task_type")
+  @@index([priority], map: "IDX_task_priority")
+  
+  // PERFORMANCE: Date and sorting
+  @@index([createdAt], map: "IDX_task_created_at")
+  @@index([updatedAt], map: "IDX_task_updated_at")
+  @@index([projectId, createdAt], map: "IDX_task_project_timeline")
+  @@index([assigneeId, createdAt], map: "IDX_task_user_timeline")
+  
+  // SEARCH OPTIMIZATION
+  @@index([title], map: "IDX_task_title")
+  
+  // OVERDUE TASKS
+  @@index([dueDate, statusId], map: "IDX_task_due_status")
+  
   @@map("tasks")
 }
 

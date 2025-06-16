@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { User } from '@prisma/client';
 import { ZodValidationPipe } from 'nestjs-zod';
 
 import { AuthenticatedRequest, UserResponse } from '@shared/dto/user.dto';
@@ -22,7 +23,6 @@ import {
 import { UsersService } from './users.service';
 import { RoleGuard } from '../auth/role.guard';
 import { Roles } from '../auth/roles.decorator';
-import { User } from './entities/user.entity';
 
 @Controller('users')
 export class UsersController {
@@ -67,8 +67,8 @@ export class UsersController {
       account: {
         id: user.account.id,
         name: user.account.name,
-        createdAt: user.account.createdAt.toISOString(),
-        updatedAt: user.account.updatedAt.toISOString(),
+        createdAt: user.account.createdAt,
+        updatedAt: user.account.updatedAt,
       },
       firstLoginAt: user.firstLoginAt,
       hasCompletedOnboarding: user.hasCompletedOnboarding,
@@ -78,7 +78,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string): Promise<User> {
+  async findById(@Param('id') id: string): Promise<UserResponseDto> {
     return this.usersService.findById(id);
   }
 

@@ -1,3 +1,4 @@
+import { UserRoleEnum } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
 
 import {
@@ -7,7 +8,6 @@ import {
   RefreshTokenResponseSchema,
   ValidateUserSchema,
 } from '@shared/dto/auth.dto';
-import { RoleEnum } from '@shared/enumsTypes/role.enum';
 
 export class LoginDto extends createZodDto(LoginSchema) {}
 export class LoginResponseDto extends createZodDto(LoginResponseSchema) {}
@@ -18,16 +18,16 @@ export class RefreshTokenResponseDto extends createZodDto(
 export class ValidateUserDto extends createZodDto(ValidateUserSchema) {}
 
 export type UserPayload = {
-  id: string;
+  userId: string;
   email: string;
-  role: RoleEnum;
+  role: UserRoleEnum;
   account: { id: string };
 };
 
 export interface UserEntity {
   id: string;
   email: string;
-  role: RoleEnum;
+  role: UserRoleEnum;
   passwordHash: string; // Changed from password
   account: { id: string };
 }

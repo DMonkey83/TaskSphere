@@ -1,5 +1,13 @@
 import { createZodDto } from 'nestjs-zod';
 
-import { TeamSchema } from '@shared/dto/team.dto';
+import {
+  AddTeamMemberSchema,
+  CreateTeamSchema,
+  TeamResponseSchema,
+  UpdateTeamSchema,
+} from '@shared/dto/team.dto';
 
-export class TeamDto extends createZodDto(TeamSchema) {}
+export class CreateTeamDto extends createZodDto(CreateTeamSchema) {}
+export class TeamResponseDto extends createZodDto(TeamResponseSchema) {}
+export class AddTeamMemberDto extends createZodDto(AddTeamMemberSchema) {}
+export class UpdateTeamDto extends createZodDto(UpdateTeamSchema) {}
