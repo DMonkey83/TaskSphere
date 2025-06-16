@@ -81,7 +81,6 @@ export class AuthService {
       // Find stored token
       const storedToken = await this.prisma.refreshToken.findFirst({
         where: { token: rToken, revoked: false },
-        include: { user: true },
       });
 
       this.logger.log(
@@ -95,15 +94,9 @@ export class AuthService {
       }
 
       // Revoke old token
-      storedToken.revoked = true;
-      await this.prisma.refreshToken.create({
-        data: {
-          token: storedToken.token,
-          user: { connect: { id: user.id } }, // Explicitly connect user
-          expiresAt: storedToken.expiresAt,
-          createdAt: new Date(),
-          revoked: true,
-        },
+      await this.prisma.refreshToken.update({
+        where: { id: storedToken.id },
+        data: { revoked: true },
       });
 
       // Generate new tokens
@@ -111,7 +104,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: user.role,
-        account: { id: user.accountId },
+        account: { id: user.account.id },
       };
 
       const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });

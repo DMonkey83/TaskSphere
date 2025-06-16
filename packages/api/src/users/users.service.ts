@@ -14,7 +14,7 @@ import {
   RegisterFromInviteDto,
   UserResponseDto,
 } from './dto/user.dto';
-import type { User, UserRoleEnum } from '../../generated/prisma';
+import type { Account, User, UserRoleEnum } from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { OnBoardingService } from './../onboarding/on-boarding.service';
 
@@ -41,8 +41,8 @@ export class UsersService {
     return user;
   }
 
-  async findById(id: string): Promise<User> {
-    const user = await this.prisma.user.findFirst({
+  async findById(id: string): Promise<UserResponseDto> {
+    const user = await this.prisma.user.findUnique({
       where: { id },
       include: { account: true },
     });
@@ -52,13 +52,13 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    return user;
+    return UserResponseSchema.parse(this.mapUserToResponse(user, user.account));
   }
 
-  async create(dto: CreateUserDto): Promise<User> {
+  async create(dto: CreateUserDto): Promise<UserResponseDto> {
     this.logger.log(`Creating user with email: ${dto.email}`);
     try {
-      const existing = await this.prisma.user.findFirst({
+      const existing = await this.prisma.user.findUnique({
         where: {
           email: dto.email,
           accountId: dto.accountId, // Ensure account ID is used for scoping
@@ -70,7 +70,7 @@ export class UsersService {
 
       const passwordHash = await bcrypt.hash(dto.passwordHash, 10);
 
-      const savedUser = await this.prisma.user.create({
+      const user = await this.prisma.user.create({
         data: {
           email: dto.email,
           passwordHash: passwordHash,
@@ -86,12 +86,12 @@ export class UsersService {
         },
         include: { account: true },
       });
-      this.logger.log(`User created successfully with ID: ${savedUser.id}`);
+      this.logger.log(`User created successfully with ID: ${user.id}`);
 
-      await this.onboardingService.createDraft(savedUser.id);
-      this.logger.log(`Onboarding draft created for user ID: ${savedUser.id}`);
+      await this.onboardingService.createDraft(user.id);
+      this.logger.log(`Onboarding draft created for user ID: ${user.id}`);
 
-      return savedUser;
+      return this.mapUserToResponse(user, user.account);
     } catch (error) {
       this.logger.error(
         `Error creating user: ${(error as Error).message}`,
@@ -137,27 +137,12 @@ export class UsersService {
         include: { account: true },
       });
 
-      const userResponse: UserResponse = {
-        id: savedUser.id,
-        email: savedUser.email,
-        firstName: savedUser.firstName,
-        lastName: savedUser.lastName,
-        role: savedUser.role,
-        account: {
-          id: savedUser.account.id,
-          name: savedUser.account.name,
-        },
-        firstLoginAt: savedUser.firstLoginAt,
-        hasCompletedOnboarding: savedUser.hasCompletedOnboarding,
-        onboardingStep: savedUser.onboardingStep,
-      };
-
       await tx.accountInvite.update({
         where: { id: invite.id },
         data: { accepted: true },
       });
 
-      return userResponse;
+      return savedUser;
     });
 
     const response = {
@@ -188,23 +173,26 @@ export class UsersService {
         },
         include: { account: true },
       });
-      const userResponse: UserResponseDto = {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        account: {
-          id: user.account.id,
-          name: user.account.name,
-        },
-        firstLoginAt: user.firstLoginAt,
-        hasCompletedOnboarding: user.hasCompletedOnboarding,
-        onboardingStep: user.onboardingStep,
-      };
-      return userResponse;
+      return this.mapUserToResponse(user, user.account);
     } catch (error) {
       throw new NotFoundException('User not found', error);
     }
+  }
+
+  private mapUserToResponse(user: User, account: Account): UserResponse {
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      account: {
+        id: user.accountId,
+        name: account.name,
+      },
+      firstLoginAt: user.firstLoginAt,
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
+      onboardingStep: user.onboardingStep,
+    };
   }
 }

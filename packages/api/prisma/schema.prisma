@@ -265,6 +265,7 @@ model RefreshToken {
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_610102b60fea1455310ccd299de")
 
+  @@index([token], map: "IDX_refresh_tokens_token")
   @@map("refresh-tokens")
 }
 
@@ -542,6 +543,7 @@ model User {
   TaskStatusLog       TaskStatusLog[]
 
   @@index([accountId, email], map: "IDX_a6132610e59f1890e60780d660")
+  @@index([accountId], map: "IDX_user_accountId_account")
   @@map("users")
 }
 
