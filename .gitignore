@@ -139,3 +139,4 @@ dist
 .pnp.*
 /certs
 /certs
+packages/api/CLAUDE.md
