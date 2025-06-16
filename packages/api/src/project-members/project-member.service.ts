@@ -1,64 +1,64 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository } from 'typeorm';
 
-import { ProjectView } from './../projects/entities/project-view.entity';
-import { Project } from './../projects/entities/project.entity';
-import { ProjectMember } from './entities/project-member.entity';
+import { RoleEnum } from '@shared/enumsTypes';
+
+import { ProjectMember } from '../../generated/prisma';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ProjectMemberService {
-  constructor(
-    @InjectRepository(Project)
-    private projectsRepository: Repository<Project>,
-    @InjectRepository(ProjectView)
-    private projectViewsRepository: Repository<ProjectView>,
-    @InjectRepository(ProjectMember)
-    private projectMemberRepository: Repository<ProjectMember>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async addMember(data: {
     userId: string;
     projectId: string;
     role: 'owner' | 'project_manager' | 'member';
-  }) {
-    const member = this.projectMemberRepository.create({
-      user: { id: data.userId },
-      project: { id: data.projectId },
-      role: data.role,
-    } as DeepPartial<ProjectMember>);
-    return this.projectMemberRepository.save(member);
+  }): Promise<ProjectMember> {
+    const member = await this.prisma.projectMember.create({
+      data: {
+        user: { connect: { id: data.userId } },
+        project: { connect: { id: data.projectId } },
+        role: data.role,
+      },
+    });
+    return member;
   }
 
   async getUserRoleInProject(
     userId: string,
     projectId: string,
-  ): Promise<string | null> {
-    const member = await this.projectMemberRepository.findOne({
+  ): Promise<RoleEnum | null> {
+    const member = await this.prisma.projectMember.findUnique({
       where: {
-        user: { id: userId },
-        project: { id: projectId },
+        userId_projectId: {
+          userId,
+          projectId,
+        },
       },
     });
 
-    return member?.role ?? null;
+    return (member?.role as RoleEnum) ?? null;
   }
 
   async listProjectMembers(projectId: string): Promise<ProjectMember[]> {
-    return this.projectMemberRepository.find({
-      where: { project: { id: projectId } },
+    const members: ProjectMember[] = await this.prisma.projectMember.findMany({
+      where: { projectId: projectId },
     });
+    return members;
   }
 
   async removeMember(userId: string, projectId: string): Promise<void> {
-    const member = await this.projectMemberRepository.findOne({
+    const member = await this.prisma.projectMember.deleteMany({
       where: {
-        user: { id: userId },
-        project: { id: projectId },
+        userId,
+        projectId,
       },
     });
 
-    if (!member) throw new NotFoundException('Member not found');
-    await this.projectMemberRepository.remove(member);
+    if (member.count === 0) {
+      throw new NotFoundException(
+        `Member with userId ${userId} not found in project ${projectId}`,
+      );
+    }
   }
 }
