@@ -14,6 +14,7 @@ import {
 } from '@shared/dto/team.dto';
 
 import { UserPayload } from '../auth/dto/auth.dto';
+import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateTeamDto,
@@ -26,7 +27,10 @@ import {
 export class TeamsService {
   private readonly logger = new Logger(TeamsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cacheService: CacheService,
+  ) {}
 
   async createTeam(
     dto: CreateTeamDto,
@@ -313,11 +317,11 @@ export class TeamsService {
     teamId: string,
     userId: string,
     user: UserPayload,
-  ): Promise<TeamResponseDto> {
+  ): Promise<void> {
     this.logger.log(`Removing member ${userId} from team ${teamId}`);
 
     try {
-      const result = await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx) => {
         // Check if team exists and user has access
         const team = await tx.team.findFirst({
           where: {
@@ -339,7 +343,7 @@ export class TeamsService {
         const isTeamMember = team.members.some(
           (member) => member.usersId === userId,
         );
-        const isRemovingSelf = userId === userId;
+        const isRemovingSelf = userId === user.userId;
 
         if (
           !isRemovingSelf &&
@@ -373,52 +377,8 @@ export class TeamsService {
           },
         });
 
-        // Fetch updated team with relations
-        const updatedTeam = await tx.team.findUnique({
-          where: { id: teamId },
-          include: {
-            members: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    email: true,
-                    firstName: true,
-                    lastName: true,
-                    role: true,
-                  },
-                },
-              },
-            },
-            projects: {
-              include: {
-                project: {
-                  select: {
-                    id: true,
-                    name: true,
-                    description: true,
-                  },
-                },
-              },
-            },
-            _count: {
-              select: {
-                members: true,
-                projects: true,
-              },
-            },
-          },
-        });
-
         this.logger.log(`Member removed successfully from team ${teamId}`);
-        return updatedTeam as TeamResponseDto;
       });
-
-      return {
-        ...result,
-        members: result.members,
-        projects: result.projects,
-      } as TeamResponseDto;
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -439,6 +399,8 @@ export class TeamsService {
   async listTeamsByAccount(
     accountId: string,
     user: UserPayload,
+    skip = 0,
+    take = 20,
   ): Promise<TeamResponseDto[]> {
     this.logger.log(`Fetching teams for account: ${accountId}`);
 
@@ -448,9 +410,27 @@ export class TeamsService {
     }
 
     try {
+      // For admin-level users, we can cache the full team list
+      const isAdminUser = this.hasTeamManagementPermission(user.role);
+      const cacheKey = isAdminUser
+        ? this.cacheService.teamsByAccountKey(accountId)
+        : `teams:account:${accountId}:user:${user.userId}`;
+
+      // Try cache first (only for admin users for now to keep it simple)
+      if (isAdminUser) {
+        const cachedTeams =
+          await this.cacheService.get<TeamResponseDto[]>(cacheKey);
+        if (cachedTeams) {
+          this.logger.log(
+            `Cache hit: Found ${cachedTeams.length} teams for account ${accountId}`,
+          );
+          return cachedTeams.slice(skip, skip + take);
+        }
+      }
+
       let whereClause;
 
-      if (this.hasTeamManagementPermission(user.role)) {
+      if (isAdminUser) {
         // Admins, project managers, and owners can see all teams in the account
         whereClause = { accountId };
       } else {
@@ -500,13 +480,25 @@ export class TeamsService {
         orderBy: {
           createdAt: 'desc',
         },
+        skip,
+        take,
       })) as TeamResponseDto[];
 
-      return teams.map((team) => ({
+      const mappedTeams = teams.map((team) => ({
         ...team,
         members: team.members,
         projects: team.projects,
       })) as TeamResponseDto[];
+
+      // Cache results for admin users
+      if (isAdminUser && mappedTeams.length > 0) {
+        await this.cacheService.set(cacheKey, mappedTeams, 300); // 5 minutes
+        this.logger.log(
+          `Cache miss: Found ${mappedTeams.length} teams for account ${accountId}`,
+        );
+      }
+
+      return mappedTeams;
     } catch (error) {
       if (error instanceof ForbiddenException) {
         throw error;

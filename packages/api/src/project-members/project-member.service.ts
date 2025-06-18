@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ProjectMember } from '@prisma/client';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { ProjectMember, MemberRoleEnum } from '@prisma/client';
 
 import { RoleEnum } from '@shared/enumsTypes';
 
@@ -12,16 +16,70 @@ export class ProjectMemberService {
   async addMember(data: {
     userId: string;
     projectId: string;
-    role: 'owner' | 'project_manager' | 'member';
+    role: MemberRoleEnum;
   }): Promise<ProjectMember> {
-    const member = await this.prisma.projectMember.create({
-      data: {
-        user: { connect: { id: data.userId } },
-        project: { connect: { id: data.projectId } },
-        role: data.role,
-      },
+    return await this.prisma.$transaction(async (tx) => {
+      // Check if user exists
+      const user = await tx.user.findUnique({
+        where: { id: data.userId },
+        select: { id: true },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Check if project exists
+      const project = await tx.project.findUnique({
+        where: { id: data.projectId },
+        select: { id: true },
+      });
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+
+      // Check if member already exists
+      const existingMember = await tx.projectMember.findUnique({
+        where: {
+          userId_projectId: {
+            userId: data.userId,
+            projectId: data.projectId,
+          },
+        },
+      });
+      if (existingMember) {
+        throw new BadRequestException(
+          'User is already a member of this project',
+        );
+      }
+
+      // Create the member
+      const member = await tx.projectMember.create({
+        data: {
+          userId: data.userId,
+          projectId: data.projectId,
+          role: data.role,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+            },
+          },
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      return member;
     });
-    return member;
   }
 
   async getUserRoleInProject(
@@ -41,24 +99,68 @@ export class ProjectMemberService {
   }
 
   async listProjectMembers(projectId: string): Promise<ProjectMember[]> {
-    const members: ProjectMember[] = await this.prisma.projectMember.findMany({
-      where: { projectId: projectId },
+    // First verify project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const members = await this.prisma.projectMember.findMany({
+      where: { projectId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: {
+        joinedAt: 'asc',
+      },
     });
     return members;
   }
 
   async removeMember(userId: string, projectId: string): Promise<void> {
-    const member = await this.prisma.projectMember.deleteMany({
-      where: {
-        userId,
-        projectId,
-      },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      // Check if project exists
+      const project = await tx.project.findUnique({
+        where: { id: projectId },
+        select: { id: true },
+      });
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
 
-    if (member.count === 0) {
-      throw new NotFoundException(
-        `Member with userId ${userId} not found in project ${projectId}`,
-      );
-    }
+      // Check if member exists
+      const existingMember = await tx.projectMember.findUnique({
+        where: {
+          userId_projectId: {
+            userId,
+            projectId,
+          },
+        },
+      });
+      if (!existingMember) {
+        throw new NotFoundException('User is not a member of this project');
+      }
+
+      // Remove the member
+      await tx.projectMember.delete({
+        where: {
+          userId_projectId: {
+            userId,
+            projectId,
+          },
+        },
+      });
+    });
   }
 }

@@ -1,5 +1,6 @@
 import { forwardRef, Module } from '@nestjs/common';
 
+import { CacheModule } from '../cache/cache.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UsersModule } from '../users/users.module';
 import { AccountsModule } from './../accounts/accounts.module';
@@ -17,6 +18,7 @@ import { TaskModule } from '../tasks/task.module';
     forwardRef(() => ProjectMemberModule),
     forwardRef(() => TaskModule),
     PrismaModule,
+    CacheModule,
     UsersModule,
     AccountsModule,
   ],

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, Project } from '@prisma/client';
 
+import { CacheService } from '../../cache/cache.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SearchProjectsParams } from '../types/project.types';
 
@@ -8,7 +9,10 @@ import { SearchProjectsParams } from '../types/project.types';
 export class ProjectSearchService {
   private readonly logger = new Logger(ProjectSearchService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async searchProjects(params: SearchProjectsParams): Promise<{
     projects: Project[];
@@ -130,18 +134,74 @@ export class ProjectSearchService {
       `Paginated search for account: ${accountId}, limit: ${limit}, offset: ${offset}`,
     );
 
+    // Only cache first page requests to keep it simple and effective
+    const isFirstPage = offset === 0;
+    const cacheKey = `projects:paginated:${accountId}:${limit}`;
+
+    if (isFirstPage) {
+      return this.cacheService.getOrSet(
+        cacheKey,
+        async () => {
+          const where: Prisma.ProjectWhereInput = {
+            accountId,
+            archived: false,
+          };
+
+          const [projects, total] = await this.prisma.$transaction([
+            this.prisma.project.findMany({
+              where,
+              include: {
+                owner: {
+                  select: {
+                    id: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+                account: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+                _count: {
+                  select: {
+                    tasks: true,
+                    members: true,
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              skip: offset,
+              take: limit,
+            }),
+            this.prisma.project.count({ where }),
+          ]);
+
+          const result = {
+            projects,
+            total,
+            limit,
+            offset,
+          };
+
+          this.logger.log(
+            `Database query: Found ${projects.length} projects for account ${accountId}`,
+          );
+          return result;
+        },
+        300, // 5 minutes TTL
+      );
+    }
+
+    // Non-first page - no caching
     const where: Prisma.ProjectWhereInput = {
       accountId,
       archived: false,
     };
-
-    // Debug logging
-    const totalInAccount = await this.prisma.project.count({
-      where: { accountId },
-    });
-    this.logger.log(
-      `Total projects for account ${accountId}: ${totalInAccount}`,
-    );
 
     const [projects, total] = await this.prisma.$transaction([
       this.prisma.project.findMany({
@@ -177,16 +237,18 @@ export class ProjectSearchService {
       this.prisma.project.count({ where }),
     ]);
 
-    this.logger.log(
-      `Paginated result: found ${projects.length} projects, total: ${total}`,
-    );
-
-    return {
+    const result = {
       projects,
       total,
       limit,
       offset,
     };
+
+    this.logger.log(
+      `No cache: Found ${projects.length} projects for account ${accountId} (page ${Math.floor(offset / limit) + 1})`,
+    );
+
+    return result;
   }
 
   async searchProjectsByName(

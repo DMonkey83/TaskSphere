@@ -59,7 +59,7 @@ export function useSetupStores({
       setProjects(projects.projects || []);
     if (!isEqual(currentProjectTotal, projects.total))
       setProjectsTotal(projects.total);
-    if (!isEqual(currentTasks, tasks)) setTasks(tasks.tasks || []);
+    if (!isEqual(currentTasks, tasks.tasks)) setTasks(tasks.tasks || []);
     if (!isEqual(currentTaskTotal, tasks.total)) setTasksTotal(tasks.total);
   }, [
     user,

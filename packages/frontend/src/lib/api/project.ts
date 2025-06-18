@@ -2,7 +2,7 @@ import { AxiosError } from "axios";
 import { z } from "zod";
 
 import {
-  CreateProject,
+  CreateProjectRequest,
   ProjectResponse,
   ProjectsListResponse,
   ProjectsListResponseSchema,
@@ -26,7 +26,7 @@ export async function fetchProjectsClient(): Promise<ProjectsListResponse> {
 }
 
 export const createProject = async (
-  data: CreateProject
+  data: CreateProjectRequest
 ): Promise<ProjectResponse> => {
   try {
     console.log("Creating project with data:", data);

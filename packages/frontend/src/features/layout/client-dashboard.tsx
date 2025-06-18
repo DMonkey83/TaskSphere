@@ -37,6 +37,7 @@ export default function ClientDashboard({}) {
   } = useProjectsQuery(accountId!, {
     enabled: !!accountId,
   });
+  console.log("projects", projects);
   const {
     data: tasks,
     isLoading: tasksLoading,
@@ -53,6 +54,7 @@ export default function ClientDashboard({}) {
     },
     teams,
     projects,
+    tasks,
   });
 
   if (userLoading || teamsLoading || projectsLoading || tasksLoading)

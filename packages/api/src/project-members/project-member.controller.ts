@@ -1,10 +1,8 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   Post,
   UseGuards,
@@ -13,11 +11,13 @@ import { AuthGuard } from '@nestjs/passport';
 import { ProjectMember } from '@prisma/client';
 import { ZodValidationPipe } from 'nestjs-zod';
 
-import { PrismaService } from 'src/prisma/prisma.service';
+import {
+  AddProjectMemberSchema,
+  RemoveProjectMemberSchema,
+} from '@shared/dto/project-members.dto';
 
+import { ProjectRoleGuard } from './../auth/role.guard';
 import { ProjectRoles } from './../auth/roles.decorator';
-import { ProjectsService } from './../projects/projects.service';
-import { UsersService } from './../users/users.service';
 import {
   AddProjectMemberDto,
   RemoveProjectMemberDto,
@@ -26,35 +26,23 @@ import { ProjectMemberService } from './project-member.service';
 
 @Controller('project-members')
 export class ProjectMemberController {
-  constructor(
-    private prisma: PrismaService,
-    private readonly projectMembersService: ProjectMemberService,
-    private readonly userService: UsersService,
-    private readonly projectsService: ProjectsService,
-  ) {}
+  constructor(private readonly projectMembersService: ProjectMemberService) {}
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), ProjectRoleGuard)
   @ProjectRoles('owner', 'project_manager')
   @Post()
   async addMember(
-    @Body(new ZodValidationPipe(AddProjectMemberDto)) body: AddProjectMemberDto,
+    @Body(new ZodValidationPipe(AddProjectMemberSchema))
+    body: AddProjectMemberDto,
   ): Promise<ProjectMember> {
-    const user = await this.userService.findById(body.userId);
-    if (!user) throw new NotFoundException('User not found');
-    const project = await this.projectsService.findProjectById(body.projectId);
-    if (!project) throw new NotFoundException('project not found');
-    const projectMember = await this.prisma.projectMember.findFirst({
-      where: { user: { id: user.id }, project: { id: project.id } },
-    });
-    if (projectMember) throw new BadRequestException('Member already added');
     return this.projectMembersService.addMember({
-      userId: user.id,
-      projectId: project.id,
-      role: body.role || 'member',
+      userId: body.userId,
+      projectId: body.projectId,
+      role: body.role,
     });
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), ProjectRoleGuard)
   @ProjectRoles('owner', 'project_manager', 'member')
   @Get('project/:projectId')
   async listProjectMembers(
@@ -63,11 +51,12 @@ export class ProjectMemberController {
     return this.projectMembersService.listProjectMembers(projectId);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), ProjectRoleGuard)
   @ProjectRoles('owner', 'project_manager')
   @Delete()
   async removeMember(
-    @Body(new ZodValidationPipe()) body: RemoveProjectMemberDto,
+    @Body(new ZodValidationPipe(RemoveProjectMemberSchema))
+    body: RemoveProjectMemberDto,
   ): Promise<void> {
     return this.projectMembersService.removeMember(body.userId, body.projectId);
   }

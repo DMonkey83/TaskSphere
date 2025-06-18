@@ -4,9 +4,7 @@ import { TeamsResponse, TeamsResponseSchema } from "@shared/dto/team.dto";
 
 import clientApi from "../axios";
 
-export async function fetchTeamsClient(
-  accountId: string
-): Promise<TeamsResponse> {
+export async function fetchTeamsClient(): Promise<TeamsResponse> {
   try {
     const response = await clientApi.get<TeamsResponse>(`/api/teams`);
     console.log("Fetched teams data:", response.data);

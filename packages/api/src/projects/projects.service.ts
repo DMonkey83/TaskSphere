@@ -15,6 +15,7 @@ import {
   ProjectWorkflowEnum,
 } from '@prisma/client';
 
+import { CacheService } from '../cache/cache.service';
 import { slugify } from '../common/slugify.util';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -35,6 +36,7 @@ export class ProjectsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
     private readonly projectKeyService: ProjectKeyService,
     private readonly projectSearchService: ProjectSearchService,
     private readonly projectViewService: ProjectViewService,
@@ -43,17 +45,55 @@ export class ProjectsService {
 
   // ===================== CORE CRUD OPERATIONS =====================
 
+  private async generateUniqueSlug(
+    name: string,
+    accountId: string,
+  ): Promise<string> {
+    const baseSlug = slugify(name);
+
+    // Find all existing slugs that start with the base slug
+    const existingSlugs = await this.prisma.project.findMany({
+      where: {
+        accountId,
+        slug: { startsWith: baseSlug },
+        archived: false,
+      },
+      select: { slug: true },
+    });
+
+    const existingSlugSet = new Set(existingSlugs.map((p) => p.slug));
+
+    // If base slug is unique, return it
+    if (!existingSlugSet.has(baseSlug)) {
+      return baseSlug;
+    }
+
+    // Find unique slug with numeric suffix
+    for (let suffix = 1; suffix < 100; suffix++) {
+      const candidate = `${baseSlug}-${suffix}`;
+      if (!existingSlugSet.has(candidate)) {
+        return candidate;
+      }
+    }
+
+    // If we can't find a unique slug, throw an error
+    throw new BadRequestException(
+      `Unable to generate unique slug for project name: ${name}`,
+    );
+  }
+
   async create(dto: CreateProjectDto): Promise<Project> {
     this.logger.log(
       `Creating project: ${dto.name} for account: ${dto.accountId}`,
     );
+    this.logger.debug(`Full DTO: ${JSON.stringify(dto)}`);
     try {
       const projectKey = await this.projectKeyService.generateProjectKey(
         dto.name,
         dto.industry,
         dto.accountId,
       );
-      const slug = slugify(dto.name);
+      const slug = await this.generateUniqueSlug(dto.name, dto.accountId);
 
       const savedProject = await this.prisma.project.create({
         data: {
@@ -90,6 +130,11 @@ export class ProjectsService {
       });
 
       this.logger.log(`Project created successfully: ${savedProject.id}`);
+      this.logger.debug(`Saved project: ${JSON.stringify(savedProject)}`);
+
+      // Invalidate account-related caches
+      await this.cacheService.invalidateAccountCaches(dto.accountId);
+
       return savedProject;
     } catch (error) {
       this.handlePrismaError(error, 'create project');
@@ -101,6 +146,19 @@ export class ProjectsService {
       throw new BadRequestException('Project ID is required');
     }
     try {
+      // Try cache first for project details
+      const cacheKey = this.cacheService.projectDetailsKey(id);
+      const cachedProject = await this.cacheService.get<Project>(cacheKey);
+
+      if (cachedProject) {
+        // Validate account access if accountId provided
+        if (accountId && cachedProject.accountId !== accountId) {
+          throw new NotFoundException('Project not found');
+        }
+        return cachedProject;
+      }
+
+      // Cache miss - fetch from database
       const project = await this.prisma.project.findUnique({
         where: { id },
         include: {
@@ -123,6 +181,9 @@ export class ProjectsService {
       if (!project) {
         throw new NotFoundException('Project not found');
       }
+
+      // Cache the project for 10 minutes (longer TTL since project details change less frequently)
+      await this.cacheService.set(cacheKey, project, 600);
 
       return project;
     } catch (error) {
@@ -216,6 +277,11 @@ export class ProjectsService {
         },
       });
       this.logger.log(`Project updated successfully: ${projectId}`);
+
+      // Invalidate caches after update
+      await this.cacheService.invalidateProjectCaches(projectId);
+      await this.cacheService.invalidateAccountCaches(updatedProject.accountId);
+
       return updatedProject;
     } catch (error) {
       this.handlePrismaError(error, 'update project');
@@ -308,40 +374,50 @@ export class ProjectsService {
 
     this.logger.log(`Listing projects for account ID: ${accountId}`);
 
-    const result = await this.prisma.project.findMany({
-      where: {
-        accountId,
-        archived: false,
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        account: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        _count: {
-          select: {
-            tasks: true,
-            members: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const cacheKey = this.cacheService.projectsByAccountKey(accountId);
 
-    this.logger.log(`Found ${result.length} projects for account ${accountId}`);
-    return result as Project[];
+    return await this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const result = await this.prisma.project.findMany({
+          where: {
+            accountId,
+            archived: false,
+          },
+          include: {
+            owner: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            account: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            _count: {
+              select: {
+                tasks: true,
+                members: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+        this.logger.log(
+          `Database query: Found ${result.length} projects for account ${accountId}`,
+        );
+        return result;
+      },
+      300, // 5 minutes TTL
+    );
   }
 
   // Delegate search operations to ProjectSearchService

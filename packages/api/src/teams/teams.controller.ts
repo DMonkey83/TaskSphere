@@ -61,7 +61,12 @@ export class TeamsController {
     this.logger.log(
       `Fetching teams for account: ${user.account.id}, ${skip} skipped, ${take} taken`,
     );
-    return this.teamsService.listTeamsByAccount(user.account.id, user);
+    return this.teamsService.listTeamsByAccount(
+      user.account.id,
+      user,
+      skip,
+      take,
+    );
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -112,7 +117,8 @@ export class TeamsController {
     return this.teamsService.addTeamMember({ ...dto, teamId }, user);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RoleGuard)
+  @Roles('project_manager', 'team_lead', 'admin', 'owner')
   @Delete(':id/members/:userId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeTeamMember(

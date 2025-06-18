@@ -31,13 +31,13 @@ import { ProjectsService } from './projects.service';
 import { UserPayload } from '../auth/dto/auth.dto';
 import { RoleGuard } from '../auth/role.guard';
 import {
-  CreateProjectDto,
+  CreateProjectRequestDto,
   CreateProjectViewDto,
   UpdateProjectDto,
   UpdateProjectStatusDto,
 } from './dto/project.dto';
 import {
-  CreateProjectSchema,
+  CreateProjectRequestSchema,
   CreateProjectViewSchema,
   UpdateProjectSchema,
 } from '../../../shared/src/dto/projects.dto';
@@ -58,20 +58,26 @@ export class ProjectController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Body(new ZodValidationPipe(CreateProjectSchema))
-    createProjectDto: CreateProjectDto,
+    @Body(new ZodValidationPipe(CreateProjectRequestSchema))
+    createProjectRequestDto: CreateProjectRequestDto,
     @GetUser() user: UserPayload,
   ): Promise<Project> {
     this.logger.log(
-      `Creating project: ${createProjectDto.name} for account: ${user.account.id}`,
+      `Creating project: ${createProjectRequestDto.name} for account: ${user.account.id}`,
     );
     // Ensure the project is created for the authenticated user's account
     const projectData = {
-      ...createProjectDto,
+      ...createProjectRequestDto,
       accountId: user.account.id,
       ownerId: user.userId,
+      workflow: createProjectRequestDto.workflow || 'kanban',
     };
-    return this.projectsService.create(projectData);
+    this.logger.debug(
+      `Project data being sent: ${JSON.stringify(projectData)}`,
+    );
+    const result = await this.projectsService.create(projectData);
+    this.logger.debug(`Controller received result: ${JSON.stringify(result)}`);
+    return result;
   }
 
   @UseGuards(AuthGuard('jwt'), RoleGuard)
@@ -116,34 +122,10 @@ export class ProjectController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Get(':projectId')
-  async getProjectById(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
-  ): Promise<Project> {
-    this.logger.log('Listing projects for account ID:', projectId);
-
-    return this.projectsService.findProjectById(projectId);
-  }
-
-  @UseGuards(AuthGuard('jwt'))
-  @Get('key/:projectKey')
-  async getProjectByKey(
-    @Param('projectKey') projectKey: string,
-  ): Promise<Project> {
-    this.logger.log('Listing projects for account key:', projectKey);
-    return this.projectsService.findByKey(projectKey);
-  }
-
-  @UseGuards(AuthGuard('jwt'), RoleGuard)
-  @Roles('project_manager', 'owner', 'admin')
-  @Delete(':projectId')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteProject(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
-    @GetUser() user: User,
-  ): Promise<void> {
-    this.logger.log(`Archiving project: ${projectId} by user: ${user.email}`);
-    await this.projectsService.archiveProject(projectId);
+  @Get('all')
+  async listAllProjects(@GetUser() user: UserPayload): Promise<Project[]> {
+    this.logger.log(`Listing all projects for account: ${user.account.id}`);
+    return this.projectsService.listProjectsByAccount(user.account.id);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -187,6 +169,52 @@ export class ProjectController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get('suggestions')
+  async getProjectSuggestions(
+    @GetUser() user: UserPayload,
+    @Query('q') query?: string,
+    @Query('limit', new DefaultValuePipe(5), ParseIntPipe) limit?: number,
+  ): Promise<Array<{ id: string; name: string; projectKey: string }>> {
+    this.logger.log(`Getting project suggestions for: ${query}`);
+    return this.projectsService.getProjectSuggestions(
+      user.account.id,
+      query || '',
+      limit || 5,
+    );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('key/:projectKey')
+  async getProjectByKey(
+    @Param('projectKey') projectKey: string,
+  ): Promise<Project> {
+    this.logger.log('Listing projects for account key:', projectKey);
+    return this.projectsService.findByKey(projectKey);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get(':projectId')
+  async getProjectById(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+  ): Promise<Project> {
+    this.logger.log('Listing projects for account ID:', projectId);
+
+    return this.projectsService.findProjectById(projectId);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RoleGuard)
+  @Roles('project_manager', 'owner', 'admin')
+  @Delete(':projectId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteProject(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @GetUser() user: User,
+  ): Promise<void> {
+    this.logger.log(`Archiving project: ${projectId} by user: ${user.email}`);
+    await this.projectsService.archiveProject(projectId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get()
   async listProjects(
     @GetUser() user: UserPayload,
@@ -205,28 +233,6 @@ export class ProjectController {
       user.account.id,
       limit || 20,
       offset || 0,
-    );
-  }
-
-  @UseGuards(AuthGuard('jwt'))
-  @Get('all')
-  async listAllProjects(@GetUser() user: UserPayload): Promise<Project[]> {
-    this.logger.log(`Listing all projects for account: ${user.account.id}`);
-    return this.projectsService.listProjectsByAccount(user.account.id);
-  }
-
-  @UseGuards(AuthGuard('jwt'))
-  @Get('suggestions')
-  async getProjectSuggestions(
-    @GetUser() user: UserPayload,
-    @Query('q') query?: string,
-    @Query('limit', new DefaultValuePipe(5), ParseIntPipe) limit?: number,
-  ): Promise<Array<{ id: string; name: string; projectKey: string }>> {
-    this.logger.log(`Getting project suggestions for: ${query}`);
-    return this.projectsService.getProjectSuggestions(
-      user.account.id,
-      query || '',
-      limit || 5,
     );
   }
 

@@ -19,9 +19,8 @@ export const useTeamsQuery = (
 ): UseQueryResult<TeamsResponse, unknown> => {
   return useQuery<TeamsResponse, unknown, TeamsResponse, TeamsQueryKey>({
     queryKey: ["teams", { accountId }],
-    queryFn: ({ queryKey }) => {
-      const [, { accountId }] = queryKey;
-      return fetchTeamsClient(accountId);
+    queryFn: ({}) => {
+      return fetchTeamsClient();
     },
     ...options,
   });

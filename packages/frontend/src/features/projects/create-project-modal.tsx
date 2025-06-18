@@ -56,8 +56,6 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
     defaultValues: {
       name: "",
       industry: undefined,
-      accountId: accountId || "",
-      ownerId: id || "",
       description: "",
       matterNumber: "",
       config: {},
@@ -73,16 +71,11 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
     console.log("form default values:", form.getValues());
     if (accountId && id) {
       form.setValue("accountId", accountId || "", { shouldValidate: true });
-      form.setValue("ownerId", id || "", { shouldValidate: true });
+      // form.setValue("ownerId", id || "", { shouldValidate: true });
     }
   }, [accountId, id, form]);
 
   const { mutate: createProject } = useCreateProject();
-  console.log(
-    "CreateProjectModal rendered with accountId:",
-    accountId,
-    form.formState.isValid
-  );
   const onSubmit = (data: CreateProject) => {
     createProject(data, {
       onSuccess: (response: ProjectResponse) => {

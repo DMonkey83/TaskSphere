@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { AttachmentModule } from './attachments/attachment.module';
 import { AuthModule } from './auth/auth.module';
 import { RefreshTokenInterceptor } from './auth/refresh-token.interceptor';
+import { CacheModule } from './cache/cache.module';
 import { ClientPortalModule } from './client-portal/client-portal.module';
 import { CommentModule } from './comments/comment.module';
 import { CustomerModule } from './customers/customer.module';
@@ -34,6 +35,7 @@ import { UsersModule } from './users/users.module';
       cache: true, // Cache config for better performance
     }),
     PrismaModule, // Prisma handles database connection
+    CacheModule, // Redis caching
 
     // Feature modules
     OnBoardingModule,

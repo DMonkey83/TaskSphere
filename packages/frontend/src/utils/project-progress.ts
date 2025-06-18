@@ -1,12 +1,20 @@
 export const calculateTimeProgress = (
-  startDate?: Date,
-  endDate?: Date
+  startDate?: Date | null,
+  endDate?: Date | null
 ): number | null => {
   if (!startDate || !endDate) return null;
 
   const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const start = startDate ? new Date(startDate) : null;
+  const end = endDate ? new Date(endDate) : null;
+
+  console.log("Calculating time progress:", {
+    startDate,
+    endDate,
+    end,
+  });
+
+  if (!start || !end) return null;
 
   if (now < start) return 0;
   if (now > end) return 100;
