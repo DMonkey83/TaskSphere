@@ -32,7 +32,7 @@ export const UserResponseSchema = z.object({
   lastName: z.string(),
   role: RoleZodEnum,
   account: AccountData,
-  firstLoginAt: z.date().nullable().optional(),
+  firstLoginAt: z.date().or(z.string()).nullable().optional(),
   hasCompletedOnboarding: z.boolean().optional(),
   onboardingStep: z.number().optional(),
 });

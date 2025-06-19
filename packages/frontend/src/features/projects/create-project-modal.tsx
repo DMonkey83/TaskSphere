@@ -17,9 +17,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormField, FormItem } from "@/components/ui/form";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormControl,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,9 +34,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useOnboarding } from "@/lib/queries/useOnboarding";
 import { useCreateProject } from "@/lib/queries/useProjects";
 import { projectStore } from "@/store/project-store";
-import { userStore } from "@/store/user-store";
 
 import {
   CreateProject,
@@ -46,20 +52,21 @@ interface CreateProjectModalProps {
 }
 
 export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
-  const { accountId, id } = userStore((state) => state.user);
   const { addProject } = projectStore();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState<boolean>(false);
+  const { draft } = useOnboarding();
   const form = useForm<CreateProject>({
     resolver: zodResolver(CreateProjectSchema),
     mode: "onChange",
     defaultValues: {
-      name: "",
-      industry: undefined,
-      description: "",
+      name: draft?.data?.projectDefaults?.name || "",
+      industry: draft?.data?.projectDefaults?.industry || undefined,
+      workflow: draft?.data?.projectDefaults?.workflow || undefined,
+      description: draft?.data?.projectDefaults?.description || "",
       matterNumber: "",
       config: {},
-      visibility: "private",
+      visibility: draft?.data?.projectDefaults?.visibility || "private",
       tags: [],
       startDate: undefined,
       endDate: undefined,
@@ -67,13 +74,18 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
     },
   });
 
+  // Update form with project defaults when draft loads
   useEffect(() => {
-    console.log("form default values:", form.getValues());
-    if (accountId && id) {
-      form.setValue("accountId", accountId || "", { shouldValidate: true });
-      // form.setValue("ownerId", id || "", { shouldValidate: true });
+    if (draft?.data?.projectDefaults) {
+      const defaults = draft.data.projectDefaults;
+      if (defaults.name) form.setValue("name", defaults.name);
+      if (defaults.industry) form.setValue("industry", defaults.industry);
+      if (defaults.workflow) form.setValue("workflow", defaults.workflow);
+      if (defaults.description)
+        form.setValue("description", defaults.description);
+      if (defaults.visibility) form.setValue("visibility", defaults.visibility);
     }
-  }, [accountId, id, form]);
+  }, [draft, form]);
 
   const { mutate: createProject } = useCreateProject();
   const onSubmit = (data: CreateProject) => {
@@ -83,7 +95,7 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
         toast.success("Project created successfully!");
         form.reset();
         queryClient.invalidateQueries({
-          queryKey: projectKeys.byAccount(data.accountId),
+          queryKey: projectKeys.byAccount(response.account.id),
         });
         setOpen(false);
       },
@@ -93,7 +105,6 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
         );
       },
     });
-    console.log("Creating project with data:", data);
   };
 
   return (
@@ -123,13 +134,15 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <Label htmlFor="name">Project Name</Label>
-                    <Input
-                      id="name"
-                      {...field}
-                      type="text"
-                      placeholder="Project Name"
-                    />
+                    <FormLabel>Project Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="text"
+                        placeholder="Project Name"
+                      />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -138,27 +151,27 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <Label htmlFor="industry">Industry</Label>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an Industry" />
-                        <SelectContent>
-                          {Industries.map((industry) => {
-                            return (
-                              <SelectItem
-                                key={industry.value}
-                                value={industry.value}
-                              >
-                                {industry.label}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </SelectTrigger>
+                    <FormLabel>Industry</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an Industry" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Industries.map((industry) => {
+                          return (
+                            <SelectItem
+                              key={industry.value}
+                              value={industry.value}
+                            >
+                              {industry.label}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
                     </Select>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -168,13 +181,14 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    {...field}
-                    placeholder="Brief description of the project"
-                  />
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="Brief description of the project"
+                    />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -184,24 +198,24 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <Label htmlFor="planningType">Plannig Type</Label>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a Planning Type" />
-                        <SelectContent>
-                          {Workflows.map((type) => {
-                            return (
-                              <SelectItem key={type.value} value={type.value}>
-                                {type.label}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </SelectTrigger>
+                    <FormLabel>Workflow</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a Workflow" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Workflows.map((type) => {
+                          return (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
                     </Select>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -211,13 +225,15 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
                   control={form.control}
                   render={({ field }) => (
                     <FormItem>
-                      <Label htmlFor="matterNumber">Matter Number</Label>
-                      <Input
-                        id="matterNumber"
-                        {...field}
-                        type="text"
-                        placeholder="Matter Number"
-                      />
+                      <FormLabel>Matter Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="text"
+                          placeholder="Matter Number"
+                        />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -225,14 +241,13 @@ export const CreateProjectModal = ({ trigger }: CreateProjectModalProps) => {
             </div>
             <DottedSeparator />
             <Button
-              onClick={() => console.log("button clicked", form.getValues())}
               type="submit"
               size="lg"
               variant="primary"
-              disabled={!form.formState.isValid}
+              disabled={form.formState.isSubmitting}
               className="w-full"
             >
-              Create Project
+              {form.formState.isSubmitting ? "Creating..." : "Create Project"}
             </Button>
           </form>
         </Form>

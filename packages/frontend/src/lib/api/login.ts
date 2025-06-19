@@ -1,6 +1,7 @@
 import { AxiosError } from "axios";
+import { z } from "zod";
 
-import { LoginInput, LoginResponse } from "@shared/dto/auth.dto";
+import { LoginInput, LoginResponse, LoginResponseSchema } from "@shared/dto/auth.dto";
 
 import clientApi from "../axios";
 
@@ -14,8 +15,12 @@ export const loginUser = async (data: LoginInput): Promise<LoginResponse> => {
       throw new Error("Login response is empty");
     }
     console.log("Login response:", response.data);
-    return response.data;
+    return LoginResponseSchema.parse(response.data);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error("Validation error for /api/auth/login:", error.errors);
+      throw new Error("Invalid data structure received from server");
+    }
     const axiosError = error as AxiosError;
     const errorData = axiosError.response?.data ?? { message: "Login failed" };
     throw new Error(JSON.stringify(errorData));

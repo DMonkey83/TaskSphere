@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { IndustriesZodEnum } from "../enumsTypes";
 
 export const LoginSchema = z.object({
   email: z.string().email(),
@@ -17,7 +16,9 @@ export const LoginResponseSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   role: z.string(),
-  accountId: z.string().uuid(),
+  account: z.object({ id: z.string().uuid() }),
+  isFirstLogin: z.boolean(),
+  firstLoginAt: z.string().nullable().optional(),
 });
 
 export const RefreshTokenResponseSchema = z.object({
@@ -43,7 +44,8 @@ export type RegisterResponse = {
 };
 
 export type LoginInput = z.infer<typeof LoginSchema>;
-export type LoginResponse = {
+export type LoginResponse = z.infer<typeof LoginResponseSchema>;
+export type LoginServiceResponse = {
   accessToken: string;
   refreshToken: string;
 };

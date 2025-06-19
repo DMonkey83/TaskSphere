@@ -9,6 +9,8 @@ export interface User {
   lastName?: string; // Optional, can be added later
   firstName?: string; // Optional, can be added later
   accountId: string;
+  hasCompletedOnboarding?: boolean; // Optional, can be added later
+  firstLoginAt?: Date; // Optional, for first-time login detection
 }
 
 interface UserState {

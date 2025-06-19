@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { User, UserRoleEnum } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
-import { LoginResponse } from '@shared/dto/auth.dto';
+import { LoginServiceResponse } from '@shared/dto/auth.dto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
@@ -49,13 +49,28 @@ export class AuthService {
     return user;
   }
 
-  async login(user: UserEntity): Promise<LoginResponse> {
+  async login(user: UserEntity): Promise<LoginServiceResponse> {
     this.logger.log(`Generating JWT tokens for user: ${user.email}`);
+
+    // Check if this is a first-time login before updating
+    const isFirstLogin = !user.firstLoginAt;
+
+    // Handle first-time login
+    if (isFirstLogin) {
+      this.logger.log(`First-time login detected for user: ${user.email}`);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { firstLoginAt: new Date() },
+      });
+      this.logger.log(`Updated firstLoginAt for user: ${user.email}`);
+    }
+
     const payload: UserPayload = {
       userId: user.id,
       email: user.email,
       role: user.role,
       account: { id: user.account.id },
+      isFirstLogin, // Add the flag to the payload
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });

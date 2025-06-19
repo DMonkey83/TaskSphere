@@ -29,8 +29,13 @@ export const LoginCard = () => {
 
   const onSubmit = (data: LoginInput) => {
     loginUser(data, {
-      onSuccess: () => {
-        router.push("/dashboard");
+      onSuccess: (response) => {
+        // Check if this is a first-time login and redirect accordingly
+        if (response.isFirstLogin) {
+          router.push("/onboarding");
+        } else {
+          router.push("/dashboard");
+        }
       },
       onError: (error) => {
         const message = error.message || "Login failed";

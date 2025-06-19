@@ -50,6 +50,8 @@ export function useSetupStores({
       accountId: user.account.id,
       firstName: user.firstName || "",
       lastName: user.lastName || "",
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
+      firstLoginAt: user.firstLoginAt ? new Date(user.firstLoginAt) : undefined,
     };
 
     if (!isEqual(currentUser, newUser)) setUser(newUser);

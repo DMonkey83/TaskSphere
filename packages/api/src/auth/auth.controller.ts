@@ -40,6 +40,7 @@ export class AuthController {
       role: user.role,
       account: { id: user.accountId },
       passwordHash: user.passwordHash, // Ensure passwordHash is included for validation
+      firstLoginAt: user.firstLoginAt, // Include firstLoginAt for first-time login detection
     });
     CookieService.setAuthCookies(res, tokens);
 
@@ -47,11 +48,15 @@ export class AuthController {
       return Error(`User not found`);
     }
 
+    const isFirstLogin = !user.firstLoginAt;
+
     const loginResponse: LoginResponseDto = {
       id: user.id,
       email: user.email,
       role: user.role,
-      accountId: user.accountId,
+      account: { id: user.accountId },
+      isFirstLogin,
+      firstLoginAt: user.firstLoginAt?.toISOString() || null,
     };
 
     return loginResponse;

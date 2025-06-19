@@ -22,6 +22,7 @@ export type UserPayload = {
   email: string;
   role: UserRoleEnum;
   account: { id: string };
+  isFirstLogin?: boolean;
 };
 
 export interface UserEntity {
@@ -30,6 +31,7 @@ export interface UserEntity {
   role: UserRoleEnum;
   passwordHash: string; // Changed from password
   account: { id: string };
+  firstLoginAt?: Date; // Optional, for first-time login detection
 }
 
 export interface TokenResponse {

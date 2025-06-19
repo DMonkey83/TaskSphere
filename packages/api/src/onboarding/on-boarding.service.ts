@@ -5,7 +5,9 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { OnboardingDraft, User } from '@prisma/client'; // Changed from Onboarding to OnboardingDraft
+import { OnboardingDraft } from '@prisma/client'; // Changed from Onboarding to OnboardingDraft
+
+import { UserPayload } from 'src/auth/dto/auth.dto';
 
 import { UpdateOnboardingDraftSchema } from '@shared/dto/onboarding.dto';
 
@@ -140,7 +142,7 @@ export class OnBoardingService {
   async updateDraft(
     userId: string,
     data: UpdateOnboardingDraftDto,
-    user?: User,
+    user?: UserPayload,
   ): Promise<OnboardingDraft> {
     const validatedData = UpdateOnboardingDraftSchema.parse(data);
 
@@ -151,7 +153,7 @@ export class OnBoardingService {
         // Changed to onboardingDraft
         where: {
           userId,
-          ...(user && { accountId: user.accountId }),
+          ...(user && { accountId: user.account.id }),
         },
       });
 
@@ -165,11 +167,17 @@ export class OnBoardingService {
         throw new BadRequestException('Cannot update completed onboarding');
       }
 
+      // Merge the new data with existing data instead of replacing it
+      const existingData = (existingDraft.data as Record<string, any>) || {};
+      const newData = (validatedData.data as Record<string, any>) || {};
+      const mergedData = { ...existingData, ...newData };
+
       const updatedDraft = await this.prisma.onboardingDraft.update({
         // Changed to onboardingDraft
         where: { id: existingDraft.id },
         data: {
           ...validatedData,
+          data: mergedData, // Use merged data instead of replacing
           updatedAt: new Date(),
         },
         include: {
@@ -203,7 +211,10 @@ export class OnBoardingService {
     }
   }
 
-  async completeDraft(userId: string, user?: User): Promise<OnboardingDraft> {
+  async completeDraft(
+    userId: string,
+    user?: UserPayload,
+  ): Promise<OnboardingDraft> {
     this.logger.log(`Completing onboarding draft for user: ${userId}`);
 
     try {
@@ -212,7 +223,7 @@ export class OnBoardingService {
           // Changed to onboardingDraft
           where: {
             userId,
-            ...(user && { accountId: user.accountId }),
+            ...(user && { accountId: user.account.id }),
           },
         });
 
@@ -274,7 +285,7 @@ export class OnBoardingService {
     }
   }
 
-  async deleteDraft(userId: string, user?: User): Promise<void> {
+  async deleteDraft(userId: string, user?: UserPayload): Promise<void> {
     this.logger.log(`Deleting onboarding draft for user: ${userId}`);
 
     try {
@@ -282,7 +293,7 @@ export class OnBoardingService {
         // Changed to onboardingDraft
         where: {
           userId,
-          ...(user && { accountId: user.accountId }),
+          ...(user && { accountId: user.account.id }),
         },
       });
 
