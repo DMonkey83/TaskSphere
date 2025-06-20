@@ -2,21 +2,26 @@ export const calculateTimeProgress = (
   startDate?: Date | null,
   endDate?: Date | null
 ): number | null => {
+  // Return null if either date is missing
   if (!startDate || !endDate) return null;
 
   const now = new Date();
-  const start = startDate ? new Date(startDate) : null;
-  const end = endDate ? new Date(endDate) : null;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
 
-  console.log("Calculating time progress:", {
-    startDate,
-    endDate,
-    end,
-  });
+  // Validate dates are valid
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
 
-  if (!start || !end) return null;
+  // Check if startDate is the Unix epoch (indicates null was converted to Date)
+  // Unix epoch is January 1, 1970 00:00:00 UTC
+  if (start.getTime() === 0 || start.getFullYear() === 1970) {
+    return null;
+  }
 
+  // Project hasn't started yet
   if (now < start) return 0;
+  
+  // Project is past deadline - cap at 100% but this represents time elapsed, not completion
   if (now > end) return 100;
 
   const totalDuration = end.getTime() - start.getTime();
@@ -57,13 +62,21 @@ export const calculateTaskProgress = (
 };
 
 export const getProgressFromStatus = (status: string): number => {
-  const statusProgress = {
+  const statusProgress: Record<string, number> = {
     "in-progress": 50,
+    "in_progress": 50,
     completed: 100,
     "on-hold": 50,
+    "on_hold": 50,
     "not-started": 0,
+    "not_started": 0,
     cancelled: 0,
+    canceled: 0,
     planned: 0,
   };
-  return statusProgress[status] || 0;
+  
+  // Normalize status to lowercase and handle different formats
+  const normalizedStatus = status.toLowerCase().replace(/[_-]/g, '-');
+  
+  return statusProgress[normalizedStatus] || statusProgress[status] || 0;
 };

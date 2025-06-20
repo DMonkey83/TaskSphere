@@ -72,6 +72,31 @@ export class TaskService {
 
     const taskKey = await this.generateTaskKey(project.projectKey);
 
+    // Handle task status - try to find existing or create if needed
+    let statusId: string | undefined;
+    if (dto.status) {
+      let taskStatus = await this.prisma.taskStatus.findFirst({
+        where: { label: dto.status },
+      });
+
+      // If status doesn't exist, create it
+      if (!taskStatus) {
+        try {
+          taskStatus = await this.prisma.taskStatus.create({
+            data: { label: dto.status, code: dto.status },
+          });
+        } catch (error) {
+          this.logger.warn(
+            `Could not create status '${dto.status}': ${(error as Error).message}`,
+          );
+        }
+      }
+
+      if (taskStatus) {
+        statusId = taskStatus.id;
+      }
+    }
+
     const task = await this.prisma.task.create({
       data: {
         title: dto.title, // Ensure required field is present
@@ -90,7 +115,16 @@ export class TaskService {
         parent: dto.parentId
           ? { connect: { id: dto?.parentId as string } }
           : undefined,
+        TaskStatus: statusId ? { connect: { id: statusId } } : undefined,
         taskKey,
+      },
+      include: {
+        project: true,
+        creator: true,
+        assignee: true,
+        TaskStatus: true,
+        team: true,
+        parent: true,
       },
     });
     await this.taskActivityService.logActivity(

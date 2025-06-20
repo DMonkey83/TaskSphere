@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
@@ -10,7 +10,9 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { RefreshTokenInterceptor } from './refresh-token.interceptor';
+import { RoleGuard, ProjectRoleGuard } from './role.guard';
 import { AccountsModule } from '../accounts/accounts.module';
+import { ProjectMemberModule } from '../project-members/project-member.module';
 import { UsersModule } from '../users/users.module';
 
 @Module({
@@ -18,6 +20,7 @@ import { UsersModule } from '../users/users.module';
     PrismaModule,
     UsersModule,
     AccountsModule,
+    forwardRef(() => ProjectMemberModule),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -33,11 +36,19 @@ import { UsersModule } from '../users/users.module';
   providers: [
     AuthService,
     JwtStrategy,
+    RoleGuard,
+    ProjectRoleGuard,
     {
       provide: APP_INTERCEPTOR,
       useClass: RefreshTokenInterceptor,
     },
   ],
-  exports: [AuthService, JwtStrategy, PassportModule],
+  exports: [
+    AuthService,
+    JwtStrategy,
+    PassportModule,
+    RoleGuard,
+    ProjectRoleGuard,
+  ],
 })
 export class AuthModule {}

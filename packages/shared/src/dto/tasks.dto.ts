@@ -10,6 +10,7 @@ export const CreateTaskSchema = z.object({
   priority: z.enum(["low", "medium", "high"]).default("medium"),
   projectId: z.string().uuid(),
   teamId: z.string().uuid().optional(),
+  dueDate: z.coerce.date().optional(),
   type: z
     .enum(["epic", "bug", "feature", "story", "subtask"])
     .default("subtask"),
@@ -120,7 +121,9 @@ export const TaskFilterSchema = z.object({
   isOverdue: z.boolean().optional(), // Filter for overdue tasks
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(50).default(20),
-  sortBy: z.enum(["createdAt", "updatedAt", "dueDate", "priority", "title"]).default("createdAt"),
+  sortBy: z
+    .enum(["createdAt", "updatedAt", "dueDate", "priority", "title"])
+    .default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 

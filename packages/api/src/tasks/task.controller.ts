@@ -16,7 +16,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { Task, TaskStatusLog } from '@prisma/client';
 import { ZodValidationPipe } from 'nestjs-zod';
 
-import { UpateTaskSchema, TaskFilterSchema } from '@shared/dto/tasks.dto';
+import {
+  CreateTaskSchema,
+  UpateTaskSchema,
+  TaskFilterSchema,
+} from '@shared/dto/tasks.dto';
 
 import { TaskService } from './task.service';
 import { UserPayload } from '../auth/dto/auth.dto';
@@ -80,7 +84,7 @@ export class TaskController {
   @Roles('project_manager', 'team_lead', 'admin', 'owner')
   @Post()
   async create(
-    @Body(new ZodValidationPipe(CreateTaskDto)) body: CreateTaskDto,
+    @Body(new ZodValidationPipe(CreateTaskSchema)) body: CreateTaskDto,
     @GetUser()
     user: UserPayload,
   ): Promise<Task> {

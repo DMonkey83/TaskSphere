@@ -80,6 +80,19 @@ export function ProjectsList({ data }: ProjectsListProps) {
               );
               const taskProgress = calculateTaskProgress(project.config);
               const statusProgress = getProgressFromStatus(project.status);
+              
+              // Debug logging for the specific project
+              if (project.name === "Test Alises Poject") {
+                console.log("Progress Debug for Test Alises Project:", {
+                  startDate: project.startDate,
+                  endDate: project.endDate,
+                  status: project.status,
+                  config: project.config,
+                  timeProgress,
+                  taskProgress,
+                  statusProgress,
+                });
+              }
               const daysRemaining = getDaysRemaining(project.endDate);
               const isOverdue =
                 daysRemaining !== null &&
@@ -132,7 +145,24 @@ export function ProjectsList({ data }: ProjectsListProps) {
 
                       {/* Progress Bars */}
                       <div className="mb-3 space-y-2">
-                        {timeProgress !== null && (
+                        {/* Prioritize Task Progress (actual work completion) over Time Progress */}
+                        {taskProgress !== null ? (
+                          <div>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                                <HiTrendingUp className="w-3 h-3" />
+                                Task Progress
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {taskProgress}%
+                              </span>
+                            </div>
+                            <ProgressBar
+                              progress={taskProgress}
+                              className="bg-green-500"
+                            />
+                          </div>
+                        ) : timeProgress !== null ? (
                           <div>
                             <div className="flex justify-between items-center mb-1">
                               <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
@@ -150,27 +180,7 @@ export function ProjectsList({ data }: ProjectsListProps) {
                               }
                             />
                           </div>
-                        )}
-
-                        {taskProgress !== null && (
-                          <div>
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                                <HiTrendingUp className="w-3 h-3" />
-                                Task Progress
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {taskProgress}%
-                              </span>
-                            </div>
-                            <ProgressBar
-                              progress={taskProgress}
-                              className="bg-green-500"
-                            />
-                          </div>
-                        )}
-
-                        {timeProgress === null && taskProgress === null && (
+                        ) : (
                           <div>
                             <div className="flex justify-between items-center mb-1">
                               <span className="text-xs font-medium text-gray-600">

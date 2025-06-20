@@ -8,7 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 
 import { ProjectMemberService } from './../project-members/project-member.service';
-import { ROLES_KEY } from './roles.decorator';
+import { ROLES_KEY, PROJECT_ROLES_KEY } from './roles.decorator';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
@@ -39,7 +39,7 @@ export class ProjectRoleGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.get<string[]>(
-      'project_roles',
+      PROJECT_ROLES_KEY,
       context.getHandler(),
     );
     if (!requiredRoles) return true;
@@ -50,18 +50,17 @@ export class ProjectRoleGuard implements CanActivate {
       body: { projectId?: string };
     }>();
     const user = request.user;
-    if (!user || !requiredRoles.includes(user.role)) {
-      throw new ForbiddenException(
-        'You do not have permission for this action',
-      );
+    if (!user) {
+      throw new ForbiddenException('User not authenticated');
     }
-    const projectId = request.params?.projectId || request.body?.projectId;
 
+    const projectId = request.params?.projectId || request.body?.projectId;
     if (!projectId) throw new ForbiddenException('No project ID provided');
 
     if (!this.projectMemberService) {
       throw new ForbiddenException('ProjectMemberService is not available');
     }
+
     const memberRole = await this.projectMemberService.getUserRoleInProject(
       user.id,
       projectId,

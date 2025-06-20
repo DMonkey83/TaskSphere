@@ -42,8 +42,7 @@ export class ProjectMemberController {
     });
   }
 
-  @UseGuards(AuthGuard('jwt'), ProjectRoleGuard)
-  @ProjectRoles('owner', 'project_manager', 'member')
+  @UseGuards(AuthGuard('jwt'))
   @Get('project/:projectId')
   async listProjectMembers(
     @Param('projectId') projectId: string,

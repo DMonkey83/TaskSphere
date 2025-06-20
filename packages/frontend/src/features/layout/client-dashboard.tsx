@@ -42,7 +42,7 @@ export default function ClientDashboard({}) {
     data: tasks,
     isLoading: tasksLoading,
     isError: tasksError,
-  } = useTasksQuery(accountId!, {
+  } = useTasksQuery(accountId!, undefined, {
     enabled: !!accountId,
   });
   console.log("tasks", tasks);
