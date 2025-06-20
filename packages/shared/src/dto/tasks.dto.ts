@@ -1,5 +1,8 @@
 import { z } from "zod";
+
 import { Relations } from "../enumsTypes/relations.enum";
+import { TaskTypeZodEnum } from "../enumsTypes/task-type.enum";
+
 export const CreateTaskSchema = z.object({
   projectKey: z.string().min(1),
   title: z.string().min(1),
@@ -11,9 +14,7 @@ export const CreateTaskSchema = z.object({
   projectId: z.string().uuid(),
   teamId: z.string().uuid().optional(),
   dueDate: z.coerce.date().optional(),
-  type: z
-    .enum(["epic", "bug", "feature", "story", "subtask"])
-    .default("subtask"),
+  type: TaskTypeZodEnum.default("subtask"),
   relatedTasks: z
     .array(
       z.object({
@@ -44,7 +45,7 @@ export const UpateTaskSchema = z.object({
   assigneeId: z.string().uuid().optional(),
   dueDate: z.coerce.date().optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
-  type: z.enum(["epic", "bug", "feature", "story", "subtask"]).optional(),
+  type: TaskTypeZodEnum.optional(),
   teamId: z.string().uuid().optional(),
   relatedTasks: z
     .array(
@@ -62,14 +63,13 @@ export const TaskSchema = z.object({
   title: z.string().nullish(),
   description: z.string().nullish(),
   assigneeId: z.string().uuid().nullish(),
+  taskKey: z.string().nullish(),
   creatorId: z.string().uuid(),
   parentId: z.string().uuid().nullish(),
   priority: z.enum(["low", "medium", "high"]).default("medium"),
   projectId: z.string().uuid(),
   teamId: z.string().uuid().nullish(),
-  type: z
-    .enum(["epic", "bug", "feature", "story", "subtask"])
-    .default("subtask"),
+  type: TaskTypeZodEnum.default("subtask"),
   relatedTasks: z
     .array(
       z.object({
@@ -111,7 +111,7 @@ export const TaskFilterSchema = z.object({
   parentId: z.string().uuid().optional(),
   status: z.enum(["todo", "in_progress", "done", "delivered"]).optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
-  type: z.enum(["epic", "bug", "feature", "story", "subtask"]).optional(),
+  type: TaskTypeZodEnum.optional(),
   search: z.string().optional(), // Search in title/description
   dueDateFrom: z.coerce.date().optional(),
   dueDateTo: z.coerce.date().optional(),
