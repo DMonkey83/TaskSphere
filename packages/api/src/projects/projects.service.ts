@@ -219,6 +219,34 @@ export class ProjectsService {
     return project;
   }
 
+  async findBySlug(projectSlug: string, accountId?: string): Promise<Project> {
+    if (!projectSlug) {
+      throw new BadRequestException('Project key is required');
+    }
+
+    const where: Prisma.ProjectWhereInput = {
+      slug: projectSlug,
+      ...(accountId && { accountId }),
+    };
+
+    const project = await this.prisma.project.findFirst({
+      where,
+      include: {
+        owner: true,
+        account: true,
+        _count: {
+          select: {
+            tasks: true,
+            members: true,
+          },
+        },
+      },
+    });
+
+    if (!project) throw new NotFoundException('Project not found');
+    return project;
+  }
+
   async updateProject(
     projectId: string,
     dto: UpdateProjectDto,

@@ -46,7 +46,7 @@ export function TeamOverview() {
       </CardContent>
       <CardFooter>
         <Button variant="ghost" size="sm" className="gap-1" asChild>
-          <a href="/dashboard/team">
+          <a href="/teams">
             Manage team
             <MdArrowForward className="h-4 w-4" />
           </a>

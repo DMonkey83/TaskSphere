@@ -187,9 +187,20 @@ export class ProjectController {
   @Get('key/:projectKey')
   async getProjectByKey(
     @Param('projectKey') projectKey: string,
+    @GetUser() user: UserPayload,
   ): Promise<Project> {
     this.logger.log('Listing projects for account key:', projectKey);
-    return this.projectsService.findByKey(projectKey);
+    return this.projectsService.findByKey(projectKey, user.account.id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('slug/:projectSlug')
+  async getProjectBySlug(
+    @Param('projectSlug') projectSlug: string,
+    @GetUser() user: UserPayload,
+  ): Promise<Project> {
+    this.logger.log('Listing projects for account key:', projectSlug);
+    return this.projectsService.findBySlug(projectSlug, user.account.id);
   }
 
   @UseGuards(AuthGuard('jwt'))

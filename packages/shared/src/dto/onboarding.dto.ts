@@ -53,27 +53,25 @@ export const UpdateOnboardingDraftSchema = z.object({
   data: OnboardingDataSchema.optional(),
 });
 
-export const OnboardingDraftResponseSchema = z.object({
-  id: z.string().uuid().optional(),
-  userId: z.string().uuid().optional(),
-  accountId: z.string().uuid().optional(),
-  completed: z.boolean().optional(),
-  data: OnboardingDataSchema.optional(),
-  step: z.number().optional(),
-  createdAt: z
-    .string()
-    .transform((str) => new Date(str))
-    .optional(),
-  updatedAt: z
-    .string()
-    .transform((str) => new Date(str))
-    .optional(),
-  completedAt: z
-    .string()
-    .nullable()
-    .transform((str) => (str ? new Date(str) : null))
-    .optional(),
-});
+export const OnboardingDraftResponseSchema =
+  UpdateOnboardingDraftSchema.partial().extend({
+    id: z.string().uuid().optional(),
+    userId: z.string().uuid().optional(),
+    accountId: z.string().uuid().optional(),
+    createdAt: z
+      .string()
+      .transform((str) => new Date(str))
+      .optional(),
+    updatedAt: z
+      .string()
+      .transform((str) => new Date(str))
+      .optional(),
+    completedAt: z
+      .string()
+      .nullable()
+      .transform((str) => (str ? new Date(str) : null))
+      .optional(),
+  });
 
 export const OnboardingStatusSchema = z.object({
   hasOnboarding: z.boolean(),

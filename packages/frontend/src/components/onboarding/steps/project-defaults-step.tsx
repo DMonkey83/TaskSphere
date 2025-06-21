@@ -24,25 +24,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { UpdateOnboardingDraftRequest } from "@/lib/api/onboarding";
 import { useOnboarding } from "@/lib/queries/useOnboarding";
-import { useOnboardingData } from "@/store/onboarding-store";
+import { ProjectDefaults, useOnboardingData } from "@/store/onboarding-store";
+
+import { IndustriesZodEnum, WorkflowZodEnum } from "@shared/enumsTypes";
 
 const projectDefaultsSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
-  industry: z
-    .enum([
-      "programming",
-      "legal",
-      "logistics",
-      "marketing",
-      "product",
-      "other",
-    ])
-    .optional(),
-  workflow: z
-    .enum(["kanban", "scrum", "timeline", "calendar", "checklist"])
-    .default("kanban"),
+  industry: IndustriesZodEnum.optional(),
+  workflow: WorkflowZodEnum.default("kanban"),
   visibility: z.enum(["private", "team", "account"]).default("private"),
 });
 
@@ -63,25 +55,22 @@ export function ProjectDefaultsStep() {
     },
   });
 
-  const onSubmit = React.useCallback(async (data: ProjectDefaultsForm) => {
-    console.log('🟦 ProjectDefaultsStep onSubmit called with data:', data);
-    console.log('🟦 Form values before submit:', form.getValues());
-    
-    updateProjectDefaults(data);
-    try {
-      const payload = {
-        data: {
-          projectDefaults: data,
-        },
-      };
-      console.log('🟦 Sending updateDraft payload:', payload);
-      
-      const result = await updateDraft(payload);
-      console.log('🟦 ProjectDefaults updateDraft SUCCESS:', result);
-    } catch (error) {
-      console.error('🟦 ProjectDefaults updateDraft ERROR:', error);
-    }
-  }, [updateProjectDefaults, updateDraft, form]);
+  const onSubmit = React.useCallback(
+    async (data: ProjectDefaultsForm) => {
+      updateProjectDefaults(data as Partial<ProjectDefaults>);
+      try {
+        const payload = {
+          data: {
+            projectDefaults: data,
+          },
+        };
+        await updateDraft(payload as UpdateOnboardingDraftRequest);
+      } catch (error) {
+        console.error("🟦 ProjectDefaults updateDraft ERROR:", error);
+      }
+    },
+    [updateProjectDefaults, updateDraft]
+  );
 
   // Disable auto-save completely to prevent infinite loops
   // Manual save only on form submission

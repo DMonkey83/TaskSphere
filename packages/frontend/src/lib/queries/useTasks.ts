@@ -14,7 +14,10 @@ import {
 
 import { createTaskClient, fetchTasksClient } from "../api/task";
 
-type TaskQueryKey = ["tasks", { accountId: string; filters?: Partial<TaskFilterDto> }];
+type TaskQueryKey = [
+  "tasks",
+  { accountId: string; filters?: Partial<TaskFilterDto> }
+];
 export const useTasksQuery = (
   accountId: string,
   filters?: Partial<TaskFilterDto>,
@@ -33,21 +36,36 @@ export const useTasksQuery = (
   });
 };
 
-type ProjectTaskQueryKey = ["tasks", "project", { projectId: string; filters?: Partial<TaskFilterDto> }];
+type ProjectTaskQueryKey = [
+  "tasks",
+  "project",
+  { projectId: string; filters?: Partial<TaskFilterDto> }
+];
 export const useProjectTasksQuery = (
   projectId: string,
   filters?: Partial<TaskFilterDto>,
   options?: Omit<
-    UseQueryOptions<TaskListResponse, unknown, TaskListResponse, ProjectTaskQueryKey>,
+    UseQueryOptions<
+      TaskListResponse,
+      unknown,
+      TaskListResponse,
+      ProjectTaskQueryKey
+    >,
     "queryKey" | "queryFn"
   >
 ): UseQueryResult<TaskListResponse, unknown> => {
-  const projectFilters = { ...filters, projectId };
-  
-  return useQuery<TaskListResponse, unknown, TaskListResponse, ProjectTaskQueryKey>({
+  // const projectFilters = { ...filters, projectId };
+
+  return useQuery<
+    TaskListResponse,
+    unknown,
+    TaskListResponse,
+    ProjectTaskQueryKey
+  >({
     queryKey: ["tasks", "project", { projectId, filters }],
     queryFn: ({ queryKey }) => {
-      const [, , { projectId: queryProjectId, filters: queryFilters }] = queryKey;
+      const [, , { projectId: queryProjectId, filters: queryFilters }] =
+        queryKey;
       const combinedFilters = { ...queryFilters, projectId: queryProjectId };
       return fetchTasksClient(combinedFilters);
     },

@@ -40,6 +40,7 @@ import {
 import { ProjectsListResponse } from "@shared/dto/projects.dto";
 
 import { ProgressBar } from "./progress-bar";
+import Link from "next/link";
 
 interface ProjectsListProps {
   data: ProjectsListResponse;
@@ -80,7 +81,7 @@ export function ProjectsList({ data }: ProjectsListProps) {
               );
               const taskProgress = calculateTaskProgress(project.config);
               const statusProgress = getProgressFromStatus(project.status);
-              
+
               // Debug logging for the specific project
               if (project.name === "Test Alises Poject") {
                 console.log("Progress Debug for Test Alises Project:", {
@@ -292,7 +293,9 @@ export function ProjectsList({ data }: ProjectsListProps) {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>
                             <HiEye className="w-4 h-4 mr-2" />
-                            View Details
+                            <Link href={`/projects/${project.slug}`}>
+                              View Details
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <HiPencil className="w-4 h-4 mr-2" />

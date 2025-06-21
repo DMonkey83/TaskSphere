@@ -6,6 +6,7 @@ import { AccountInvitesModule } from './account-invites/account-invites.module';
 import { AccountsModule } from './accounts/accounts.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ApprovalModule } from './approvals/approval.module';
 import { AttachmentModule } from './attachments/attachment.module';
 import { AuthModule } from './auth/auth.module';
 import { RefreshTokenInterceptor } from './auth/refresh-token.interceptor';
@@ -14,12 +15,15 @@ import { ClientPortalModule } from './client-portal/client-portal.module';
 import { CommentModule } from './comments/comment.module';
 import { CustomerModule } from './customers/customer.module';
 import { DocumentModule } from './documents/document.module';
+import { MilestoneModule } from './milestones/milestone.module';
 import { NotificationModule } from './notifications/notification.module';
 import { OnBoardingModule } from './onboarding/on-boarding.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectMemberModule } from './project-members/project-member.module';
 import { ProjectsModule } from './projects/projects.module';
+import { ReportModule } from './reports/report.module';
 import { RoadmapModule } from './roadmaps/roadmap.module';
+import { SprintModule } from './sprints/sprint.module';
 import { TaskActivityModule } from './task-activities/task-activity.module';
 import { TaskTagModule } from './task-tags/task-tag.module';
 import { TaskModule } from './tasks/task.module';
@@ -54,6 +58,10 @@ import { UsersModule } from './users/users.module';
     CustomerModule,
     TaskModule,
     ProjectsModule,
+    MilestoneModule,
+    SprintModule,
+    ApprovalModule,
+    ReportModule,
     UsersModule,
     AuthModule,
     AccountsModule,

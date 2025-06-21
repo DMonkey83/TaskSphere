@@ -11,9 +11,14 @@ import {
   ProjectResponse,
 } from "@shared/dto/projects.dto";
 
-import { createProject, fetchProjectsClient } from "../api/project";
+import {
+  createProject,
+  fetchProjectBySlugClient,
+  fetchProjectsClient,
+} from "../api/project";
 
 type ProjectsQueryKey = ["projects", { accountId: string }];
+type ProjectBySlugQueryKey = ["project", "slug", { slug: string }];
 
 export const useProjectsQuery = (
   accountId: string,
@@ -37,6 +42,33 @@ export const useProjectsQuery = (
     queryFn: ({ queryKey }) => {
       const [] = queryKey;
       return fetchProjectsClient();
+    },
+    ...options,
+  });
+};
+
+export const useProjectBySlugQuery = (
+  slug: string,
+  options?: Omit<
+    UseQueryOptions<
+      ProjectResponse,
+      unknown,
+      ProjectResponse,
+      ProjectBySlugQueryKey
+    >,
+    "queryKey" | "queryFn"
+  >
+): UseQueryResult<ProjectResponse, unknown> => {
+  return useQuery<
+    ProjectResponse,
+    unknown,
+    ProjectResponse,
+    ProjectBySlugQueryKey
+  >({
+    queryKey: ["project", "slug", { slug }],
+    queryFn: ({ queryKey }) => {
+      const [, , { slug }] = queryKey;
+      return fetchProjectBySlugClient(slug);
     },
     ...options,
   });

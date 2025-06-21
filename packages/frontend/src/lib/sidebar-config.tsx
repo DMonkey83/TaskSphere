@@ -10,13 +10,13 @@ import { NavigationItem, Project, Team, User } from "@/types/sidebar.types";
 
 export const navigationItems: NavigationItem[] = [
   { name: "Dashboard", icon: MdDashboard, href: "/dashboard" },
-  { name: "Analytics", icon: MdBarChart, href: "/dashboard/analytics" },
-  { name: "Calendar", icon: MdCalendarToday, href: "/dashboard/calendar" },
+  { name: "Analytics", icon: MdBarChart, href: "/analytics" },
+  { name: "Calendar", icon: MdCalendarToday, href: "/calendar" },
 ];
 
 export const teamItems: NavigationItem[] = [
-  { name: "Team Members", icon: MdPeople, href: "/dashboard/team" },
-  { name: "Team Settings", icon: MdSettings, href: "/dashboard/team/settings" },
+  { name: "Team Members", icon: MdPeople, href: "/team" },
+  { name: "Team Settings", icon: MdSettings, href: "/team/settings" },
 ];
 
 export const projects: Project[] = [

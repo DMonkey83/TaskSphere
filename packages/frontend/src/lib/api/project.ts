@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   CreateProjectRequest,
   ProjectResponse,
+  ProjectResponseSchema,
   ProjectsListResponse,
   ProjectsListResponseSchema,
 } from "@shared/dto/projects.dto";
@@ -21,6 +22,25 @@ export async function fetchProjectsClient(): Promise<ProjectsListResponse> {
       throw new Error("Invalid data structure received from server");
     }
     console.error("Error fetching projects data:", error);
+    throw error;
+  }
+}
+
+export async function fetchProjectBySlugClient(
+  slug: string
+): Promise<ProjectResponse> {
+  try {
+    const response = await clientApi.get<ProjectResponse>(
+      `/api/projects/slug/${slug}`
+    );
+    console.log("Fetched project by slug data:", response.data);
+    return ProjectResponseSchema.parse(response.data);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error("Validation error for /api/projects/:slug", error.errors);
+      throw new Error("Invalid data structure received from server");
+    }
+    console.error("Error fetching project data:", error);
     throw error;
   }
 }

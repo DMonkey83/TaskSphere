@@ -3,14 +3,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model AccountInvite {
   id        String           @id(map: "PK_7f0826bdc4c2883624a745acd4e") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   email     String           @db.VarChar
-  role      InviteRoleEnum
+  role      InviteRoleEnum   @default(member)
   status    InviteStatusEnum @default(pending)
   token     String           @unique(map: "UQ_93082695065dfb8bf3e7c5ad92d") @db.VarChar
   accepted  Boolean          @default(false)
@@ -38,6 +39,7 @@ model Account {
   taskTags        TaskTag[]
   teams           Team[]
   users           User[]
+  reports         Report[]
 
   @@map("accounts")
 }
@@ -104,7 +106,7 @@ model Customer {
   email              String?               @db.VarChar
   phone              String?               @db.VarChar
   address            String?               @db.VarChar
-  industry           CustomerIndustryEnum?
+  industry           CustomerIndustryEnum? @default(other)
   createdAt          DateTime              @default(now()) @db.Timestamptz(6)
   updatedAt          DateTime              @default(now()) @db.Timestamptz(6)
   accountId          String                @db.Uuid
@@ -146,9 +148,101 @@ model migrations {
   name      String @db.VarChar
 }
 
+model Milestone {
+  id          String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String              @db.VarChar
+  description String?             @db.VarChar
+  dueDate     DateTime?           @db.Timestamptz(6)
+  status      MilestoneStatusEnum @default(planned)
+  progress    Decimal             @default(0) @db.Decimal(5, 2)
+  priority    String              @default("medium") @db.VarChar
+  budget      Decimal?            @db.Decimal(12, 2)
+  actualCost  Decimal?            @db.Decimal(12, 2)
+  createdAt   DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime            @default(now()) @db.Timestamptz(6)
+  projectId   String              @db.Uuid
+  ownerId     String?             @db.Uuid
+  project     Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner       User?               @relation(fields: [ownerId], references: [id])
+  tasks       Task[]              @relation("MilestoneTasks")
+
+  @@index([projectId], map: "IDX_milestone_project")
+  @@index([dueDate], map: "IDX_milestone_due_date")
+  @@index([status], map: "IDX_milestone_status")
+  @@map("milestones")
+}
+
+model Sprint {
+  id         String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String           @db.VarChar
+  goal       String?          @db.VarChar
+  startDate  DateTime         @db.Timestamptz(6)
+  endDate    DateTime         @db.Timestamptz(6)
+  status     SprintStatusEnum @default(planned)
+  capacity   Decimal?         @db.Decimal(6, 2)
+  commitment Decimal?         @db.Decimal(6, 2)
+  velocity   Decimal?         @db.Decimal(6, 2)
+  createdAt  DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime         @default(now()) @db.Timestamptz(6)
+  projectId  String           @db.Uuid
+  ownerId    String?          @db.Uuid
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner      User?            @relation(fields: [ownerId], references: [id])
+  tasks      Task[]           @relation("SprintTasks")
+
+  @@index([projectId], map: "IDX_sprint_project")
+  @@index([startDate, endDate], map: "IDX_sprint_dates")
+  @@index([status], map: "IDX_sprint_status")
+  @@map("sprints")
+}
+
+model Approval {
+  id          String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  type        ApprovalTypeEnum   @default(task_completion)
+  status      ApprovalStatusEnum @default(pending)
+  comments    String?            @db.VarChar
+  requestedAt DateTime           @default(now()) @db.Timestamptz(6)
+  reviewedAt  DateTime?          @db.Timestamptz(6)
+  taskId      String?            @db.Uuid
+  projectId   String?            @db.Uuid
+  requesterId String             @db.Uuid
+  reviewerId  String?            @db.Uuid
+  task        Task?              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project     Project?           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester   User               @relation("ApprovalRequester", fields: [requesterId], references: [id])
+  reviewer    User?              @relation("ApprovalReviewer", fields: [reviewerId], references: [id])
+
+  @@index([taskId], map: "IDX_approval_task")
+  @@index([projectId], map: "IDX_approval_project")
+  @@index([requesterId], map: "IDX_approval_requester")
+  @@index([reviewerId], map: "IDX_approval_reviewer")
+  @@index([status], map: "IDX_approval_status")
+  @@map("approvals")
+}
+
+model Report {
+  id          String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String         @db.VarChar
+  description String?        @db.VarChar
+  type        ReportTypeEnum @default(custom)
+  config      Json
+  isPublic    Boolean        @default(false)
+  createdAt   DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime       @default(now()) @db.Timestamptz(6)
+  accountId   String         @db.Uuid
+  createdById String         @db.Uuid
+  account     Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdBy   User           @relation(fields: [createdById], references: [id])
+
+  @@index([accountId], map: "IDX_report_account")
+  @@index([createdById], map: "IDX_report_creator")
+  @@index([type], map: "IDX_report_type")
+  @@map("reports")
+}
+
 model Notification {
   id         String                 @id(map: "PK_6a72c3c0f683f6462415e653c3a") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  type       NotificationTypeEnum
+  type       NotificationTypeEnum   @default(approval_required)
   content    String                 @db.VarChar
   status     NotificationStatusEnum @default(pending)
   createdAt  DateTime               @default(now()) @db.Timestamptz(6)
@@ -183,34 +277,45 @@ model OnboardingDraft {
 }
 
 model Project {
-  id           String                @id(map: "PK_4d68b1358bb5b766d3e78f32f57") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectKey   String                @db.VarChar
-  name         String                @db.VarChar
-  description  String?
-  industry     ProjectIndustryEnum?
-  slug         String?               @unique(map: "UQ_6fce32ddd71197807027be6ad38") @db.VarChar
-  workflow     ProjectWorkflowEnum   @default(kanban)
-  status       ProjectStatusEnum     @default(planned)
-  startDate    DateTime?             @db.Timestamp(6)
-  endDate      DateTime?             @db.Timestamp(6)
-  matterNumber String?               @db.VarChar
-  config       Json?
-  archived     Boolean               @default(false)
-  tags         String[]
-  createdAt    DateTime              @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime              @default(now()) @db.Timestamptz(6)
-  accountId    String?               @db.Uuid
-  ownerId      String?               @db.Uuid
-  visibility   ProjectVisibilityEnum @default(private)
-  portalAccess ClientPortalAccess[]
-  documents    Document[]
-  members      ProjectMember[]
-  teams        ProjectTeam[]
-  views        ProjectView[]
-  account      Account?              @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_8d691f8d69acef59f4ed3a872c4")
-  owner        User?                 @relation(fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9884b2ee80eb70b7db4f12e8aed")
-  roadmapItems RoadmapItem[]
-  tasks        Task[]
+  id                     String                @id(map: "PK_4d68b1358bb5b766d3e78f32f57") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectKey             String                @db.VarChar
+  name                   String                @db.VarChar
+  description            String?
+  industry               ProjectIndustryEnum?  @default(other)
+  slug                   String?               @unique(map: "UQ_6fce32ddd71197807027be6ad38") @db.VarChar
+  workflow               ProjectWorkflowEnum   @default(kanban)
+  status                 ProjectStatusEnum     @default(planned)
+  startDate              DateTime?             @db.Timestamp(6)
+  endDate                DateTime?             @db.Timestamp(6)
+  matterNumber           String?               @db.VarChar
+  config                 Json?
+  archived               Boolean               @default(false)
+  tags                   String[]
+  budget                 Decimal?              @db.Decimal(12, 2)
+  actualCost             Decimal?              @db.Decimal(12, 2)
+  estimatedHours         Decimal?              @db.Decimal(8, 2)
+  actualHours            Decimal?              @db.Decimal(8, 2)
+  riskLevel              String?               @default("medium") @db.VarChar
+  clientApprovalRequired Boolean               @default(false)
+  template               Boolean               @default(false)
+  sprintDuration         Int?
+  createdAt              DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime              @default(now()) @db.Timestamptz(6)
+  accountId              String?               @db.Uuid
+  ownerId                String?               @db.Uuid
+  visibility             ProjectVisibilityEnum @default(private)
+  portalAccess           ClientPortalAccess[]
+  documents              Document[]
+  members                ProjectMember[]
+  teams                  ProjectTeam[]
+  views                  ProjectView[]
+  milestones             Milestone[]
+  sprints                Sprint[]
+  approvals              Approval[]
+  account                Account?              @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_8d691f8d69acef59f4ed3a872c4")
+  owner                  User?                 @relation(fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9884b2ee80eb70b7db4f12e8aed")
+  roadmapItems           RoadmapItem[]
+  tasks                  Task[]
 
   @@unique([accountId, slug], map: "UQ_03b8ae50e8e05fd3334802d84e0")
   @@unique([accountId, projectKey], map: "UQ_1371753fc3e2a309eea64fbb103")
@@ -408,6 +513,13 @@ model Task {
   billableHours    Int?
   deliveryAddress  String?                   @db.VarChar
   deliveryWindow   Unsupported("tstzrange")?
+  estimatedHours   Decimal?                  @db.Decimal(8, 2)
+  actualHours      Decimal?                  @db.Decimal(8, 2)
+  budget           Decimal?                  @db.Decimal(10, 2)
+  riskLevel        String?                   @default("medium") @db.VarChar
+  approvalStatus   String?                   @db.VarChar
+  template         Boolean                   @default(false)
+  blockedReason    String?                   @db.VarChar
   createdAt        DateTime                  @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime                  @default(now()) @db.Timestamptz(6)
   statusId         String?                   @db.Uuid
@@ -416,6 +528,8 @@ model Task {
   creatorId        String?                   @db.Uuid
   teamId           String?                   @db.Uuid
   parentId         String?                   @db.Uuid
+  milestoneId      String?                   @db.Uuid
+  sprintId         String?                   @db.Uuid
   attachments      Attachment[]
   comments         Comment[]
   documents        Document[]
@@ -432,9 +546,12 @@ model Task {
   creator          User?                     @relation("tasks_creatorIdTousers", fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_90bc62e96b48a437a78593f78f0")
   assignee         User?                     @relation("tasks_assigneeIdTousers", fields: [assigneeId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9a16d2c86252529f622fa53f1e3")
   project          Project?                  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e08fca67ca8966e6b9914bf2956")
+  milestone        Milestone?                @relation("MilestoneTasks", fields: [milestoneId], references: [id])
+  sprint           Sprint?                   @relation("SprintTasks", fields: [sprintId], references: [id])
   TaskStatus       TaskStatus?               @relation(fields: [statusId], references: [id])
   TaskTagsTaskTags TaskTagsTaskTags[]
   timeTrackings    TimeTracking[]
+  approvals        Approval[]
 
   @@index([dueDate], map: "IDX_c300d154a85801889174e92a3d")
   @@index([projectId], map: "IDX_task_project_id")
@@ -474,6 +591,9 @@ model Team {
   id            String         @id(map: "PK_f57d8293406df4af348402e4b74") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name          String         @db.VarChar
   description   String?        @db.VarChar
+  capacity      Decimal?       @db.Decimal(6, 2)
+  hourlyRate    Decimal?       @db.Decimal(8, 2)
+  skills        String[]
   createdAt     DateTime       @default(now()) @db.Timestamptz(6)
   accountId     String         @db.Uuid
   projects      ProjectTeam[]
@@ -543,6 +663,11 @@ model User {
   TaskStatusLog          TaskStatusLog[]
   createdTasks           Task[]           @relation("tasks_creatorIdTousers")
   assignedTasks          Task[]           @relation("tasks_assigneeIdTousers")
+  milestones             Milestone[]
+  sprints                Sprint[]
+  requestedApprovals     Approval[]       @relation("ApprovalRequester")
+  reviewApprovals        Approval[]       @relation("ApprovalReviewer")
+  reports                Report[]
   teamMemberships        TeamMember[]
   timeTrackings          TimeTracking[]
   account                Account?         @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_17a709b8b6146c491e6615c29d7")
@@ -615,12 +740,15 @@ enum TaskRelationTypeEnum {
 }
 
 enum NotificationTypeEnum {
-  task_assigned   @map("task_assigned")
-  task_updated    @map("task_updated")
-  task_commented  @map("task_commented")
-  task_overdue    @map("task_overdue")
-  task_completed  @map("task_completed")
-  project_updated @map("project_updated")
+  task_assigned     @map("task_assigned")
+  task_updated      @map("task_updated")
+  task_commented    @map("task_commented")
+  task_overdue      @map("task_overdue")
+  task_completed    @map("task_completed")
+  project_updated   @map("project_updated")
+  milestone_reached @map("milestone_reached")
+  budget_exceeded   @map("budget_exceeded")
+  approval_required @map("approval_required")
 
   @@map("notifications_type_enum")
 }
@@ -682,4 +810,55 @@ enum ProjectVisibilityEnum {
   account @map("account")
 
   @@map("projects_visibility_enum")
+}
+
+enum MilestoneStatusEnum {
+  planned     @map("planned")
+  in_progress @map("in_progress")
+  completed   @map("completed")
+  cancelled   @map("cancelled")
+  on_hold     @map("on_hold")
+
+  @@map("milestone_status_enum")
+}
+
+enum SprintStatusEnum {
+  planned   @map("planned")
+  active    @map("active")
+  completed @map("completed")
+  cancelled @map("cancelled")
+
+  @@map("sprint_status_enum")
+}
+
+enum ApprovalTypeEnum {
+  task_completion @map("task_completion")
+  project_phase   @map("project_phase")
+  budget_change   @map("budget_change")
+  scope_change    @map("scope_change")
+  milestone       @map("milestone")
+
+  @@map("approval_type_enum")
+}
+
+enum ApprovalStatusEnum {
+  pending   @map("pending")
+  approved  @map("approved")
+  rejected  @map("rejected")
+  cancelled @map("cancelled")
+
+  @@map("approval_status_enum")
+}
+
+enum ReportTypeEnum {
+  project_summary    @map("project_summary")
+  task_performance   @map("task_performance")
+  time_tracking      @map("time_tracking")
+  budget_analysis    @map("budget_analysis")
+  team_productivity  @map("team_productivity")
+  milestone_progress @map("milestone_progress")
+  sprint_report      @map("sprint_report")
+  custom             @map("custom")
+
+  @@map("report_type_enum")
 }

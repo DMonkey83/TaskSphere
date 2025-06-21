@@ -56,9 +56,6 @@ export function PreferencesStep() {
 
   const onSubmit = useCallback(
     async (data: PreferencesForm) => {
-      console.log('🟨 PreferencesStep onSubmit called with data:', data);
-      console.log('🟨 Form values before submit:', form.getValues());
-      
       updatePreferences(data);
       try {
         const payload = {
@@ -66,15 +63,13 @@ export function PreferencesStep() {
             preferences: data,
           },
         };
-        console.log('🟨 Sending updateDraft payload:', payload);
-        
-        const result = await updateDraft(payload);
-        console.log('🟨 Preferences updateDraft SUCCESS:', result);
+
+        await updateDraft(payload);
       } catch (error) {
-        console.error('🟨 Preferences updateDraft ERROR:', error);
+        console.error("🟨 Preferences updateDraft ERROR:", error);
       }
     },
-    [updatePreferences, updateDraft, form]
+    [updatePreferences, updateDraft]
   );
 
   // Auto-save disabled to prevent infinite loops

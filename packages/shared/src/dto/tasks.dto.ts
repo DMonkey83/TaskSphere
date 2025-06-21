@@ -15,6 +15,14 @@ export const CreateTaskSchema = z.object({
   teamId: z.string().uuid().optional(),
   dueDate: z.coerce.date().optional(),
   type: TaskTypeZodEnum.default("subtask"),
+  estimatedHours: z.number().min(0).optional(),
+  budget: z.number().min(0).optional(),
+  riskLevel: z.enum(['low', 'medium', 'high']).optional(),
+  approvalStatus: z.enum(['pending', 'approved', 'rejected']).optional(),
+  template: z.boolean().optional(),
+  blockedReason: z.string().optional(),
+  milestoneId: z.string().uuid().optional(),
+  sprintId: z.string().uuid().optional(),
   relatedTasks: z
     .array(
       z.object({
@@ -47,6 +55,14 @@ export const UpateTaskSchema = z.object({
   priority: z.enum(["low", "medium", "high"]).optional(),
   type: TaskTypeZodEnum.optional(),
   teamId: z.string().uuid().optional(),
+  estimatedHours: z.number().min(0).optional(),
+  budget: z.number().min(0).optional(),
+  riskLevel: z.enum(['low', 'medium', 'high']).optional(),
+  approvalStatus: z.enum(['pending', 'approved', 'rejected']).optional(),
+  template: z.boolean().optional(),
+  blockedReason: z.string().optional(),
+  milestoneId: z.string().uuid().optional(),
+  sprintId: z.string().uuid().optional(),
   relatedTasks: z
     .array(
       z.object({

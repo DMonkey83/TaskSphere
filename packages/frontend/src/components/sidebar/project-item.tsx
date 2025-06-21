@@ -31,9 +31,7 @@ export function ProjectItem({ project }: ProjectItemProps) {
             className="w-full justify-start text-sm text-muted-foreground"
             asChild
           >
-            <a href={`/dashboard/projects/${project.id}/${item.id}`}>
-              {item.name}
-            </a>
+            <a href={`/projects/${project.id}/${item.id}`}>{item.name}</a>
           </Button>
         ))}
       </CollapsibleContent>

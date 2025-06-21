@@ -36,6 +36,12 @@ export const CreateProjectSchema = z.object({
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
   config: z.record(z.any()).optional(),
+  budget: z.number().min(0).optional(),
+  estimatedHours: z.number().min(0).optional(),
+  riskLevel: z.enum(["low", "medium", "high"]).optional(),
+  clientApprovalRequired: z.boolean().optional(),
+  template: z.boolean().optional(),
+  sprintDuration: z.number().min(1).max(4).optional(),
 });
 
 export const UpdateProjectSchema = CreateProjectSchema.partial().extend({
@@ -69,6 +75,13 @@ export const ProjectResponseSchema = z.object({
   config: z.record(z.any()).optional(),
   projectKey: z.string(),
   status: ProjectStatusZodEnum,
+  budget: z.number().nullish().optional(),
+  actualCost: z.number().nullish().optional(),
+  estimatedHours: z.number().nullish().optional(),
+  actualHours: z.number().nullish().optional(),
+  riskLevel: z.string().nullish().optional(),
+  clientApprovalRequired: z.boolean(),
+  template: z.boolean(),
   createdAt: z.coerce.date(),
   archived: z.boolean(),
   updatedAt: z.coerce.date(),
