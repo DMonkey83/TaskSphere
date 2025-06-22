@@ -275,9 +275,6 @@ export class ProjectsService {
         ) {
           throw new NotFoundException('Project not found');
         }
-        if (existingProject && existingProject.name !== dto.name) {
-          updateData.slug = slugify(dto.name);
-        }
       }
       if (dto.startDate) {
         updateData.startDate = new Date(dto.startDate);

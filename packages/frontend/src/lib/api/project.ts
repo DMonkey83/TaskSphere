@@ -7,6 +7,7 @@ import {
   ProjectResponseSchema,
   ProjectsListResponse,
   ProjectsListResponseSchema,
+  UpdateProjectRequest,
 } from "@shared/dto/projects.dto";
 
 import clientApi from "../axios";
@@ -60,6 +61,25 @@ export const createProject = async (
     const axiosError = error as AxiosError;
     const errorData = axiosError.response?.data ?? {
       message: "Failed to Create Project",
+    };
+    throw new Error(JSON.stringify(errorData));
+  }
+};
+
+export const updateProject = async (
+  data: UpdateProjectRequest
+): Promise<ProjectResponse> => {
+  try {
+    console.log("Updating project with data:", data);
+    const response = await clientApi.patch(`/api/projects/${data.id}`, data, {
+      withCredentials: true,
+      headers: { "Content-Type": "application/json" },
+    });
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    const errorData = axiosError.response?.data ?? {
+      message: "Failed to Update Project",
     };
     throw new Error(JSON.stringify(errorData));
   }

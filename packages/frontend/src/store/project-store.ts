@@ -8,7 +8,7 @@ interface ProjectState {
   totalProjectCount: number;
   setTotal: (total: number) => void;
   addProject: (project: ProjectResponse) => void;
-  updateProjet: (updated: ProjectResponse) => void;
+  updateProject: (updated: ProjectResponse) => void;
   removeProject: (id: string) => void;
 }
 
@@ -21,7 +21,7 @@ export const projectStore = create<ProjectState>((set) => ({
       if (state.projects.some((p) => p.id === project.id)) return state;
       return { projects: [...state.projects, project] };
     }),
-  updateProjet: (updated: ProjectResponse) =>
+  updateProject: (updated: ProjectResponse) =>
     set((state) => ({
       projects: state.projects.map((p) =>
         p.id === updated.id ? { ...p, ...updated } : p

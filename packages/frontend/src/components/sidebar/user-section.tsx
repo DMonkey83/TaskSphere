@@ -5,8 +5,8 @@ import { useSidebar } from "@/store/use-sidebar-store";
 import { userStore } from "@/store/user-store";
 
 const userActions = [
-  { name: "Profile", icon: MdPerson, href: "/dashboard/profile" },
-  { name: "Settings", icon: MdSettings, href: "/dashboard/settings" },
+  { name: "Profile", icon: MdPerson, href: "/profile" },
+  { name: "Settings", icon: MdSettings, href: "/settings" },
   { name: "Logout", icon: MdLogout, href: "/logout" },
 ];
 
@@ -37,7 +37,7 @@ export function UserSection() {
   return (
     <div className="space-y-2">
       <Button variant="ghost" className="w-full justify-start gap-3" asChild>
-        <a href="/dashboard/profile">
+        <a href="/profile">
           <MdPerson className="h-4 w-4" />
           <span>{user.email}</span>
         </a>

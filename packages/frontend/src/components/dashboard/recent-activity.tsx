@@ -23,7 +23,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
         <div className="flex items-center justify-between">
           <CardTitle>Recent Activity</CardTitle>
           <Button variant="ghost" size="sm" className="gap-1" asChild>
-            <a href="/dashboard/activity">
+            <a href="/activity">
               View all
               <MdArrowForward className="h-4 w-4" />
             </a>

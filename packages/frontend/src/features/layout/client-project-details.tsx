@@ -1,5 +1,6 @@
 "use client";
 
+import { HiTrendingUp } from "react-icons/hi";
 import {
   HiCalendarDays,
   HiHashtag,
@@ -14,6 +15,8 @@ import {
   HiEllipsisVertical,
 } from "react-icons/hi2";
 
+import { ProjectsHeader } from "@/components/projects";
+import { ProgressBar } from "@/components/projects/progress-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,8 +26,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ProgressBar } from "@/components/projects/progress-bar";
-import { ProjectsHeader } from "@/components/projects";
 import { useSetupStores } from "@/hooks/useSetupStores";
 import { useProjectBySlugQuery } from "@/lib/queries/useProjects";
 import { useTeamsQuery } from "@/lib/queries/useTeams";
@@ -44,7 +45,7 @@ import {
 } from "@/utils/project-progress";
 
 import { CreateProjectModal } from "../projects/create-project-modal";
-import { HiTrendingUp } from "react-icons/hi";
+import { UpdateProjectModal } from "../projects/update-project-modal";
 
 export default function ClientProjectDetails({ slug }: { slug: string }) {
   const {
@@ -96,7 +97,8 @@ export default function ClientProjectDetails({ slug }: { slug: string }) {
               Project not found
             </h3>
             <p className="text-gray-500">
-              The project you're looking for doesn't exist or has been removed.
+              The project you&aposre looking for doesn&apost exist or has been
+              removed.
             </p>
           </CardContent>
         </Card>
@@ -118,7 +120,7 @@ export default function ClientProjectDetails({ slug }: { slug: string }) {
     projectDetails.status !== "completed";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <ProjectsHeader />
 
       {/* Project Header */}
@@ -425,10 +427,15 @@ export default function ClientProjectDetails({ slug }: { slug: string }) {
       {/* Quick Actions */}
       <div className="flex gap-4">
         <CreateProjectModal />
-        <Button variant="outline">
-          <HiPencil className="w-4 h-4 mr-2" />
-          Edit Project
-        </Button>
+        <UpdateProjectModal
+          projectDetails={projectDetails}
+          trigger={
+            <Button variant="outline">
+              <HiPencil className="w-4 h-4 mr-2" />
+              Edit Project
+            </Button>
+          }
+        />
       </div>
     </div>
   );

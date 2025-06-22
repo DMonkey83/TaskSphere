@@ -42,7 +42,7 @@ export function UpcomingDeadlines({ deadlines }: UpcomingDeadlinesProps) {
       </CardContent>
       <CardFooter>
         <Button variant="ghost" size="sm" className="w-full gap-1" asChild>
-          <a href="/dashboard/tasks">
+          <a href="/tasks">
             View all tasks
             <MdArrowForward className="h-4 w-4" />
           </a>

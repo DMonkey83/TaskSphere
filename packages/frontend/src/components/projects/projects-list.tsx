@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   HiPencil,
   HiTrendingUp,
@@ -23,6 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { UpdateProjectModal } from "@/features/projects/update-project-modal";
 import {
   formatDate,
   formatWorkflow,
@@ -40,7 +42,6 @@ import {
 import { ProjectsListResponse } from "@shared/dto/projects.dto";
 
 import { ProgressBar } from "./progress-bar";
-import Link from "next/link";
 
 interface ProjectsListProps {
   data: ProjectsListResponse;
@@ -298,8 +299,15 @@ export function ProjectsList({ data }: ProjectsListProps) {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem>
-                            <HiPencil className="w-4 h-4 mr-2" />
-                            Edit Project
+                            <UpdateProjectModal
+                              projectDetails={project}
+                              trigger={
+                                <Button variant="ghost">
+                                  <HiPencil className="w-4 h-4 mr-2" />
+                                  Edit Project
+                                </Button>
+                              }
+                            />
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <HiArchiveBox className="w-4 h-4 mr-2" />

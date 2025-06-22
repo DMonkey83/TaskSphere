@@ -9,16 +9,19 @@ import {
   ProjectsListResponse,
   CreateProject,
   ProjectResponse,
+  UpdateProject,
 } from "@shared/dto/projects.dto";
 
 import {
   createProject,
   fetchProjectBySlugClient,
   fetchProjectsClient,
+  updateProject,
 } from "../api/project";
+import { projectKeys } from "@shared/keys/project-keys";
 
 type ProjectsQueryKey = ["projects", { accountId: string }];
-type ProjectBySlugQueryKey = ["project", "slug", { slug: string }];
+type ProjectBySlugQueryKey = readonly ["projects", "slug", { slug: string }];
 
 export const useProjectsQuery = (
   accountId: string,
@@ -65,7 +68,7 @@ export const useProjectBySlugQuery = (
     ProjectResponse,
     ProjectBySlugQueryKey
   >({
-    queryKey: ["project", "slug", { slug }],
+    queryKey: projectKeys.bySlug(slug),
     queryFn: ({ queryKey }) => {
       const [, , { slug }] = queryKey;
       return fetchProjectBySlugClient(slug);
@@ -77,5 +80,11 @@ export const useProjectBySlugQuery = (
 export const useCreateProject = () => {
   return useMutation<ProjectResponse, Error, CreateProject>({
     mutationFn: createProject,
+  });
+};
+
+export const useUpdateProject = () => {
+  return useMutation<ProjectResponse, Error, UpdateProject>({
+    mutationFn: updateProject,
   });
 };
