@@ -1,3 +1,4 @@
+import { HiSquares2X2, HiDocumentText } from "react-icons/hi2";
 import { MdFolder, MdExpandMore } from "react-icons/md";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,9 @@ interface ProjectItemProps {
 }
 
 export function ProjectItem({ project }: ProjectItemProps) {
+  // If project has a slug, use it for real project navigation
+  const projectSlug = (project as { slug?: string }).slug || project.id;
+  
   return (
     <Collapsible>
       <CollapsibleTrigger asChild>
@@ -23,7 +27,34 @@ export function ProjectItem({ project }: ProjectItemProps) {
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="ml-7 space-y-1">
-        {project.items.map((item) => (
+        {/* Board Views */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-sm text-muted-foreground"
+          asChild
+        >
+          <a href={`/projects/${projectSlug}/board`}>
+            <HiSquares2X2 className="h-3 w-3 mr-2" />
+            Board
+          </a>
+        </Button>
+        
+        {/* Project Overview */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-sm text-muted-foreground"
+          asChild
+        >
+          <a href={`/projects/${projectSlug}`}>
+            <HiDocumentText className="h-3 w-3 mr-2" />
+            Overview
+          </a>
+        </Button>
+
+        {/* Legacy items for backward compatibility */}
+        {project.items?.map((item) => (
           <Button
             key={item.id}
             variant="ghost"
@@ -31,7 +62,7 @@ export function ProjectItem({ project }: ProjectItemProps) {
             className="w-full justify-start text-sm text-muted-foreground"
             asChild
           >
-            <a href={`/projects/${project.id}/${item.id}`}>{item.name}</a>
+            <a href={`/projects/${projectSlug}/${item.id}`}>{item.name}</a>
           </Button>
         ))}
       </CollapsibleContent>

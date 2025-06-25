@@ -28,7 +28,11 @@ import { UpdateOnboardingDraftRequest } from "@/lib/api/onboarding";
 import { useOnboarding } from "@/lib/queries/useOnboarding";
 import { ProjectDefaults, useOnboardingData } from "@/store/onboarding-store";
 
-import { IndustriesZodEnum, WorkflowZodEnum } from "@shared/enumsTypes";
+import {
+  IndustriesZodEnum,
+  VisiblityEnum,
+  WorkflowZodEnum,
+} from "@shared/enumsTypes";
 
 const projectDefaultsSchema = z.object({
   name: z.string().optional(),
@@ -51,7 +55,8 @@ export function ProjectDefaultsStep() {
       description: projectDefaults?.description || "",
       industry: projectDefaults?.industry || undefined,
       workflow: projectDefaults?.workflow || "kanban",
-      visibility: projectDefaults?.visibility || "private",
+      visibility:
+        (projectDefaults?.visibility as VisiblityEnum) || VisiblityEnum.Private,
     },
   });
 

@@ -92,7 +92,9 @@ export const UpdateProjectModal = ({
       endDate: projectDetails?.endDate
         ? new Date(projectDetails.endDate)
         : undefined,
-      budget: parseInt(projectDetails?.budget.toString()) || undefined,
+      budget: projectDetails?.budget
+        ? parseInt(projectDetails?.budget?.toString())
+        : undefined,
       clientApprovalRequired: projectDetails?.clientApprovalRequired || false,
       template: projectDetails?.template || false,
       sprintDuration: projectDetails?.sprintDuration || undefined,
@@ -115,7 +117,7 @@ export const UpdateProjectModal = ({
       form.setValue("endDate", projectDetails.endDate || undefined);
       form.setValue(
         "budget",
-        parseInt(projectDetails.budget.toString()) || undefined
+        parseInt(projectDetails?.budget?.toString()) || undefined
       );
       form.setValue(
         "clientApprovalRequired",

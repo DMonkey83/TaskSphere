@@ -426,6 +426,12 @@ export default function ClientProjectDetails({ slug }: { slug: string }) {
 
       {/* Quick Actions */}
       <div className="flex gap-4">
+        <Button asChild>
+          <a href={`/projects/${slug}/board`}>
+            <HiBriefcase className="w-4 h-4 mr-2" />
+            View Board
+          </a>
+        </Button>
         <CreateProjectModal />
         <UpdateProjectModal
           projectDetails={projectDetails}

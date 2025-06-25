@@ -15,11 +15,11 @@ export async function fetchTasksClient(
 ): Promise<TaskListResponse> {
   try {
     const params = new URLSearchParams();
-    
+
     // Add filter parameters to the request
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null && value !== "") {
           if (value instanceof Date) {
             params.append(key, value.toISOString());
           } else {
@@ -28,8 +28,31 @@ export async function fetchTasksClient(
         }
       });
     }
-    
-    const url = `/api/tasks${params.toString() ? `?${params.toString()}` : ''}`;
+
+    const url = `/api/tasks${params.toString() ? `?${params.toString()}` : ""}`;
+    const response = await clientApi.get<TaskListResponse>(url);
+    console.log("Fetched tasks data:", response.data);
+    return TaskListResponseSchema.parse(response.data);
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      console.error("Error fetching tasks data:", error.response?.data);
+      throw new Error(error.response?.data?.message || "Failed to fetch tasks");
+    } else {
+      console.error("Unexpected error fetching tasks data:", error);
+      throw new Error("An unexpected error occurred while fetching tasks");
+    }
+  }
+}
+
+export async function fetchTasksByProjectClient(
+  projectId: string
+): Promise<TaskListResponse> {
+  try {
+    const params = new URLSearchParams();
+
+    // Add filter parameters to the request
+
+    const url = `/api/tasks/project/${projectId}`;
     const response = await clientApi.get<TaskListResponse>(url);
     console.log("Fetched tasks data:", response.data);
     return TaskListResponseSchema.parse(response.data);

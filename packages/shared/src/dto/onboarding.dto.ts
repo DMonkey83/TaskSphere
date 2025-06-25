@@ -1,43 +1,37 @@
 import { z } from "zod";
 
+import {
+  IndustriesZodEnum,
+  ProjectStatusZodEnum,
+  WorkflowZodEnum,
+  VisibilityZodEnum,
+} from "../enumsTypes";
+
 export const ProjectDefaultsSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
-  industry: z
-    .enum([
-      "programming",
-      "legal",
-      "logistics",
-      "marketing",
-      "product",
-      "other",
-    ])
-    .optional(),
-  workflow: z
-    .enum(["kanban", "scrum", "timeline", "calendar", "checklist"])
-    .default("kanban"),
-  status: z
-    .enum(["planned", "in_progress", "on_hold", "completed", "cancelled"])
-    .default("planned"),
-  visibility: z.enum(["private", "team", "account"]).default("private"),
+  industry: IndustriesZodEnum.optional(),
+  workflow: WorkflowZodEnum.default("kanban"),
+  status: ProjectStatusZodEnum.default("planned"),
+  visibility: VisibilityZodEnum.default("private"),
+});
+
+export const PreferncesSchema = z.object({
+  theme: z.enum(["light", "dark", "system"]).default("system"),
+  notifications: z.boolean().default(true),
+  emailUpdates: z.boolean().default(true),
+});
+
+export const PresonalInfoSchema = z.object({
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  role: z.string().optional(),
 });
 
 export const OnboardingDataSchema = z.object({
   projectDefaults: ProjectDefaultsSchema.optional(),
-  personalInfo: z
-    .object({
-      firstName: z.string().optional(),
-      lastName: z.string().optional(),
-      role: z.string().optional(),
-    })
-    .optional(),
-  preferences: z
-    .object({
-      theme: z.enum(["light", "dark", "system"]).default("system"),
-      notifications: z.boolean().default(true),
-      emailUpdates: z.boolean().default(true),
-    })
-    .optional(),
+  personalInfo: PresonalInfoSchema.optional(),
+  preferences: PreferncesSchema.optional(),
 });
 
 export const OnboardingDraftSchema = z.object({

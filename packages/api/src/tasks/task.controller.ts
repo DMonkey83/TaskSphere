@@ -71,6 +71,18 @@ export class TaskController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get('project/:projectId')
+  async findByProject(
+    @Param('projectId') projectId: string,
+    @Query(new ZodValidationPipe(TaskFilterSchema))
+    filters: TaskFilterDto,
+    @GetUser() user: UserPayload,
+  ): Promise<TaskListResponseDto> {
+    this.logger.log(`Fetching tasks for project: ${projectId}`);
+    return this.tasksService.findByProject(projectId, filters, user);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   async findOne(
     @Param('id') id: string,

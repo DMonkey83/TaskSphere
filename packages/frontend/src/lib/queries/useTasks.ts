@@ -12,7 +12,11 @@ import {
   TaskResponse,
 } from "@shared/dto/tasks.dto";
 
-import { createTaskClient, fetchTasksClient } from "../api/task";
+import {
+  createTaskClient,
+  fetchTasksClient,
+  fetchTasksByProjectClient,
+} from "../api/task";
 
 type TaskQueryKey = [
   "tasks",
@@ -31,6 +35,34 @@ export const useTasksQuery = (
     queryFn: ({ queryKey }) => {
       const [, { filters: queryFilters }] = queryKey;
       return fetchTasksClient(queryFilters);
+    },
+    ...options,
+  });
+};
+
+type TasksByProjectQueryKey = ["tasks", "project", { projectId: string }];
+export const useTasksByProjectQuery = (
+  projectId: string,
+  options?: Omit<
+    UseQueryOptions<
+      TaskListResponse,
+      unknown,
+      TaskListResponse,
+      TasksByProjectQueryKey
+    >,
+    "queryKey" | "queryFn"
+  >
+): UseQueryResult<TaskListResponse, unknown> => {
+  return useQuery<
+    TaskListResponse,
+    unknown,
+    TaskListResponse,
+    TasksByProjectQueryKey
+  >({
+    queryKey: ["tasks", "project", { projectId }],
+    queryFn: ({ queryKey }) => {
+      const [, , { projectId }] = queryKey;
+      return fetchTasksByProjectClient(projectId);
     },
     ...options,
   });

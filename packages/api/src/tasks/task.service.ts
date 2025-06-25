@@ -245,6 +245,29 @@ export class TaskService {
     return Array.from(taskMap.values());
   }
 
+  private async getTasksByProject(
+    projectId: string,
+    user: UserPayload,
+  ): Promise<Task[]> {
+    return await this.prisma.task.findMany({
+      where: {
+        projectId,
+        project: {
+          accountId: user.account.id,
+        },
+      },
+      include: {
+        assignee: true,
+        creator: true,
+        team: true,
+        project: true,
+        parent: true,
+        sourceRelations: true,
+        targetRelations: true,
+      },
+    });
+  }
+
   private async logTaskChanges(
     task: Task,
     dto: Partial<TaskDto>,
