@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  HiPencil,
   HiTrendingUp,
   HiBriefcase,
   HiEye,
@@ -24,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UpdateProjectModal } from "@/features/projects/update-project-modal";
+import { projectStore } from "@/store/project-store";
 import {
   formatDate,
   formatWorkflow,
@@ -39,16 +38,10 @@ import {
   getProgressFromStatus,
 } from "@/utils/project-progress";
 
-import { ProjectsListResponse } from "@shared/dto/projects.dto";
-
 import { ProgressBar } from "./progress-bar";
 
-interface ProjectsListProps {
-  data: ProjectsListResponse;
-}
-
-export function ProjectsList({ data }: ProjectsListProps) {
-  const { projects, total } = data || {};
+export function ProjectsList() {
+  const { projects, totalProjectCount: total } = projectStore();
 
   if (total === 0) {
     return (
@@ -297,17 +290,6 @@ export function ProjectsList({ data }: ProjectsListProps) {
                             <Link href={`/projects/${project.slug}`}>
                               View Details
                             </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <UpdateProjectModal
-                              projectDetails={project}
-                              trigger={
-                                <Button variant="ghost">
-                                  <HiPencil className="w-4 h-4 mr-2" />
-                                  Edit Project
-                                </Button>
-                              }
-                            />
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <HiArchiveBox className="w-4 h-4 mr-2" />

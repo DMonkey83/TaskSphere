@@ -13,35 +13,44 @@ import { TeamsResponse } from "@shared/dto/team.dto";
 import { UserResponse } from "@shared/dto/user.dto";
 import { RoleEnum } from "@shared/enumsTypes";
 
+export function useTasksSetupStores({ tasks }: { tasks?: TaskListResponse }) {
+  const currentTasks = taskStore((s) => s.tasks);
+  const currentTaskTotal = taskStore((s) => s.totalTaskCount);
+
+  const { setTasks, setTotal: setTasksTotal } = taskStore();
+
+  useEffect(() => {
+    if (!tasks) return;
+
+    if (!isEqual(currentTasks, tasks.tasks)) setTasks(tasks.tasks || []);
+    if (!isEqual(currentTaskTotal, tasks.total)) setTasksTotal(tasks.total);
+  }, [tasks, currentTasks, currentTaskTotal, setTasks, setTasksTotal]);
+}
+
 export function useSetupStores({
   account,
   teams,
   projects,
   user,
-  tasks,
 }: {
   user?: UserResponse;
   account?: { name: string };
   teams?: TeamsResponse;
   projects?: ProjectsListResponse;
-  tasks?: TaskListResponse;
 }) {
   const currentUser = userStore((s) => s.user);
   const currentAccount = accountStore((s) => s.account);
   const currentTeams = teamStore((s) => s.teams);
   const currentProjects = projectStore((s) => s.projects);
   const currentProjectTotal = projectStore((s) => s.totalProjectCount);
-  const currentTasks = taskStore((s) => s.tasks);
-  const currentTaskTotal = taskStore((s) => s.totalTaskCount);
 
   const { setUser } = userStore();
   const { setAccount } = accountStore();
   const { setTeams } = teamStore();
   const { setProjects, setTotal: setProjectsTotal } = projectStore();
-  const { setTasks, setTotal: setTasksTotal } = taskStore();
 
   useEffect(() => {
-    if (!user || !account || !teams || !projects || !tasks) return;
+    if (!user || !account || !teams || !projects) return;
 
     const newUser = {
       id: user.id,
@@ -61,27 +70,20 @@ export function useSetupStores({
       setProjects(projects.projects || []);
     if (!isEqual(currentProjectTotal, projects.total))
       setProjectsTotal(projects.total);
-    if (!isEqual(currentTasks, tasks.tasks)) setTasks(tasks.tasks || []);
-    if (!isEqual(currentTaskTotal, tasks.total)) setTasksTotal(tasks.total);
   }, [
     user,
     account,
     teams,
     projects,
-    tasks,
     currentUser,
     currentAccount,
     currentTeams,
     currentProjects,
     currentProjectTotal,
-    currentTaskTotal,
-    currentTasks,
     setUser,
     setAccount,
     setTeams,
     setProjects,
-    setTasks,
     setProjectsTotal,
-    setTasksTotal,
   ]);
 }

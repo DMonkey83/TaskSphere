@@ -37,6 +37,7 @@ import { UsersModule } from './users/users.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true, // Cache config for better performance
+      envFilePath: ['.env'],
     }),
     PrismaModule, // Prisma handles database connection
     CacheModule, // Redis caching

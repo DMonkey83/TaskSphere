@@ -8,59 +8,29 @@ import {
   UpcomingDeadlines,
   WelcomeSection,
 } from "@/components/dashboard";
-import { useSetupStores } from "@/hooks/useSetupStores";
+import { useTasksSetupStores } from "@/hooks/useSetupStores";
 import { dashboardData } from "@/lib/dashboard-data";
-import { useProjectsQuery } from "@/lib/queries/useProjects";
 import { useTasksQuery } from "@/lib/queries/useTasks";
-import { useTeamsQuery } from "@/lib/queries/useTeams";
-import { useUserQuery } from "@/lib/queries/useUser";
+import { userStore } from "@/store/user-store";
 
 export default function ClientDashboard({}) {
-  const {
-    data: user,
-    isLoading: userLoading,
-    isError: userError,
-  } = useUserQuery();
-  const accountId = user?.account?.id;
-  const {
-    data: teams,
-    isLoading: teamsLoading,
-    isError: teamsError,
-  } = useTeamsQuery(accountId!, {
-    enabled: !!accountId,
-  });
+  const user = userStore((state) => state.user);
 
-  const {
-    data: projects,
-    isLoading: projectsLoading,
-    isError: projectsError,
-  } = useProjectsQuery(accountId!, {
-    enabled: !!accountId,
-  });
-  console.log("projects", projects);
   const {
     data: tasks,
     isLoading: tasksLoading,
     isError: tasksError,
-  } = useTasksQuery(accountId!, undefined, {
-    enabled: !!accountId,
+  } = useTasksQuery(user.accountId!, undefined, {
+    enabled: !!user.accountId,
   });
   console.log("tasks", tasks);
 
-  useSetupStores({
-    user,
-    account: {
-      name: user?.account?.name || "",
-    },
-    teams,
-    projects,
+  useTasksSetupStores({
     tasks,
   });
 
-  if (userLoading || teamsLoading || projectsLoading || tasksLoading)
-    return <div>Loading...</div>;
-  if (userError || teamsError || projectsError || tasksError)
-    return <div>Error loading dashboard.</div>;
+  if (tasksLoading) return <div>Loading...</div>;
+  if (tasksError) return <div>Error loading dashboard.</div>;
 
   return (
     <div className="space-y-6">

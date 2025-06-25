@@ -11,6 +11,7 @@ import {
   ProjectResponse,
   UpdateProject,
 } from "@shared/dto/projects.dto";
+import { projectKeys } from "@shared/keys/project-keys";
 
 import {
   createProject,
@@ -18,7 +19,6 @@ import {
   fetchProjectsClient,
   updateProject,
 } from "../api/project";
-import { projectKeys } from "@shared/keys/project-keys";
 
 type ProjectsQueryKey = ["projects", { accountId: string }];
 type ProjectBySlugQueryKey = readonly ["projects", "slug", { slug: string }];

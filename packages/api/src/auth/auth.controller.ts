@@ -13,7 +13,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 
 import { AuthService } from './auth.service';
 import { CookieService, TokenCookieOptions } from './auth.utils';
-import { LoginDto, LoginResponseDto, RegisterDto } from './dto/auth.dto';
+import { LoginDto, LoginResponseDto } from './dto/auth.dto';
 import { Public } from './public.decorator';
 import { AccountsService } from '../accounts/accounts.service';
 import { UsersService } from '../users/users.service';
@@ -91,20 +91,36 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(@Body(new ZodValidationPipe(RegisterDto)) body: RegisterDto) {
+  async register(@Body() body: any) {
     console.log('body', body);
-    const account = await this.accountService.create({
-      name: body.accountName,
-    });
 
-    const user = await this.usersService.create({
-      email: body.email,
-      passwordHash: body.password,
-      role: 'owner',
-      firstName: body.firstName,
-      lastName: body.lastName,
-      accountId: account.id,
-    });
-    return { account, user };
+    // If accountName is provided, this is a regular registration
+    if (body.accountName) {
+      const account = await this.accountService.create({
+        name: body.accountName,
+      });
+
+      const user = await this.usersService.create({
+        email: body.email,
+        passwordHash: body.password,
+        role: 'owner',
+        firstName: body.firstName,
+        lastName: body.lastName,
+        accountId: account.id,
+      });
+      return { account, user };
+    } else {
+      // This is an invite-based registration, create user without account assignment
+      // The account will be assigned when the invite is accepted
+      const user = await this.usersService.create({
+        email: body.email,
+        passwordHash: body.password,
+        role: 'member', // Default role, will be updated when invite is accepted
+        firstName: body.firstName,
+        lastName: body.lastName,
+        accountId: null, // Temporary, will be set when invite is accepted
+      });
+      return { user };
+    }
   }
 }

@@ -7,25 +7,20 @@ import {
 } from "react-icons/hi";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { projectStore } from "@/store/project-store";
 import {
   calculateTimeProgress,
   calculateTaskProgress,
 } from "@/utils/project-progress";
 
-import { ProjectsListResponse } from "@shared/dto/projects.dto";
-
-interface ProjectsStatsProps {
-  projects: ProjectsListResponse;
-}
-
-export function ProjectsStats({ projects }: ProjectsStatsProps) {
-  const totalProjects = projects?.total || 0;
+export function ProjectsStats() {
+  const { projects, totalProjectCount: total } = projectStore((s) => s);
+  const totalProjects = total || 0;
   const activeProjects =
-    projects.projects?.filter(
-      (p) => p.status === "IN_PROGRESS" || p.status === "active"
-    )?.length || 0;
+    projects?.filter((p) => p.status === "IN_PROGRESS" || p.status === "active")
+      ?.length || 0;
   const completedProjects =
-    projects.projects?.filter(
+    projects?.filter(
       (p) => p.status === "COMPLETED" || p.status === "completed"
     )?.length || 0;
   // const onHoldProjects =
@@ -35,7 +30,7 @@ export function ProjectsStats({ projects }: ProjectsStatsProps) {
 
   // Calculate average progress metrics
   const projectsWithTimeProgress =
-    projects.projects
+    projects
       ?.map((p) => calculateTimeProgress(p.startDate, p.endDate))
       .filter((p) => p !== null) || [];
   const avgTimeProgress =
@@ -49,7 +44,7 @@ export function ProjectsStats({ projects }: ProjectsStatsProps) {
       : 0;
 
   const projectsWithTaskProgress =
-    projects.projects
+    projects
       ?.map((p) => calculateTaskProgress(p.config))
       .filter((p) => p !== null) || [];
   const avgTaskProgress =
@@ -64,7 +59,7 @@ export function ProjectsStats({ projects }: ProjectsStatsProps) {
 
   // Count overdue projects
   const overdueProjects =
-    projects.projects?.filter((p) => {
+    projects?.filter((p) => {
       if (!p.endDate || p.status === "COMPLETED" || p.status === "completed")
         return false;
       return new Date(p.endDate) < new Date();

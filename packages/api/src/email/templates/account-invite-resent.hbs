@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reminder: You're invited to join {{accountName}} on TaskSphere</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #3b82f6;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+        .content {
+            font-size: 16px;
+            color: #4b5563;
+            margin-bottom: 32px;
+        }
+        .reminder-badge {
+            display: inline-block;
+            background-color: #fbbf24;
+            color: #92400e;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .invite-details {
+            background-color: #f3f4f6;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        .invite-details h3 {
+            margin: 0 0 12px 0;
+            color: #1f2937;
+            font-size: 18px;
+        }
+        .invite-details p {
+            margin: 8px 0;
+            color: #6b7280;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #3b82f6;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 24px 0;
+            text-align: center;
+        }
+        .cta-button:hover {
+            background-color: #2563eb;
+        }
+        .link-alternative {
+            margin-top: 24px;
+            padding: 16px;
+            background-color: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        .link-alternative p {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .link-alternative a {
+            word-break: break-all;
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+        }
+        .expiry-warning {
+            color: #dc2626;
+            font-weight: 500;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">TaskSphere</div>
+        </div>
+        
+        <div class="reminder-badge">📨 REMINDER</div>
+        <h1 class="title">Don't miss out! Join {{accountName}} on TaskSphere</h1>
+        
+        <div class="content">
+            <p>Hi there!</p>
+            <p>This is a friendly reminder that <strong>{{inviterName}}</strong> has invited you to join <strong>{{accountName}}</strong> on TaskSphere.</p>
+            <p>We noticed you haven't accepted the invitation yet, and we wanted to make sure you didn't miss it!</p>
+        </div>
+
+        <div class="invite-details">
+            <h3>Invitation Details</h3>
+            <p><strong>Account:</strong> {{accountName}}</p>
+            <p><strong>Role:</strong> {{role}}</p>
+            <p><strong>Invited by:</strong> {{inviterName}}</p>
+            <p><strong>Email:</strong> {{email}}</p>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="{{inviteUrl}}" class="cta-button">Accept Invitation Now</a>
+        </div>
+
+        <div class="link-alternative">
+            <p>If the button above doesn't work, copy and paste this link into your browser:</p>
+            <a href="{{inviteUrl}}">{{inviteUrl}}</a>
+        </div>
+
+        <p class="expiry-warning">⏰ This invitation expires on {{expiresAt}}. Please accept it soon!</p>
+
+        <div class="content">
+            <p>By joining {{accountName}}, you'll be able to:</p>
+            <ul>
+                <li>Collaborate seamlessly with your team</li>
+                <li>Manage projects and track progress</li>
+                <li>Stay organized with task management</li>
+                <li>Communicate effectively with built-in tools</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>This reminder was sent to {{email}}. If you don't want to receive these reminders, you can safely ignore this email.</p>
+            <p>© 2025 TaskSphere. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -94,28 +94,33 @@ export default function OnboardingPage() {
   const progressPercentage = (currentStep / totalSteps) * 100;
 
   const handleNext = async () => {
-    console.log('🔴 HandleNext called for step:', currentStep);
-    
+    console.log("🔴 HandleNext called for step:", currentStep);
+
     // Trigger form submission for current step before moving to next
-    const currentStepElement = document.querySelector(`[data-step="${currentStep}"] form`);
+    const currentStepElement = document.querySelector(
+      `[data-step="${currentStep}"] form`
+    );
     if (currentStepElement) {
-      console.log('🔴 Found form element, triggering submission');
+      console.log("🔴 Found form element, triggering submission");
       // Trigger form submission
-      const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+      const submitEvent = new Event("submit", {
+        bubbles: true,
+        cancelable: true,
+      });
       currentStepElement.dispatchEvent(submitEvent);
-      
+
       // Wait a bit for the submission to complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
-    
+
     if (currentStep < ONBOARDING_STEPS.length - 1) {
       const nextStep = currentStep + 1;
-      console.log('🔴 Moving to next step:', nextStep);
+      console.log("🔴 Moving to next step:", nextStep);
       await updateDraft({ step: nextStep });
       setCurrentStep(nextStep);
     } else {
       // Complete onboarding
-      console.log('🔴 Completing onboarding');
+      console.log("🔴 Completing onboarding");
       await completeDraft();
       router.push("/dashboard");
     }
