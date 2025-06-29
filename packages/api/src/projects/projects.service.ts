@@ -18,6 +18,7 @@ import {
 import { CacheService } from '../cache/cache.service';
 import { slugify } from '../common/slugify.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { getDefaultStepsForIndustry } from './config/default-board-steps';
 import {
   CreateProjectDto,
   CreateProjectViewDto,
@@ -94,6 +95,14 @@ export class ProjectsService {
         dto.accountId,
       );
       const slug = await this.generateUniqueSlug(dto.name, dto.accountId);
+      const defaultSteps =
+        getDefaultStepsForIndustry(dto.industry || 'other') ??
+        getDefaultStepsForIndustry('other');
+
+      const config = {
+        ...dto.config,
+        steps: defaultSteps,
+      };
 
       const savedProject = await this.prisma.project.create({
         data: {
@@ -114,7 +123,8 @@ export class ProjectsService {
           tags: dto.tags || [],
           startDate: dto.startDate ? new Date(dto.startDate) : null,
           endDate: dto.endDate ? new Date(dto.endDate) : null,
-          config: dto.config || {},
+          config: JSON.parse(JSON.stringify(config)),
+          budget: dto.budget || 0,
           status: ProjectStatusEnum.planned,
           members: {
             create: {

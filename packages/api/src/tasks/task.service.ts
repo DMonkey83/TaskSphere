@@ -264,6 +264,7 @@ export class TaskService {
         parent: true,
         sourceRelations: true,
         targetRelations: true,
+        TaskStatus: true,
       },
     });
   }

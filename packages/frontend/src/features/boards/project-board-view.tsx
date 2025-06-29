@@ -12,10 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProjectBySlugQuery } from "@/lib/queries/useProjects";
-import {
-  useProjectTasksQuery,
-  useTasksByProjectQuery,
-} from "@/lib/queries/useTasks";
+import { useTasksByProjectQuery } from "@/lib/queries/useTasks";
 import { teamStore } from "@/store/team-store";
 import { userStore } from "@/store/user-store";
 
@@ -23,6 +20,7 @@ import { CalendarView } from "./calendar-view";
 import { KanbanBoard } from "./kanban-board";
 import { SprintBoard } from "./sprint-board";
 import { TimelineView } from "./timeline-view";
+import { CreateTaskModal } from "../tasks/create-task-modal";
 
 interface ProjectBoardViewProps {
   slug: string;
@@ -84,6 +82,7 @@ export function ProjectBoardView({ slug, view }: ProjectBoardViewProps) {
   }
 
   const tasks = tasksData?.tasks || [];
+  console.log("Tasks:", tasks);
 
   return (
     <div className="space-y-6">
@@ -102,6 +101,7 @@ export function ProjectBoardView({ slug, view }: ProjectBoardViewProps) {
             <span className="text-sm text-gray-500">
               {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
             </span>
+            <CreateTaskModal />
           </div>
         </div>
       </div>

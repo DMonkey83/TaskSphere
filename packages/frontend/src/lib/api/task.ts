@@ -48,10 +48,6 @@ export async function fetchTasksByProjectClient(
   projectId: string
 ): Promise<TaskListResponse> {
   try {
-    const params = new URLSearchParams();
-
-    // Add filter parameters to the request
-
     const url = `/api/tasks/project/${projectId}`;
     const response = await clientApi.get<TaskListResponse>(url);
     console.log("Fetched tasks data:", response.data);

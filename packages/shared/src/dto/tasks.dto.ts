@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { Relations } from "../enumsTypes/relations.enum";
 import { TaskTypeZodEnum } from "../enumsTypes/task-type.enum";
+import { TaskStatusResponseSchema } from "./task-status.dto";
 
 export const CreateTaskSchema = z.object({
   projectKey: z.string().min(1),
@@ -137,12 +138,13 @@ export const TaskFilterSchema = z.object({
   hasParent: z.boolean().optional(), // Filter for tasks with/without parent
   isOverdue: z.boolean().optional(), // Filter for overdue tasks
   page: z.coerce.number().min(1).default(1),
+  TaskStatus: TaskStatusResponseSchema.optional(),
   limit: z.coerce.number().min(1).max(50).default(20),
   sortBy: z
     .enum(["createdAt", "updatedAt", "dueDate", "priority", "title"])
     .default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
-});
+}).optional();
 
 export type TaskFilterDto = z.infer<typeof TaskFilterSchema>;
 

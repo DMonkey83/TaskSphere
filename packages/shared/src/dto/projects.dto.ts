@@ -8,6 +8,11 @@ import { VisibilityZodEnum } from "../enumsTypes/visibility.enum";
 import { AccountData, UserResponseSchema } from "./user.dto";
 import { RiskLevelZodEnum } from "../enumsTypes/risk-level-enum";
 
+export const StepDefinitionSchema = z.object({
+  name: z.string(),
+  status: z.string(),
+});
+
 // Schema for API requests (without accountId/ownerId - those come from auth)
 export const CreateProjectRequestSchema = z.object({
   name: z.string().min(1),
@@ -19,7 +24,6 @@ export const CreateProjectRequestSchema = z.object({
   tags: z.array(z.string()).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
-  config: z.record(z.any()).optional(),
 });
 
 // Schema for service layer (includes accountId/ownerId)
@@ -33,6 +37,7 @@ export const CreateProjectSchema = CreateProjectRequestSchema.partial().extend({
   clientApprovalRequired: z.boolean().optional(),
   template: z.boolean().optional(),
   sprintDuration: z.number().min(1).max(4).optional(),
+  config: z.record(z.any()).optional(),
 });
 
 export const UpdateProjectRequestSchema =

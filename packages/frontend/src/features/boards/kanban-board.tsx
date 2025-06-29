@@ -14,12 +14,10 @@ import {
 import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 
-
 import { User } from "@/store/user-store";
 
 import { TaskResponse } from "@shared/dto/tasks.dto";
 import { TeamsResponse } from "@shared/dto/team.dto";
-
 
 import { KanbanColumn } from "./kanban-column";
 import { TaskCard } from "./task-card";
@@ -41,6 +39,8 @@ const KANBAN_COLUMNS = [
 export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<TaskResponse | null>(null);
 
+  console.log("Tasks in KanbanBoard:", tasks);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -52,15 +52,17 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
   // Group tasks by status
   const tasksByStatus = useMemo(() => {
     const grouped = KANBAN_COLUMNS.reduce((acc, column) => {
-      acc[column.status] = tasks.filter(task => task.status === column.status);
+      acc[column.status] = tasks.filter(
+        (task) => task.status === column.status
+      );
       return acc;
     }, {} as Record<string, TaskResponse[]>);
-    
+
     return grouped;
   }, [tasks]);
 
   function handleDragStart(event: DragStartEvent) {
-    const task = tasks.find(t => t.id === event.active.id);
+    const task = tasks.find((t) => t.id === event.active.id);
     setActiveTask(task || null);
   }
 
@@ -68,12 +70,12 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
     const { active, over } = event;
     if (!over) return;
 
-    const activeTask = tasks.find(t => t.id === active.id);
+    const activeTask = tasks.find((t) => t.id === active.id);
     if (!activeTask) return;
 
     const overId = over.id;
-    const overColumn = KANBAN_COLUMNS.find(col => col.id === overId);
-    
+    const overColumn = KANBAN_COLUMNS.find((col) => col.id === overId);
+
     if (overColumn && activeTask.status !== overColumn.status) {
       // Here you would update the task status in your backend
       // For now, we'll just update the local state
@@ -87,12 +89,12 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
 
     if (!over) return;
 
-    const activeTask = tasks.find(t => t.id === active.id);
+    const activeTask = tasks.find((t) => t.id === active.id);
     if (!activeTask) return;
 
     const overId = over.id;
-    const overColumn = KANBAN_COLUMNS.find(col => col.id === overId);
-    
+    const overColumn = KANBAN_COLUMNS.find((col) => col.id === overId);
+
     if (overColumn && activeTask.status !== overColumn.status) {
       // Here you would call your API to update the task status
       console.log(`Task ${activeTask.id} moved to ${overColumn.status}`);
@@ -123,12 +125,7 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
       {/* Drag Overlay */}
       {createPortal(
         <DragOverlay>
-          {activeTask && (
-            <TaskCard
-              task={activeTask}
-              isDragging
-            />
-          )}
+          {activeTask && <TaskCard task={activeTask} isDragging />}
         </DragOverlay>,
         document.body
       )}
