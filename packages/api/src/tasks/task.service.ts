@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Task, TaskRelationTypeEnum, TaskStatusLog } from '@prisma/client';
 import { Prisma } from '@prisma/client';
+import { TaskResponse, TaskSchema } from 'shared/src/dto/tasks.dto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { TaskActivityService } from '../task-activities/task-activity.service';
@@ -38,22 +39,51 @@ export class TaskService {
   }
 
   private async generateTaskKey(projectKey: string): Promise<string> {
-    const projectTasks = await this.prisma.task.count({
-      where: { project: { projectKey } },
-    });
-    const taskCount = projectTasks + 1; // Start from 1
-    return `${projectKey}-${taskCount}`;
+    // Use a transaction with serializable isolation to prevent race conditions
+    return await this.prisma.$transaction(
+      async (tx) => {
+        const projectTasks = await tx.task.count({
+          where: { project: { projectKey } },
+        });
+        const taskCount = projectTasks + 1;
+        return `${projectKey}-${taskCount}`;
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      },
+    );
+  }
+
+  private async findOrCreateTaskStatus(
+    status: string,
+  ): Promise<string | undefined> {
+    try {
+      let taskStatus = await this.prisma.taskStatus.findFirst({
+        where: { label: status },
+        select: { id: true },
+      });
+
+      if (!taskStatus) {
+        taskStatus = await this.prisma.taskStatus.create({
+          data: { label: status, code: status },
+          select: { id: true },
+        });
+      }
+
+      return taskStatus.id;
+    } catch (error) {
+      this.logger.error(
+        `Failed to find or create status '${status}': ${(error as Error).message}`,
+      );
+      throw new BadRequestException(`Invalid status: ${status}`);
+    }
   }
 
   async createTask(dto: CreateTaskDto, user: UserPayload): Promise<Task> {
     this.logger.log(
       `Creating task with title: ${dto.title}, type: ${dto.type}, projectId: ${dto.projectId}`,
     );
-    await this.validateTaskType(
-      dto.type as string,
-      dto.parentId as string,
-      null,
-    );
+    await this.validateTaskType(dto.type, dto.parentId, null, user);
 
     // Validate project belongs to user's account (optimized)
     const project = await this.prisma.project.findUniqueOrThrow({
@@ -72,29 +102,10 @@ export class TaskService {
 
     const taskKey = await this.generateTaskKey(project.projectKey);
 
-    // Handle task status - try to find existing or create if needed
+    // Handle task status - find existing or create if needed
     let statusId: string | undefined;
     if (dto.status) {
-      let taskStatus = await this.prisma.taskStatus.findFirst({
-        where: { label: dto.status },
-      });
-
-      // If status doesn't exist, create it
-      if (!taskStatus) {
-        try {
-          taskStatus = await this.prisma.taskStatus.create({
-            data: { label: dto.status, code: dto.status },
-          });
-        } catch (error) {
-          this.logger.warn(
-            `Could not create status '${dto.status}': ${(error as Error).message}`,
-          );
-        }
-      }
-
-      if (taskStatus) {
-        statusId = taskStatus.id;
-      }
+      statusId = await this.findOrCreateTaskStatus(dto.status);
     }
 
     const task = await this.prisma.task.create({
@@ -103,18 +114,14 @@ export class TaskService {
         description: dto.description,
         type: dto.type,
         priority: dto.priority,
-        dueDate: dto.dueDate ? new Date(dto.dueDate as Date) : undefined,
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
         project: { connect: { id: project.id } },
         creator: { connect: { id: user.userId } },
         assignee: dto.assigneeId
-          ? { connect: { id: dto?.assigneeId as string } }
+          ? { connect: { id: dto.assigneeId } }
           : undefined,
-        team: dto.teamId
-          ? { connect: { id: dto?.teamId as string } }
-          : undefined,
-        parent: dto.parentId
-          ? { connect: { id: dto?.parentId as string } }
-          : undefined,
+        team: dto.teamId ? { connect: { id: dto.teamId } } : undefined,
+        parent: dto.parentId ? { connect: { id: dto.parentId } } : undefined,
         TaskStatus: statusId ? { connect: { id: statusId } } : undefined,
         taskKey,
       },
@@ -136,14 +143,7 @@ export class TaskService {
       user,
     );
     if (dto.relatedTasks?.length) {
-      await this.createRelations(
-        task,
-        dto.relatedTasks as {
-          taskId: string;
-          relationType: TaskRelationTypeEnum;
-        }[],
-        user,
-      );
+      await this.createRelations(task, dto.relatedTasks, user);
     }
     return task;
   }
@@ -153,34 +153,61 @@ export class TaskService {
     relations: { taskId: string; relationType: TaskRelationTypeEnum }[],
     user: UserPayload,
   ) {
-    for (const rel of relations) {
-      const relatedTask = await this.prisma.task.findUnique({
-        where: {
-          id: rel.taskId,
-          project: {
-            accountId: user.account.id,
-          },
+    if (!relations.length) return;
+    await this.validateAndCreateTaskRelations(
+      task.id,
+      relations,
+      user,
+      this.prisma,
+    );
+  }
+
+  private async validateAndCreateTaskRelations(
+    sourceTaskId: string,
+    relations: { taskId: string; relationType: TaskRelationTypeEnum }[],
+    user: UserPayload,
+
+    prismaClient: any = this.prisma,
+  ) {
+    // Bulk validate all related tasks to avoid N+1 queries
+    const relatedTaskIds = relations.map((rel) => rel.taskId);
+    const relatedTasks = await prismaClient.task.findMany({
+      where: {
+        id: { in: relatedTaskIds },
+        project: {
+          accountId: user.account.id,
         },
-      });
-      if (!relatedTask) {
-        throw new NotFoundException(
-          `Related task with ID ${rel.taskId} not found`,
-        );
-      }
-      await this.prisma.taskRelation.create({
-        data: {
-          sourceTask: { connect: { id: task.id } },
-          relatedTask: { connect: { id: relatedTask.id } },
-          relationType: rel.relationType,
-        },
-      });
+      },
+      select: { id: true },
+    });
+
+    const foundTaskIds = new Set(relatedTasks.map((t) => t.id as string));
+    const missingTaskIds = relatedTaskIds.filter((id) => !foundTaskIds.has(id));
+
+    if (missingTaskIds.length > 0) {
+      throw new NotFoundException(
+        `Related tasks not found: ${missingTaskIds.join(', ')}`,
+      );
     }
+
+    // Bulk create all relations
+    const relationData = relations.map((rel) => ({
+      taskId: sourceTaskId,
+      relatedTaskId: rel.taskId,
+      relationType: rel.relationType,
+    }));
+
+    await prismaClient.taskRelation.createMany({
+      data: relationData,
+      skipDuplicates: true,
+    });
   }
 
   private async validateTaskType(
     type: string,
     parentId: string | undefined,
     existingParentId: string | null,
+    user?: UserPayload,
   ): Promise<void> {
     if (type === 'subtask' && !parentId && !existingParentId) {
       throw new BadRequestException('Subtask must have a parent');
@@ -188,7 +215,21 @@ export class TaskService {
     if (type === 'epic' && (parentId || existingParentId)) {
       throw new BadRequestException('Epics cannot have a parent');
     }
-    if (parentId) {
+    if (parentId && user) {
+      const parent = await this.prisma.task.findUniqueOrThrow({
+        where: {
+          id: parentId,
+          project: {
+            accountId: user.account.id,
+          },
+        },
+        select: { type: true },
+      });
+      if (parent.type === 'subtask') {
+        throw new BadRequestException('Subtasks cannot be parents');
+      }
+    } else if (parentId) {
+      // Fallback for backward compatibility when user is not provided
       const parent = await this.prisma.task.findUniqueOrThrow({
         where: { id: parentId },
         select: { type: true },
@@ -202,53 +243,94 @@ export class TaskService {
   private async getRelatedTasks(
     taskId: string,
     user: UserPayload,
-  ): Promise<Task[]> {
+  ): Promise<TaskResponse[]> {
+    // Get all task IDs related to this task in both directions
     const relations = await this.prisma.taskRelation.findMany({
       where: {
         OR: [{ taskId }, { relatedTaskId: taskId }],
-        AND: [
-          {
-            sourceTask: {
-              project: {
-                accountId: user.account.id,
-              },
-            },
-          },
-          {
-            relatedTask: {
-              project: {
-                accountId: user.account.id,
-              },
-            },
-          },
-        ],
       },
-      include: {
-        sourceTask: true,
-        relatedTask: true,
+      select: {
+        taskId: true,
+        relatedTaskId: true,
       },
     });
 
-    const taskMap = new Map<string, Task>();
-
+    // Extract unique related task IDs
+    const relatedTaskIds = new Set<string>();
     relations.forEach((rel) => {
-      // Add the related task if this task is the source
-      if (rel.taskId === taskId && rel.relatedTask) {
-        taskMap.set(rel.relatedTask.id, rel.relatedTask);
-      }
-      // Add the source task if this task is the related
-      else if (rel.relatedTaskId === taskId && rel.sourceTask) {
-        taskMap.set(rel.sourceTask.id, rel.sourceTask);
+      if (rel.taskId === taskId) {
+        relatedTaskIds.add(rel.relatedTaskId);
+      } else if (rel.relatedTaskId === taskId) {
+        relatedTaskIds.add(rel.taskId);
       }
     });
 
-    return Array.from(taskMap.values());
+    if (relatedTaskIds.size === 0) {
+      return [];
+    }
+
+    // Fetch all related tasks with account validation in a single query
+    const rawTasks = await this.prisma.task.findMany({
+      where: {
+        id: { in: Array.from(relatedTaskIds) },
+        project: {
+          accountId: user.account.id,
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        taskKey: true,
+        type: true,
+        priority: true,
+        TaskStatus: true,
+        createdAt: true,
+        updatedAt: true,
+        description: true,
+        assigneeId: true,
+        creatorId: true,
+        parentId: true,
+        projectId: true,
+        teamId: true,
+        dueDate: true,
+        project: {
+          select: {
+            projectKey: true,
+          },
+        },
+      },
+    });
+
+    // Transform and validate using Zod schema
+    return rawTasks.map((task) =>
+      TaskSchema.parse({
+        id: task.id,
+        projectKey: task.project.projectKey,
+        title: task.title,
+        description: task.description,
+        assigneeId: task.assigneeId,
+        taskKey: task.taskKey,
+        creatorId: task.creatorId,
+        parentId: task.parentId,
+        priority: task.priority,
+        projectId: task.projectId,
+        teamId: task.teamId,
+        type: task.type,
+        status: task.TaskStatus.code,
+        dueDate: task.dueDate,
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
+      }),
+    );
   }
 
   private async getTasksByProject(
     projectId: string,
     user: UserPayload,
+    pagination: { limit?: number; offset?: number } = {},
   ): Promise<Task[]> {
+    const { limit = 100, offset = 0 } = pagination;
+
     return await this.prisma.task.findMany({
       where: {
         projectId,
@@ -266,6 +348,9 @@ export class TaskService {
         targetRelations: true,
         TaskStatus: true,
       },
+      take: Math.min(limit, 500), // Cap at 500 for safety
+      skip: offset,
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -274,9 +359,15 @@ export class TaskService {
     dto: Partial<TaskDto>,
     user: UserPayload,
   ): Promise<void> {
-    const toLogValue = (value: string | number | Date | null): string =>
-      value === null ? 'null' : String(value);
+    await this.logFieldChanges(task, dto, user);
+    await this.logRelatedTasksChanges(task, dto, user);
+  }
 
+  private async logFieldChanges(
+    task: Task,
+    dto: Partial<TaskDto>,
+    user: UserPayload,
+  ): Promise<void> {
     const keysToTrack: (keyof TaskDto)[] = [
       'title',
       'storyPoints',
@@ -291,63 +382,74 @@ export class TaskService {
     ];
 
     for (const key of keysToTrack) {
-      const oldRaw = task[key];
-      const newRaw = dto[key];
-      if (newRaw === undefined) continue;
+      if (dto[key] === undefined) continue;
 
-      const oldValue =
-        oldRaw instanceof Date
-          ? oldRaw.toISOString()
-          : (oldRaw as string | number | null);
-      const newValue =
-        newRaw instanceof Date
-          ? newRaw.toISOString()
-          : (newRaw as string | number | null);
+      const oldValue = this.normalizeLogValue(task[key]);
+      const newValue = this.normalizeLogValue(dto[key]);
 
-      if (
-        oldValue !== newValue &&
-        !(oldValue === null && newValue === undefined)
-      ) {
+      if (this.hasValueChanged(oldValue, newValue)) {
         await this.taskActivityService.logActivity(
           {
             taskId: task.id,
             userId: user.userId,
             action: 'updated',
             field: key as string,
-            oldValue: toLogValue(oldValue),
-            newValue: toLogValue(newValue),
+            oldValue: this.formatLogValue(oldValue),
+            newValue: this.formatLogValue(newValue),
           },
           user,
         );
       }
     }
+  }
 
-    if (dto.relatedTasks !== undefined) {
-      const currentRelatedTasks = await this.getRelatedTasks(task.id, user);
-      const currentIdsArray = currentRelatedTasks.map((t): string =>
-        String(t.id),
+  private async logRelatedTasksChanges(
+    task: Task,
+    dto: Partial<TaskDto>,
+    user: UserPayload,
+  ): Promise<void> {
+    if (dto.relatedTasks === undefined) return;
+
+    const currentRelatedTasks = await this.getRelatedTasks(task.id, user);
+    const currentIds = currentRelatedTasks
+      .map((t) => t.id)
+      .sort()
+      .join(',');
+
+    const newIds = (dto.relatedTasks || [])
+      .map((t) => String(t.taskId))
+      .sort()
+      .join(',');
+
+    if (currentIds !== newIds) {
+      await this.taskActivityService.logActivity(
+        {
+          taskId: task.id,
+          userId: user.userId,
+          action: 'updated',
+          field: 'relatedTasks',
+          oldValue: JSON.stringify(currentRelatedTasks),
+          newValue: JSON.stringify(dto.relatedTasks || []),
+        },
+        user,
       );
-      const currentIds = currentIdsArray.sort().join(',');
-
-      const newIds = (dto.relatedTasks || [])
-        .map((t) => String(t.taskId))
-        .sort()
-        .join(',');
-
-      if (currentIds !== newIds) {
-        await this.taskActivityService.logActivity(
-          {
-            taskId: task.id,
-            userId: user.userId,
-            action: 'updated',
-            field: 'relatedTasks',
-            oldValue: JSON.stringify(currentRelatedTasks),
-            newValue: JSON.stringify(dto.relatedTasks || []),
-          },
-          user,
-        );
-      }
     }
+  }
+
+  private normalizeLogValue(value: unknown): string | number | null {
+    if (value === null || value === undefined) return null;
+    if (value instanceof Date) return value.toISOString();
+    return value as string | number | null;
+  }
+
+  private hasValueChanged(oldValue: unknown, newValue: unknown): boolean {
+    return (
+      oldValue !== newValue && !(oldValue === null && newValue === undefined)
+    );
+  }
+
+  private formatLogValue(value: string | number | null): string {
+    return value === null ? 'null' : String(value);
   }
 
   async getTaskWithHierarchy(id: string, user: UserPayload): Promise<Task> {
@@ -400,6 +502,7 @@ export class TaskService {
         dto.type || task.type,
         dto.parentId ?? task.parent?.id,
         task.parent?.id,
+        user,
       );
     }
     await this.logTaskChanges(task, dto, user);
@@ -411,31 +514,42 @@ export class TaskService {
       ...('storyPoints' in dto && { storyPoints: dto.storyPoints }),
       ...('status' in dto && { status: dto.status }),
       ...('dueDate' in dto && {
-        dueDate: dto.dueDate ? new Date(dto.dueDate as Date) : null,
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
       }),
       ...('projectId' in dto && { projectId: dto.projectId }),
       ...('assigneeId' in dto &&
         (dto.assigneeId
-          ? { assignee: { connect: { id: dto.assigneeId as string } } }
+          ? { assignee: { connect: { id: dto.assigneeId } } }
           : { assignee: { disconnect: true } })),
       ...('teamId' in dto &&
         (dto.teamId
-          ? { team: { connect: { id: dto.teamId as string } } }
+          ? { team: { connect: { id: dto.teamId } } }
           : { team: { disconnect: true } })),
       ...('parentId' in dto &&
         (dto.parentId
-          ? { parent: { connect: { id: dto.parentId as string } } }
+          ? { parent: { connect: { id: dto.parentId } } }
           : { parent: { disconnect: true } })),
     };
     const updatedTask = await this.prisma.task.update({
       where: { id: taskId },
       data: updatedData,
     });
+    // Handle related tasks with transaction to prevent race conditions
     if (dto.relatedTasks) {
-      await this.prisma.taskRelation.deleteMany({
-        where: { taskId: task.id },
+      await this.prisma.$transaction(async (tx) => {
+        await tx.taskRelation.deleteMany({
+          where: { taskId: task.id },
+        });
+
+        if (dto.relatedTasks && dto.relatedTasks.length > 0) {
+          await this.validateAndCreateTaskRelations(
+            task.id,
+            dto.relatedTasks,
+            user,
+            tx,
+          );
+        }
       });
-      await this.createRelations(task, dto.sourceRelations, user);
     }
     return updatedTask;
   }
@@ -445,15 +559,16 @@ export class TaskService {
     dto: LogTaskStatusDto,
     user: UserPayload,
   ): Promise<TaskStatusLog> {
-    const task = await this.prisma.task.findUnique({
+    await this.prisma.task.findUniqueOrThrow({
       where: {
         id: taskId,
         project: {
           accountId: user.account.id,
         },
       },
+      select: { id: true },
     });
-    if (!task) throw new NotFoundException('Task not found');
+
     return await this.prisma.taskStatusLog.create({
       data: {
         task: { connect: { id: taskId } },
@@ -470,12 +585,6 @@ export class TaskService {
     logStatusId: string,
     dto: UpdateLogTaskStatusDto,
   ): Promise<TaskStatusLog> {
-    const statusLog = await this.prisma.taskStatusLog.findUnique({
-      where: { id: logStatusId },
-    });
-
-    if (!statusLog) throw new NotFoundException('Status Log not found');
-
     return await this.prisma.taskStatusLog.update({
       where: { id: logStatusId },
       data: {
@@ -494,13 +603,72 @@ export class TaskService {
   ): Promise<TaskListResponseDto> {
     const startTime = Date.now();
 
+    const pagination = this.buildPagination(filters);
+    const userProjectIds = await this.validateAndGetProjectIds(
+      filters.projectId,
+      user,
+    );
+    const where = this.buildTaskWhereClause(filters, userProjectIds);
+    const orderBy = this.buildTaskOrderBy(filters);
+
+    const [tasks, total] = await Promise.all([
+      this.prisma.task.findMany({
+        where,
+        orderBy,
+        skip: pagination.skip,
+        take: pagination.limit,
+        include: this.getTaskListIncludes(),
+      }),
+      this.prisma.task.count({ where }),
+    ]);
+
+    this.logQueryPerformance(startTime, filters, tasks.length, user.userId);
+
+    return {
+      tasks,
+      total,
+      page: pagination.page,
+      limit: pagination.limit,
+      totalPages: Math.ceil(total / pagination.limit),
+    };
+  }
+
+  private buildPagination(filters: TaskFilterDto) {
+    const validLimit = filters.limit || 20;
+    const validPage = filters.page || 1;
+    const cappedLimit = Math.min(validLimit, 50);
+    const skip = (validPage - 1) * cappedLimit;
+
+    return {
+      page: validPage,
+      limit: cappedLimit,
+      skip,
+    };
+  }
+
+  private async validateAndGetProjectIds(
+    projectId: string | undefined,
+    user: UserPayload,
+  ): Promise<string[]> {
+    if (projectId) {
+      const project = await this.prisma.project.findFirst({
+        where: { id: projectId, accountId: user.account.id },
+        select: { id: true },
+      });
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+      return [projectId];
+    }
+    return this.getUserProjectIds(user.account.id);
+  }
+
+  private buildTaskWhereClause(
+    filters: TaskFilterDto,
+    userProjectIds: string[],
+  ): Prisma.TaskWhereInput {
     const {
-      page,
-      limit,
-      sortBy,
-      sortOrder,
       search,
-      projectId,
       assigneeId,
       creatorId,
       teamId,
@@ -516,48 +684,16 @@ export class TaskService {
       isOverdue,
     } = filters;
 
-    // Cap the limit to prevent large queries with safety checks
-    const validLimit = limit || 20;
-    const validPage = page || 1;
-    const cappedLimit = Math.min(validLimit, 50);
-    const skip = (validPage - 1) * cappedLimit;
     const now = new Date();
+    const defaultCreatedFrom = this.getDefaultCreatedFrom(filters);
 
-    // Get user's project IDs for optimized filtering
-    let userProjectIds: string[];
-    if (projectId) {
-      // Validate single project belongs to user
-      const project = await this.prisma.project.findFirst({
-        where: { id: projectId, accountId: user.account.id },
-        select: { id: true },
-      });
-      if (!project) {
-        throw new NotFoundException('Project not found');
-      }
-      userProjectIds = [projectId];
-    } else {
-      // Get all user's project IDs
-      userProjectIds = await this.getUserProjectIds(user.account.id);
-    }
-
-    // Default to recent tasks if no date filters specified
-    const defaultCreatedFrom =
-      !createdFrom && !createdTo && !dueDateFrom && !dueDateTo
-        ? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) // Last 90 days
-        : createdFrom;
-
-    // Build optimized where clause
-    const where: Prisma.TaskWhereInput = {
-      projectId: { in: userProjectIds }, // Direct project filtering
+    return {
+      projectId: { in: userProjectIds },
       ...(assigneeId && { assigneeId }),
       ...(creatorId && { creatorId }),
       ...(teamId && { teamId }),
       ...(parentId && { parentId }),
-      ...(status && {
-        TaskStatus: {
-          code: status,
-        },
-      }),
+      ...(status && { TaskStatus: { code: status } }),
       ...(priority && { priority }),
       ...(type && { type }),
       ...(dueDateFrom && { dueDate: { gte: dueDateFrom } }),
@@ -569,97 +705,166 @@ export class TaskService {
       }),
       ...(isOverdue && {
         dueDate: { lt: now },
-        TaskStatus: {
-          code: { not: 'done' },
-        },
+        TaskStatus: { code: { not: 'done' } },
       }),
-      // Only search when query is meaningful (3+ characters)
-      ...(search &&
-        search.length >= 3 && {
-          OR: [
-            { title: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            {
-              taskKey: { contains: search, mode: Prisma.QueryMode.insensitive },
-            },
-            // Only search description if search is longer
-            ...(search.length >= 5
-              ? [
-                  {
-                    description: {
-                      contains: search,
-                      mode: Prisma.QueryMode.insensitive,
-                    },
-                  },
-                ]
-              : []),
-          ],
-        }),
-      // Default date filtering for performance
+      ...this.buildSearchClause(search),
       ...(defaultCreatedFrom && { createdAt: { gte: defaultCreatedFrom } }),
     };
+  }
 
-    // Build order by clause with safety check
-    const validSortBy = sortBy || 'createdAt';
-    const validSortOrder = sortOrder || 'desc';
-    const orderBy: Prisma.TaskOrderByWithRelationInput = {
-      [validSortBy]: validSortOrder,
+  private getDefaultCreatedFrom(filters: TaskFilterDto): Date | undefined {
+    const { createdFrom, createdTo, dueDateFrom, dueDateTo } = filters;
+    return !createdFrom && !createdTo && !dueDateFrom && !dueDateTo
+      ? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) // Last 90 days
+      : undefined;
+  }
+
+  private buildSearchClause(search?: string): Prisma.TaskWhereInput {
+    if (!search || search.length < 3) return {};
+
+    return {
+      OR: [
+        { title: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        { taskKey: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        ...(search.length >= 5
+          ? [
+              {
+                description: {
+                  contains: search,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            ]
+          : []),
+      ],
     };
+  }
 
-    const [tasks, total] = await Promise.all([
-      this.prisma.task.findMany({
-        where,
-        orderBy,
-        skip,
-        take: cappedLimit,
+  private buildTaskOrderBy(
+    filters: TaskFilterDto,
+  ): Prisma.TaskOrderByWithRelationInput {
+    const validSortBy = filters.sortBy || 'createdAt';
+    const validSortOrder = filters.sortOrder || 'desc';
+    return { [validSortBy]: validSortOrder };
+  }
+
+  private getTaskListIncludes() {
+    return {
+      project: { select: { name: true, projectKey: true } },
+      assignee: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+      creator: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+      team: { select: { id: true, name: true } },
+      parent: { select: { id: true, title: true, taskKey: true } },
+      TaskStatus: {
+        select: { id: true, code: true, label: true, color: true },
+      },
+      _count: {
+        select: { children: true, comments: true, attachments: true },
+      },
+    };
+  }
+
+  private getTaskDetailIncludes() {
+    return {
+      project: { select: { name: true, projectKey: true } },
+      assignee: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+      creator: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+      team: { select: { id: true, name: true } },
+      parent: { select: { id: true, title: true, taskKey: true } },
+      TaskStatus: {
+        select: { id: true, code: true, label: true, color: true },
+      },
+      children: {
+        select: {
+          id: true,
+          title: true,
+          taskKey: true,
+          statusId: true,
+          priority: true,
+        },
         include: {
-          project: { select: { name: true, projectKey: true } },
-          assignee: {
-            select: { id: true, firstName: true, lastName: true, email: true },
-          },
-          creator: {
-            select: { id: true, firstName: true, lastName: true, email: true },
-          },
-          team: { select: { id: true, name: true } },
-          parent: { select: { id: true, title: true, taskKey: true } },
-          TaskStatus: {
-            select: { id: true, code: true, label: true, color: true },
-          },
-          _count: {
+          TaskStatus: { select: { code: true, label: true } },
+        },
+      },
+      sourceRelations: {
+        include: {
+          relatedTask: {
             select: {
-              children: true,
-              comments: true,
-              attachments: true,
+              id: true,
+              title: true,
+              taskKey: true,
+              statusId: true,
             },
           },
         },
-      }),
-      this.prisma.task.count({ where }),
-    ]);
+      },
+      targetRelations: {
+        include: {
+          sourceTask: {
+            select: {
+              id: true,
+              title: true,
+              taskKey: true,
+              statusId: true,
+            },
+          },
+        },
+      },
+      comments: {
+        orderBy: { createdAt: Prisma.SortOrder.desc },
+        take: 5,
+        include: {
+          author: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      },
+      attachments: {
+        select: {
+          id: true,
+          fileName: true,
+          fileType: true,
+          fileSize: true,
+          createdAt: true,
+        },
+      },
+    };
+  }
 
+  private logQueryPerformance(
+    startTime: number,
+    filters: TaskFilterDto,
+    resultCount: number,
+    userId: string,
+  ): void {
     const queryDuration = Date.now() - startTime;
 
-    // Log slow queries for monitoring
     if (queryDuration > 1000) {
       this.logger.warn(`Slow task query detected: ${queryDuration}ms`, {
         filters: JSON.stringify(filters),
-        resultCount: tasks.length,
-        userId: user.userId,
+        resultCount,
+        userId,
       });
     } else if (queryDuration > 500) {
       this.logger.log(`Task query took ${queryDuration}ms`, {
-        resultCount: tasks.length,
-        hasSearch: !!search,
-        hasComplexFilters: !!(status || priority || type || assigneeId),
+        resultCount,
+        hasSearch: !!filters.search,
+        hasComplexFilters: !!(
+          filters.status ||
+          filters.priority ||
+          filters.type ||
+          filters.assigneeId
+        ),
       });
     }
-
-    return {
-      tasks,
-      total,
-      page: validPage,
-      limit: cappedLimit,
-      totalPages: Math.ceil(total / cappedLimit),
-    };
   }
 
   async findOne(id: string, user: UserPayload): Promise<Task> {
@@ -670,74 +875,7 @@ export class TaskService {
           accountId: user.account.id,
         },
       },
-      include: {
-        project: { select: { name: true, projectKey: true } },
-        assignee: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-        creator: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-        team: { select: { id: true, name: true } },
-        parent: { select: { id: true, title: true, taskKey: true } },
-        TaskStatus: {
-          select: { id: true, code: true, label: true, color: true },
-        },
-        children: {
-          select: {
-            id: true,
-            title: true,
-            taskKey: true,
-            statusId: true,
-            priority: true,
-          },
-          include: {
-            TaskStatus: { select: { code: true, label: true } },
-          },
-        },
-        sourceRelations: {
-          include: {
-            relatedTask: {
-              select: {
-                id: true,
-                title: true,
-                taskKey: true,
-                statusId: true,
-              },
-            },
-          },
-        },
-        targetRelations: {
-          include: {
-            sourceTask: {
-              select: {
-                id: true,
-                title: true,
-                taskKey: true,
-                statusId: true,
-              },
-            },
-          },
-        },
-        comments: {
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-          include: {
-            author: {
-              select: { id: true, firstName: true, lastName: true },
-            },
-          },
-        },
-        attachments: {
-          select: {
-            id: true,
-            fileName: true,
-            fileType: true,
-            fileSize: true,
-            createdAt: true,
-          },
-        },
-      },
+      include: this.getTaskDetailIncludes(),
     });
   }
 
